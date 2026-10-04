@@ -4,7 +4,7 @@
 
 本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-> 当前状态：M0（设计规格完成）。性能与准确率百分比均为 Benchmark Target，尚不是实测结果；表数量、路径上限和用例数量是设计规格。
+> 当前状态：阶段 0（工程基础）已完成。业务 Schema、Agent 和评测尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。
 
 ---
 
@@ -98,6 +98,30 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 | 慢 SQL OptimizePass@1 / @3 | 72% / 86% |
 
 这些值只有在固定数据、模型、Prompt 和代码版本的评测任务完成后，才能由报告转换为 Measured。
+
+## 阶段 0 启动
+
+阶段 0 提供空 API、PostgreSQL 16 + pgvector、沙箱只读角色和测试入口，不包含业务表或 Text-to-SQL。
+
+```bash
+cp .env.example .env
+# 替换 .env 中的占位密码
+uv sync --frozen --group dev
+docker compose up --build --wait
+curl --fail http://127.0.0.1:8000/health
+```
+
+本地质量检查：
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest -m "not integration"
+INTEGRATION_TESTS=1 uv run pytest -m integration
+```
+
+容器内 API 通过服务名 `db` 连接数据库。宿主机上的集成测试使用 `.env` 中的 `POSTGRES_HOST=localhost` 和发布端口。不要把 `.env` 或真实密码提交到仓库。
 
 ## 文档
 

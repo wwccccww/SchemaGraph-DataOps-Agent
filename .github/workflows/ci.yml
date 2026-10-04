@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest -m "not integration"
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Start PostgreSQL
+        run: |
+          set -euo pipefail
+          admin_password="$(openssl rand -hex 24)"
+          sandbox_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$admin_password"
+          echo "::add-mask::$sandbox_password"
+          {
+            echo "POSTGRES_USER=text2sql_admin"
+            echo "POSTGRES_PASSWORD=$admin_password"
+            echo "POSTGRES_DB=text2sql_db"
+            echo "POSTGRES_HOST=127.0.0.1"
+            echo "POSTGRES_PORT=5432"
+            echo "SANDBOX_DB_PASSWORD=$sandbox_password"
+            echo "INTEGRATION_TESTS=1"
+          } >> "$GITHUB_ENV"
+          docker run -d --name phase0-postgres \
+            -e POSTGRES_USER=text2sql_admin \
+            -e "POSTGRES_PASSWORD=$admin_password" \
+            -e POSTGRES_DB=text2sql_db \
+            -p 127.0.0.1:5432:5432 \
+            pgvector/pgvector:pg16
+          for _ in $(seq 1 30); do
+            if docker exec phase0-postgres pg_isready -U text2sql_admin -d text2sql_db; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs phase0-postgres
+          exit 1
+      - run: uv sync --frozen --group dev
+      - run: uv run pytest -m integration
