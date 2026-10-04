@@ -1,0 +1,63 @@
+contract_version: "1.0"
+cases:
+  - id: slow_seq_scan
+    snapshot_version: ecommerce-v1
+    database_id: ecommerce
+    antipattern: seq-scan-on-large-table
+    sql: |
+      SELECT d.detail_id, d.quantity
+      FROM t_order_detail d
+      WHERE d.order_id NOT IN (
+        SELECT o.order_id FROM t_order o WHERE o.user_id <> 1
+      )
+    index_preconditions:
+      - DROP INDEX IF EXISTS idx_order_status
+    primary_metric: planner_cost
+    min_primary_drop: 0.2
+    max_secondary_regression: 0.5
+    order_sensitive: false
+    numeric_tolerance: null
+    timeout_ms: 5000
+  - id: slow_index_expr
+    snapshot_version: ecommerce-v1
+    database_id: ecommerce
+    antipattern: function-on-index-column
+    sql: |
+      SELECT order_id FROM t_order WHERE (user_id + 0) = 1
+    index_preconditions: []
+    primary_metric: planner_cost
+    min_primary_drop: 0.2
+    max_secondary_regression: 0.5
+    order_sensitive: false
+    numeric_tolerance: null
+    timeout_ms: 5000
+  - id: slow_implicit_cast
+    snapshot_version: ecommerce-v1
+    database_id: ecommerce
+    antipattern: implicit-cast-on-index-column
+    sql: |
+      SELECT order_id FROM t_order WHERE user_id::text = '1'
+    index_preconditions: []
+    primary_metric: planner_cost
+    min_primary_drop: 0.2
+    max_secondary_regression: 0.5
+    order_sensitive: false
+    numeric_tolerance: null
+    timeout_ms: 5000
+  - id: slow_repeat_agg
+    snapshot_version: ecommerce-v1
+    database_id: ecommerce
+    antipattern: aggregate-after-join
+    sql: |
+      SELECT o.order_status, SUM(o.total_amount) AS amount
+      FROM t_order o
+      JOIN t_order_detail d ON d.order_id = o.order_id
+      JOIN t_order_detail d2 ON d2.detail_id = d.detail_id
+      GROUP BY o.order_status
+    index_preconditions: []
+    primary_metric: planner_cost
+    min_primary_drop: 0.2
+    max_secondary_regression: 0.5
+    order_sensitive: false
+    numeric_tolerance: null
+    timeout_ms: 5000
