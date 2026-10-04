@@ -44,6 +44,12 @@ class DeepSeekGateway:
         self._timeout_seconds = timeout_seconds
         self._client = client
 
+    @property
+    def model(self) -> str:
+        """模型名。Trace 只记录这个名字，不记录密钥。"""
+
+        return self._model
+
     async def complete(
         self,
         messages: Sequence[Mapping[str, str]],

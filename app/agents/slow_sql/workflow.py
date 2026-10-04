@@ -18,6 +18,13 @@ from app.agents.text_to_sql.prompt import extract_sql
 from app.db.catalog import DATABASE_ID
 from app.evaluation.ex import results_match
 from app.llm.gateway import ChatModel
+from app.observability.tracing import (
+    RequestTrace,
+    model_name_of,
+    request_span,
+    set_request_attributes,
+    sql_hash,
+)
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess
 from app.sandbox.gate import check_read_only_sql
@@ -76,6 +83,8 @@ class SlowSqlState(TypedDict):
     error_category: str | None
     error_message: str | None
     error_retryable: bool
+    error_hash: str
+    generation_attempt: int
 
 
 @dataclass(frozen=True)
@@ -139,22 +148,27 @@ async def run_slow_sql(
     """诊断一条 SQL。评测阈值和参考改写不是参数。"""
 
     identifier = request_id or f"req_{uuid4().hex}"
-    graph: Any = build_graph(services)
-    final = cast(
-        SlowSqlState,
-        await graph.ainvoke(
-            _initial_state(
-                request_id=identifier,
-                sql=sql,
-                database_id=database_id,
-                run_analyze=run_analyze,
-                rewrite=rewrite,
-                order_sensitive=order_sensitive,
-                numeric_tolerance=numeric_tolerance,
+    final: SlowSqlState | None = None
+    with request_span("slow_sql") as span:
+        try:
+            graph: Any = build_graph(services)
+            final = cast(
+                SlowSqlState,
+                await graph.ainvoke(
+                    _initial_state(
+                        request_id=identifier,
+                        sql=sql,
+                        database_id=database_id,
+                        run_analyze=run_analyze,
+                        rewrite=rewrite,
+                        order_sensitive=order_sensitive,
+                        numeric_tolerance=numeric_tolerance,
+                    )
+                ),
             )
-        ),
-    )
-    return _response(final)
+            return _response(final)
+        finally:
+            set_request_attributes(span, _trace_fields(services, final))
 
 
 def _initial_state(
@@ -191,6 +205,8 @@ def _initial_state(
         "error_category": None,
         "error_message": None,
         "error_retryable": False,
+        "error_hash": "",
+        "generation_attempt": 0,
     }
 
 
@@ -203,6 +219,7 @@ async def _validate_sql(state: SlowSqlState) -> dict[str, object]:
             decision.error.category,
             decision.error.normalized_message,
             decision.error.retryable,
+            decision.error.error_hash,
         )
     return {"rendered_sql": decision.sql}
 
@@ -218,7 +235,12 @@ def _explain_plan(
     async def node(state: SlowSqlState) -> dict[str, object]:
         outcome = await services.explain(state["rendered_sql"], analyze=state["run_analyze"])
         if isinstance(outcome, ExecutionError):
-            return _failure(outcome.category, outcome.normalized_message, outcome.retryable)
+            return _failure(
+                outcome.category,
+                outcome.normalized_message,
+                outcome.retryable,
+                outcome.error_hash,
+            )
         findings = list(state["findings"])
         scan = finding_for_seq_scan([(item.node_type, item.relation) for item in outcome.nodes])
         if scan is not None and all(item["rule_id"] != scan.rule_id for item in findings):
@@ -244,6 +266,7 @@ def _rewrite_sql(
             findings=tuple(_finding_from_state(item) for item in state["findings"]),
             nodes=tuple(_node_from_state(item) for item in state["plan_nodes"]),
         )
+        attempt = state["generation_attempt"] + 1
         try:
             content = await services.model.complete(
                 (
@@ -254,11 +277,11 @@ def _rewrite_sql(
             )
         except Exception:
             logger.info("slow sql rewrite failed with %s", "model_error")
-            return {"candidate_sql": None}
+            return {"candidate_sql": None, "generation_attempt": attempt}
         decision = check_read_only_sql(extract_sql(content))
         if decision.error is not None:
-            return {"candidate_sql": None}
-        return {"candidate_sql": decision.sql}
+            return {"candidate_sql": None, "generation_attempt": attempt}
+        return {"candidate_sql": decision.sql, "generation_attempt": attempt}
 
     return node
 
@@ -337,12 +360,18 @@ def _after_verify(state: SlowSqlState) -> str:
     return "finish"
 
 
-def _failure(category: str, message: str, retryable: bool) -> dict[str, object]:
+def _failure(
+    category: str,
+    message: str,
+    retryable: bool,
+    error_hash: str | None = None,
+) -> dict[str, object]:
     return {
         "status": "failed",
         "error_category": category,
         "error_message": message,
         "error_retryable": retryable,
+        "error_hash": error_hash or "",
     }
 
 
@@ -408,6 +437,54 @@ def _node_from_state(item: dict[str, object]) -> PlanNode:
         relation=relation if isinstance(relation, str) else None,
         total_cost=float(cost) if isinstance(cost, int | float) else 0.0,
     )
+
+
+def _trace_fields(services: SlowSqlServices, state: SlowSqlState | None) -> RequestTrace:
+    if state is None:
+        return _empty_trace(services)
+    cost = state["original_cost"]
+    elapsed = state["original_time_ms"]
+    return {
+        "request_type": "slow_sql",
+        "model_name": model_name_of(services.model),
+        "retrieved_seed_tables": (),
+        "expanded_tables": (),
+        "schema_context_tokens": 0,
+        "selected_tools": (),
+        "generation_attempt": state["generation_attempt"],
+        "sql_hash": sql_hash(_traced_sql(state)),
+        "error_hash": state["error_hash"],
+        "db_execution_ms": 0.0 if elapsed is None else elapsed,
+        "planner_total_cost": 0.0 if cost is None else cost,
+        "result_row_count": 0,
+        "circuit_breaker_triggered": False,
+    }
+
+
+def _empty_trace(services: SlowSqlServices) -> RequestTrace:
+    return {
+        "request_type": "slow_sql",
+        "model_name": model_name_of(services.model),
+        "retrieved_seed_tables": (),
+        "expanded_tables": (),
+        "schema_context_tokens": 0,
+        "selected_tools": (),
+        "generation_attempt": 0,
+        "sql_hash": "",
+        "error_hash": "",
+        "db_execution_ms": 0.0,
+        "planner_total_cost": 0.0,
+        "result_row_count": 0,
+        "circuit_breaker_triggered": False,
+    }
+
+
+def _traced_sql(state: SlowSqlState) -> str:
+    if state["candidate_sql"]:
+        return state["candidate_sql"]
+    if state["rendered_sql"]:
+        return state["rendered_sql"]
+    return state["sql"]
 
 
 def _response(state: SlowSqlState) -> SlowSqlResponse:

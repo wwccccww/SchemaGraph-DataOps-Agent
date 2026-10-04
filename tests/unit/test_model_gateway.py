@@ -54,6 +54,7 @@ async def test_gateway_reads_the_completion_and_hides_errors() -> None:
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         gateway = DeepSeekGateway(api_key=SecretStr("deepseek-test-key"), client=client)
+        assert gateway.model == DEEPSEEK_MODEL
         sql = await gateway.complete(
             [{"role": "user", "content": "问题"}],
             temperature=0,

@@ -1,1 +1,1 @@
-"""OpenTelemetry。阶段 8 之前不包含业务实现。"""
+"""OpenTelemetry Trace。默认不把 Span 发到收集器。"""

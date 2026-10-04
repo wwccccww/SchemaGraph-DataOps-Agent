@@ -18,6 +18,13 @@ from app.agents.text_to_sql.prompt import (
 from app.db.catalog import DATABASE_ID
 from app.graph.expand import TokenCounter, expand_schema, render_schema_context
 from app.llm.gateway import ChatModel
+from app.observability.tracing import (
+    RequestTrace,
+    model_name_of,
+    request_span,
+    set_request_attributes,
+    sql_hash,
+)
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess
 from app.sandbox.gate import check_read_only_sql
@@ -81,6 +88,7 @@ class TextToSqlState(TypedDict):
     error_message: str | None
     error_retryable: bool
     circuit_breaker_triggered: bool
+    db_execution_ms: float | None
 
 
 @dataclass(frozen=True)
@@ -154,29 +162,34 @@ async def run_text_to_sql(
     identifier = request_id or f"req_{uuid4().hex}"
     if variant not in TEXT_TO_SQL_VARIANTS:
         raise ValueError(f"unknown text-to-sql variant: {variant}")
-    if database_id != DATABASE_ID:
-        return TextToSqlResponse(
-            request_id=identifier,
-            status="failed",
-            attempts=0,
-            error=ApiError(
-                category="unsupported_database",
-                message="当前只支持 ecommerce 数据库",
-                retryable=False,
-            ),
-        )
-    graph = cast(CompiledGraph, build_graph(services))
-    final = await graph.ainvoke(
-        _initial_state(
-            request_id=identifier,
-            question=question,
-            database_id=database_id,
-            variant=variant,
-            execute=execute,
-            max_rows=max_rows,
-        )
-    )
-    return _response(final)
+    final: TextToSqlState | None = None
+    with request_span("text_to_sql") as span:
+        try:
+            if database_id != DATABASE_ID:
+                return TextToSqlResponse(
+                    request_id=identifier,
+                    status="failed",
+                    attempts=0,
+                    error=ApiError(
+                        category="unsupported_database",
+                        message="当前只支持 ecommerce 数据库",
+                        retryable=False,
+                    ),
+                )
+            graph = cast(CompiledGraph, build_graph(services))
+            final = await graph.ainvoke(
+                _initial_state(
+                    request_id=identifier,
+                    question=question,
+                    database_id=database_id,
+                    variant=variant,
+                    execute=execute,
+                    max_rows=max_rows,
+                )
+            )
+            return _response(final)
+        finally:
+            set_request_attributes(span, _trace_fields(services, final))
 
 
 class CompiledGraph(Protocol):
@@ -220,6 +233,7 @@ def _initial_state(
         "error_message": None,
         "error_retryable": False,
         "circuit_breaker_triggered": False,
+        "db_execution_ms": None,
     }
 
 
@@ -355,6 +369,7 @@ def _execute_sql(
             "status": "succeeded",
             "columns": [name for name, _database_type in outcome.columns],
             "rows": json_rows(outcome.rows),
+            "db_execution_ms": outcome.execution_time_ms,
         }
 
     return execute_sql
@@ -462,6 +477,50 @@ def _tool_payload(tool: ToolHit) -> dict[str, object]:
         "input_schema": tool.input_schema,
         "score": tool.score,
     }
+
+
+def _trace_fields(services: ServiceBundle, state: TextToSqlState | None) -> RequestTrace:
+    if state is None:
+        return {
+            "request_type": "text_to_sql",
+            "model_name": model_name_of(services.model),
+            "retrieved_seed_tables": (),
+            "expanded_tables": (),
+            "schema_context_tokens": 0,
+            "selected_tools": (),
+            "generation_attempt": 0,
+            "sql_hash": "",
+            "error_hash": "",
+            "db_execution_ms": 0.0,
+            "planner_total_cost": 0.0,
+            "result_row_count": 0,
+            "circuit_breaker_triggered": False,
+        }
+    elapsed = state["db_execution_ms"]
+    return {
+        "request_type": "text_to_sql",
+        "model_name": model_name_of(services.model),
+        "retrieved_seed_tables": tuple(state["seed_tables"]),
+        "expanded_tables": tuple(state["expanded_tables"]),
+        "schema_context_tokens": state["schema_token_count"],
+        "selected_tools": _selected_tool_names(state),
+        "generation_attempt": state["attempt"],
+        "sql_hash": sql_hash(state["generated_sql"]),
+        "error_hash": state["consecutive_error_hash"] or "",
+        "db_execution_ms": 0.0 if elapsed is None else elapsed,
+        "planner_total_cost": 0.0,
+        "result_row_count": len(state["rows"]),
+        "circuit_breaker_triggered": state["circuit_breaker_triggered"],
+    }
+
+
+def _selected_tool_names(state: TextToSqlState) -> tuple[str, ...]:
+    names: list[str] = []
+    for tool in state["selected_tools"]:
+        name = tool.get("name")
+        if isinstance(name, str):
+            names.append(name)
+    return tuple(names)
 
 
 def _response(state: TextToSqlState) -> TextToSqlResponse:
