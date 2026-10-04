@@ -1,82 +1,122 @@
 # 🕸️ SchemaGraph-DataOps-Agent
 
-> **基于外键图拓扑与沙箱自愈的工业级 Text-to-SQL & 慢 SQL 智能诊断 Agent 平台**
+面向复杂数仓 Join 的 Text-to-SQL 与慢 SQL 智能诊断 Agent。
 
+本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-
----
-
-## 📌 项目简介
-
-在企业数仓即席查询（Ad-hoc Query）与跨主题域分析场景中，传统的向量检索 RAG 在面对 **7~12 张表关联** 及 **无语义中间映射表** 时，常因上下文召回断链导致 Text-to-SQL 生成失败。
-
-**SchemaGraph-DataOps-Agent** 专为解决复杂数仓查询与 SQL 性能诊断而设计。引入 **外键图拓扑扩展（Schema Graph）** 与 **Error Hash 熔断自愈机制**，实现了跨域复杂查询准确率的跨越式提升，同时提供基于 **AST 语法树 + EXPLAIN 物理执行计划** 的自动慢 SQL 改写与优化建议。
+> 当前状态：M0（设计规格完成）。性能与准确率百分比均为 Benchmark Target，尚不是实测结果；表数量、路径上限和用例数量是设计规格。
 
 ---
 
-## ✨ 核心技术亮点
+## 核心能力
 
-### 1. 🕸️ Schema Graph 外键图拓扑引擎
-* **打破 RAG 检索断链**：基于 `NetworkX` 将数据库 DDL 解析为无向加权图。当向量检索召回“种子表”后，自动利用图路径算术（Dijkstra / Shortest Path）补全缺失的无语义中间关联表（如 `t_order_coupon_rel`）。
-* **降噪与 Token 控制**：精准切片 7~12 表上下文，将上下文 Token 消耗降低 **65%**，避免无关 Schema 干扰大模型注意力。
+### Schema Graph
 
-### 2. ⚡ Error Hash 熔断与多轮自愈
-* **死循环拦截器**：对数据库执行报错进行 `MD5(error_message)` 哈希签名。若同一错误连续出现 **3 次**，立即触发 Circuit Breaker 强行熔断，阻止毫无意义的 Token 浪费。
-* **反馈驱动纠错**：将具体 DB 异常栈与执行上下文回传 LLM 进行精准修复。
+- BGE-M3 + pgvector 召回 Top-3～5 实体种子表；
+- 在 Seed 阶段屏蔽 Junction Table；
+- NetworkX 先执行 1-Hop-per-Seed Junction 补全，即桥表距两个 Seed 各 1 hop；
+- 未连通种子使用深度不超过 4 的受限最短路径；
+- 最终上下文不超过 12 张表和 3.5k Schema token。
 
-### 3. 🔍 AST + EXPLAIN 双引擎慢 SQL 诊断
-* **规则与 LLM 联合诊断**：利用 `SQLGlot` 提取抽象语法树（AST），优先进行硬规则审查（全表扫描、隐式类型转换、索引失效、`SELECT *` 等）；结合沙箱 `EXPLAIN ANALYZE` 物理 Cost 驱动 LLM 出具优化建议。
+### Text-to-SQL 自愈
 
-### 4. 🧪 132-Benchmark 自动化评测沙箱
-* 内置包含 132 条测试用例的离线评测套件（50 条基础 SQL + 32 条 7~12 表复杂 Join + 50 条慢 SQL 诊断）。
-* 包含单元格级 **Execution Accuracy (EX)** 校验与一键跑分报告生成器。
+- DeepSeek-V3 为主业务生成 PostgreSQL SQL；BIRD 外部评测使用独立 SQLite 方言 Adapter；
+- SQLGlot 做语法和全 AST 只读检查；
+- PostgreSQL 最小权限 Role + READ ONLY 事务；
+- 将 SQLSTATE 和规范化错误反馈给模型；
+- 同一 Error Hash 连续出现 3 次时熔断；
+- 独立统计 Pass@1、Pass@3 和 Recovery@3。
 
----
+### 慢 SQL 诊断
 
-## 📊 性能量化对比 (Benchmark Result)
+- 静态识别全表扫描、隐式转换、索引失效和重复聚合；
+- 解析 `EXPLAIN (FORMAT JSON)` 的 Planner Cost；
+- 受控执行 `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`；
+- 自动改写后先验证结果等价，再比较 Cost、时间和 Buffer；
+- 每个性能用例使用隔离数据库快照，避免索引和数据污染。
 
-在 132 条包含跨域 7~12 张表关联的数仓真实评测集上跑分数据如下：
+### Tool-RAG 与可观测性
 
-| 评估指标 (Metrics) | Baseline (纯 RAG + Zero-Shot) | Enhanced (Schema Graph + 熔断自愈) | 提升幅度 |
-| :--- | :---: | :---: | :---: |
-| **EX 准确率 (7~12 表复杂 Join)** | **38.2%** | **83.1%** | <font color="green">**+44.9%**</font> |
-| **无语义中间表召回率** | 22.5% | **96.8%** | <font color="green">**+74.3%**</font> |
-| **平均自愈收敛轮数** | 4.2 轮（易引发无限重试） | **1.8 轮** | <font color="green">**-57.1%**</font> |
-| **慢 SQL 性能优化 Cost 降幅** | - | **平均降低 68.4%** | - |
+- 10 个只读 MCP 元数据/诊断工具；
+- 每次动态注入 Top-3 工具定义；
+- OpenTelemetry 记录检索、图扩展、模型和数据库执行链路。
 
----
-
-## 🏗️ 架构示意图
+## 架构
 
 ```text
-[用户自然语言 Prompt / 慢 SQL]
-         │
-         ▼
- ┌────────────────┐      ① 向量检索 (Top-K)     ┌────────────────┐
- │ Text2SQL Agent │ ──────────────────────────► │ Vector DB      │
- └───────┬────────┘                             └───────┬────────┘
-         │                                              │ 召回种子表 (Seed Tables)
-         │ ② 图拓扑扩展 (Schema Graph)                   ▼
-         │ ───────────────────────────────────► ┌────────────────┐
-         │                                      │ NetworkX Graph │ (补全无语义中间表)
-         │ ③ 完整子图 Context + Prompt           └───────┬────────┘
-         ▼                                              │
- ┌────────────────┐                                     │
- │ LLM (DeepSeek) │ ◄───────────────────────────────────┘
- └───────┬────────┘
-         │ ④ SQL 生成
-         ▼
- ┌────────────────┐     ⑤ 语法校验      ┌────────────────┐
- │  SQLGlot AST   │ ──────────────────► │ Syntax Error?  │ ──► (回传修正)
- └───────┬────────┘                     └───────┬────────┘
-         │ OK                                   │ Passed
-         ▼                                      ▼
- ┌───────────────────────────────────────────────────────┐
- │ Docker 沙箱执行器 (AsyncPG Executor)                   │
- └───────┬───────────────────────────────────────────────┘
-         ├──────────────────────────┬────────────────────┐
-         ▼ Success                  ▼ Error              ▼ Slow Query
- ┌───────────────┐          ┌───────────────┐    ┌───────────────┐
- │ 最终结果返回  │          │ Error Hash    │    │ EXPLAIN       │
- └───────────────┘          │ 熔断自愈循环  │    │ 慢 SQL 诊断   │
-                            └───────────────┘    └───────────────┘
+                          FastAPI / CLI Router
+                         ┌─────────┴─────────┐
+                         │                   │
+                 Natural Language        Raw Slow SQL
+                         │                   │
+               Schema/Tool RAG          AST Diagnostics
+                         │                   │
+                  Schema Graph          EXPLAIN / Rewrite
+                         │                   │
+                    SQL Generate             │
+                         └─────────┬─────────┘
+                                   ▼
+                      PostgreSQL Read-only Sandbox
+                         ┌─────────┴─────────┐
+                         │                   │
+                    EX / Result         Error Hash
+                    Equivalence         Self-Healing
+```
+
+Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型、SQL 解析器、沙箱、可观测性和评测能力。
+
+## 技术栈
+
+| 层级 | 技术 |
+| --- | --- |
+| API 与契约 | Python 3.12、FastAPI、Pydantic v2 |
+| Agent 与工具 | LangGraph、MCP Protocol |
+| 模型与检索 | DeepSeek-V3、BAAI/bge-m3、pgvector |
+| 数据与图 | PostgreSQL 16、SQLAlchemy 2、AsyncPG、NetworkX |
+| SQL 与沙箱 | SQLGlot、Docker |
+| 评测与追踪 | Pytest、Pandas、NumPy、Faker、OpenTelemetry |
+
+## Benchmark 规划
+
+| 轨道 | 数量 | 用途 |
+| --- | ---: | --- |
+| 自建电商 Text-to-SQL | 132 | 主 EX、桥表召回和自愈 |
+| TPC-DS 派生复杂查询 | 30 | 大型雪花 Schema 压力测试 |
+| BIRD Complex | 50 | 公开跨领域泛化测试 |
+| 慢 SQL | 50 | 等价改写与性能评测 |
+
+三套 Text-to-SQL 数据分别报告，不计算混合准确率。TPC-DS 部分属于派生工作负载，不代表官方 TPC-DS 成绩。
+
+### Target Metrics
+
+| 指标 | 目标 |
+| --- | ---: |
+| 自建整体 EX | 83% |
+| Junction Table Recall | 96.8% |
+| Planner Cost Drop（全量宏平均） | 68.4% |
+| Execution Time Drop（全量宏平均） | 74.2% |
+| 慢 SQL OptimizePass@1 / @3 | 72% / 86% |
+
+这些值只有在固定数据、模型、Prompt 和代码版本的评测任务完成后，才能由报告转换为 Measured。
+
+## 文档
+
+- [系统架构](docs/architecture.md)
+- [Schema 与图拓扑设计](docs/schema-and-graph.md)
+- [数据库沙箱与安全设计](docs/security.md)
+- [Benchmark 与验收规范](docs/benchmark.md)
+- [数据与接口契约](docs/data-contracts.md)
+- [工程实施计划](docs/implementation-plan.md)
+- [核心架构决策 ADR](docs/adr/0001-core-architecture-decisions.md)
+
+## 实施顺序
+
+1. 建立 Docker、PostgreSQL、pgvector 和测试框架；
+2. 落地 12 表 DDL、确定性造数器和 10 条冒烟用例；
+3. 实现 Schema Graph 与检索；
+4. 打通 Text-to-SQL 生成、执行、自愈和 EX；
+5. 实现慢 SQL 诊断与改写复验；
+6. 扩展自建 132 条用例；
+7. 最后接入 TPC-DS 派生与 BIRD。
+
+首个工程里程碑是 10 条用例的端到端纵向闭环，而不是一次性生成全部评测数据。
