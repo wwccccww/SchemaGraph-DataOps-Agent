@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 _INIT_LOCK_KEY = "schemagraph.db_init"
 _RETRYABLE_ERRORS = (ConnectionError, TimeoutError, OSError)
-_QUOTED_LITERAL = re.compile(r"^'(?:''|[^'])*'$", re.DOTALL)
+_QUOTED_LITERAL = re.compile(r"^(?:E)?'(?:''|\\.|[^'])*'$", re.DOTALL)
 
 
 def is_retryable_database_error(exc: BaseException) -> bool:
