@@ -4232,7 +4232,7 @@ cases:
     database_id: ecommerce
     difficulty: complex
     dialect: postgres
-    question: "统计2026年9月华东大区VIP5用户使用满减优惠券购买自营美妆、且该优惠券适用于所购商品的已支付订单数和实付金额"
+    question: "统计2026年9月华东大区VIP5用户在自营美妆二店使用满减优惠券购买自营美妆、且该优惠券适用于所购商品的已支付订单数和实付金额"
     gold_sql: |-
       WITH qualified_orders AS (
           SELECT DISTINCT o.order_id, o.total_amount, m.merchant_id, m.merchant_name
@@ -4255,6 +4255,7 @@ cases:
             AND o.order_status = 'PAID'
             AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
             AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+            AND m.merchant_name = '自营美妆二店'
             AND EXISTS (
                 SELECT 1
                 FROM t_promo_sku_rel AS psr

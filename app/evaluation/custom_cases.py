@@ -598,9 +598,12 @@ def _complex_cases() -> list[BenchmarkCase]:
         for names, label in ((_GROUP_A, "个护数码"), (_GROUP_B, "食品家居")):
             cases.append(_region_group_orders(index, region, names, label))
             index += 1
-    for level in ("VIP3", "VIP4", "VIP5"):
+    for level in ("VIP3", "VIP4"):
         cases.append(_promo_slice(index, level=level, merchant_name=None))
         index += 1
+    # VIP5 与 VIP4 的商家汇总金额相同，再限定到自营美妆二店才有区分度。
+    cases.append(_promo_slice(index, level="VIP5", merchant_name="自营美妆二店"))
+    index += 1
     for merchant_name in ("自营美妆一店", "自营美妆二店"):
         cases.append(_promo_slice(index, level=None, merchant_name=merchant_name))
         index += 1
