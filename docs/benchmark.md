@@ -66,6 +66,8 @@
 - 索引前置条件；
 - 原始执行结果；
 - 允许的改写类别；
+- `primary_metric`，枚举为 `planner_cost`、`execution_time` 或 `shared_buffer_access`，默认 `planner_cost`；
+- `min_primary_drop` 与次要指标最大允许退化比例；
 - 超时和资源预算。
 
 因此默认规模是：
@@ -149,10 +151,12 @@ EX(case) = 0  其他情况，包括生成失败、语法错误、超时和熔断
 - Text-to-SQL `Pass@1`：温度 `0.0`，无反馈的单次候选；
 - Text-to-SQL `Pass@3`：温度 `0.3`，三个相互独立的候选，任一通过 EX 即成功；
 - `Recovery@3`：首次生成失败后，基于结构化沙箱错误最多执行三轮连续修复。
-- 慢 SQL `OptimizePass@1`：单个改写候选同时满足结果等价和主性能指标改善；
+- 慢 SQL `OptimizePass@1`：单个改写候选同时满足结果等价、达到用例声明的 `min_primary_drop`，且次要指标没有突破退化上限；
 - 慢 SQL `OptimizePass@3`：三个独立改写候选中至少一个满足上述条件。
 
 Text-to-SQL Pass、慢 SQL OptimizePass 与 Recovery 必须分别报告，不能把独立采样、性能优化和反馈修复混为同一指标。
+
+当 OptimizePass@3 有多个合格候选时，按“主指标降幅最高、Execution Time 更低、候选序号更小”的稳定顺序选择一个代表候选。逐条报告只能使用该候选，不能人工挑选不同候选分别计算不同指标。
 
 ## 7. Schema Graph 指标
 
@@ -235,6 +239,8 @@ max_parallel_workers_per_gather: 0
 Target 对应的性能降幅使用 `macro_drop_all_eligible`：对所有指标分母有效的慢 SQL 用例做算术平均；生成失败、不等价、超时或没有改善的用例按 0 计入，负优化保留负值。原始分母为零的用例记为不适用、从该指标分母排除，并单独报告数量。
 
 报告还应提供 `drop_on_success` 分布作为诊断信息，但不得用它替换 Target 对应的全量宏平均。
+
+68.4%、74.2% 和 81.0% 三项性能 Target 固定基于 **OptimizePass@1 的唯一候选**计算，避免三候选择优造成性能数字膨胀。OptimizePass@3 只对应 86% 成功率目标；其代表候选性能作为独立诊断报告，不与上述三项 Target 混用。
 
 ## 9. Target 与 Measured
 
