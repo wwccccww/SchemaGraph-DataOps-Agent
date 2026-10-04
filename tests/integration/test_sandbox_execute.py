@@ -19,7 +19,7 @@ async def test_sandbox_transaction_is_read_only_and_bounded(database_settings) -
         "SELECT current_setting('transaction_read_only'), current_setting('statement_timeout')"
     )
     assert not isinstance(settings_result, ExecutionError)
-    assert settings_result.rows == [("on", "5s")]
+    assert settings_result.rows == (("on", "5s"),)
     assert settings_result.truncated is False
 
     started = time.perf_counter()

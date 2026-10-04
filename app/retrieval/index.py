@@ -73,6 +73,7 @@ async def ensure_embedding_tables(conn: AsyncConnection) -> None:
         ON tool_embedding USING hnsw (embedding vector_cosine_ops)
         """,
         f"GRANT SELECT ON schema_embedding, tool_embedding TO {_SANDBOX_ROLE}",
+        f"GRANT EXECUTE ON FUNCTION cosine_distance(vector, vector) TO {_SANDBOX_ROLE}",
     )
     for statement in statements:
         await conn.execute(text(statement))

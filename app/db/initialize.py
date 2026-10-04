@@ -128,6 +128,7 @@ async def _grant_sandbox_privileges(conn: AsyncConnection, database: str) -> Non
         f"REVOKE TEMP ON DATABASE {database} FROM PUBLIC",
         "REVOKE CREATE ON SCHEMA public FROM PUBLIC",
         "REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC",
+        "GRANT EXECUTE ON FUNCTION cosine_distance(vector, vector) TO sandbox_readonly",
         "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO sandbox_readonly",
     )
     for statement in statements:
