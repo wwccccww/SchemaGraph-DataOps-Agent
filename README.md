@@ -4,7 +4,7 @@
 
 本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-> 当前状态：阶段 0（工程基础）已完成。业务 Schema、Agent 和评测尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。
+> 当前状态：阶段 0–2 已完成（工程基础、12 表确定性数据、Schema Graph）。Schema-RAG、Agent 和完整评测运行器尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。
 
 ---
 
@@ -99,9 +99,9 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 
 这些值只有在固定数据、模型、Prompt 和代码版本的评测任务完成后，才能由报告转换为 Measured。
 
-## 阶段 0 启动
+## 阶段 0–2 启动
 
-阶段 0 提供空 API、PostgreSQL 16 + pgvector、沙箱只读角色和测试入口，不包含业务表或 Text-to-SQL。
+阶段 0 提供空 API、PostgreSQL 16 + pgvector、沙箱只读角色和测试入口。阶段 1 在显式执行造数后提供 12 表和 10 条冒烟 Gold SQL。阶段 2 提供外键图扩展。API 启动不会自动装载业务数据，Gold SQL 也不会进入生成 Prompt。
 
 ```bash
 cp .env.example .env
@@ -109,6 +109,7 @@ cp .env.example .env
 uv sync --frozen --group dev
 docker compose up --build --wait
 curl --fail http://127.0.0.1:8000/health
+uv run python -m app.db.seed
 ```
 
 本地质量检查：

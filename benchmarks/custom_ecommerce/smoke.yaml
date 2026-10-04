@@ -1,0 +1,439 @@
+contract_version: "1.0"
+cases:
+  - id: smoke_basic_001
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: basic
+    dialect: postgres
+    question: 按等级编号升序查询全部会员等级的名称和折扣率
+    gold_sql: |
+      SELECT level_id, level_name, discount_rate
+      FROM t_user_level
+      ORDER BY level_id
+    required_tables:
+      - t_user_level
+    required_junctions: []
+    order_sensitive: true
+    numeric_tolerance: null
+    expected_columns:
+      - level_id
+      - level_name
+      - discount_rate
+    anchor_date: "2026-10-01"
+    tags:
+      - dimension
+      - order
+
+  - id: smoke_basic_002
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: basic
+    dialect: postgres
+    question: 统计每个会员等级的用户数量
+    gold_sql: |
+      SELECT ul.level_name, COUNT(*)::bigint AS user_count
+      FROM t_user AS u
+      JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+      GROUP BY ul.level_id, ul.level_name
+    required_tables:
+      - t_user
+      - t_user_level
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - level_name
+      - user_count
+    anchor_date: "2026-10-01"
+    tags:
+      - aggregation
+
+  - id: smoke_basic_003
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: basic
+    dialect: postgres
+    question: 查询自营商家在售的美妆商品
+    gold_sql: |
+      SELECT p.product_id, p.product_name, m.merchant_name
+      FROM t_product AS p
+      JOIN t_category AS c ON p.category_id = c.category_id
+      JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+      WHERE c.category_name = '美妆'
+        AND m.is_self_operated IS TRUE
+    required_tables:
+      - t_product
+      - t_category
+      - t_merchant
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - product_id
+      - product_name
+      - merchant_name
+    anchor_date: "2026-10-01"
+    tags:
+      - filter
+
+  - id: smoke_medium_001
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: medium
+    dialect: postgres
+    question: 统计2026年9月已支付美妆订单中，VIP3、VIP4、VIP5用户的购买数量
+    gold_sql: |
+      SELECT ul.level_name, SUM(od.quantity)::bigint AS total_quantity
+      FROM t_order AS o
+      JOIN t_user AS u ON o.user_id = u.user_id
+      JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+      JOIN t_order_detail AS od ON o.order_id = od.order_id
+      JOIN t_product AS p ON od.product_id = p.product_id
+      JOIN t_category AS c ON p.category_id = c.category_id
+      WHERE o.order_status = 'PAID'
+        AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
+        AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+        AND c.category_name = '美妆'
+        AND ul.level_name IN ('VIP3', 'VIP4', 'VIP5')
+      GROUP BY ul.level_id, ul.level_name
+    required_tables:
+      - t_order
+      - t_user
+      - t_user_level
+      - t_order_detail
+      - t_product
+      - t_category
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - level_name
+      - total_quantity
+    anchor_date: "2026-10-01"
+    tags:
+      - aggregation
+      - time-window
+
+  - id: smoke_medium_002
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: medium
+    dialect: postgres
+    question: 统计自营商家使用满减优惠券的已支付订单数
+    gold_sql: |
+      WITH qualified_orders AS (
+          SELECT DISTINCT o.order_id, m.merchant_id, m.merchant_name
+          FROM t_order AS o
+          JOIN t_order_coupon_rel AS ocr ON o.order_id = ocr.order_id
+          JOIN t_coupon AS c ON ocr.coupon_id = c.coupon_id
+          JOIN t_order_detail AS od ON o.order_id = od.order_id
+          JOIN t_product AS p ON od.product_id = p.product_id
+          JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+          WHERE o.order_status = 'PAID'
+            AND c.coupon_type = 'full_reduction'
+            AND m.is_self_operated IS TRUE
+      )
+      SELECT merchant_name, COUNT(*)::bigint AS order_count
+      FROM qualified_orders
+      GROUP BY merchant_id, merchant_name
+    required_tables:
+      - t_order
+      - t_coupon
+      - t_order_detail
+      - t_product
+      - t_merchant
+    required_junctions:
+      - t_order_coupon_rel
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - merchant_name
+      - order_count
+    anchor_date: "2026-10-01"
+    tags:
+      - junction
+      - dedup
+
+  - id: smoke_medium_003
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: medium
+    dialect: postgres
+    question: 统计自营商家各品类的已支付销售金额
+    gold_sql: |
+      SELECT c.category_name, SUM(od.quantity * od.price) AS gross_amount
+      FROM t_order AS o
+      JOIN t_order_detail AS od ON o.order_id = od.order_id
+      JOIN t_product AS p ON od.product_id = p.product_id
+      JOIN t_category AS c ON p.category_id = c.category_id
+      JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+      WHERE o.order_status = 'PAID'
+        AND m.is_self_operated IS TRUE
+      GROUP BY c.category_id, c.category_name
+    required_tables:
+      - t_order
+      - t_order_detail
+      - t_product
+      - t_category
+      - t_merchant
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - category_name
+      - gross_amount
+    anchor_date: "2026-10-01"
+    tags:
+      - aggregation
+
+  - id: smoke_complex_001
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: complex
+    dialect: postgres
+    question: 统计上个月华东大区VIP3、VIP4、VIP5用户使用满减优惠券购买自营美妆的已支付订单数和实付金额
+    gold_sql: |
+      WITH qualified_orders AS (
+          SELECT DISTINCT
+              o.order_id,
+              o.total_amount,
+              m.merchant_id,
+              m.merchant_name
+          FROM t_order AS o
+          JOIN t_user AS u ON o.user_id = u.user_id
+          JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+          JOIN t_user_region_map AS urm ON u.user_id = urm.user_id
+          JOIN t_region AS r ON urm.region_id = r.region_id
+          JOIN t_order_coupon_rel AS ocr ON o.order_id = ocr.order_id
+          JOIN t_coupon AS c ON ocr.coupon_id = c.coupon_id
+          JOIN t_order_detail AS od ON o.order_id = od.order_id
+          JOIN t_product AS p ON od.product_id = p.product_id
+          JOIN t_category AS cat ON p.category_id = cat.category_id
+          JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+          WHERE ul.level_name IN ('VIP3', 'VIP4', 'VIP5')
+            AND r.region_name = '华东'
+            AND c.coupon_type = 'full_reduction'
+            AND cat.category_name = '美妆'
+            AND m.is_self_operated IS TRUE
+            AND o.order_status = 'PAID'
+            AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
+            AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+      )
+      SELECT
+          merchant_name,
+          COUNT(*)::bigint AS total_orders,
+          SUM(total_amount) AS net_pay_amount
+      FROM qualified_orders
+      GROUP BY merchant_id, merchant_name
+    required_tables:
+      - t_order
+      - t_user
+      - t_user_level
+      - t_region
+      - t_coupon
+      - t_order_detail
+      - t_product
+      - t_category
+      - t_merchant
+    required_junctions:
+      - t_user_region_map
+      - t_order_coupon_rel
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - merchant_name
+      - total_orders
+      - net_pay_amount
+    anchor_date: "2026-10-01"
+    tags:
+      - long-join
+      - aggregation
+      - junction-recall
+
+  - id: smoke_complex_002
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: complex
+    dialect: postgres
+    question: 查询上个月已支付订单中，VIP3以上用户在自营美妆商品上实际使用了促销满减券的商家、商品和优惠券
+    gold_sql: |
+      SELECT DISTINCT
+          m.merchant_name,
+          p.product_name,
+          c.coupon_name
+      FROM t_order AS o
+      JOIN t_user AS u ON o.user_id = u.user_id
+      JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+      JOIN t_order_detail AS od ON o.order_id = od.order_id
+      JOIN t_product AS p ON od.product_id = p.product_id
+      JOIN t_category AS cat ON p.category_id = cat.category_id
+      JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+      JOIN t_order_coupon_rel AS ocr ON o.order_id = ocr.order_id
+      JOIN t_coupon AS c ON ocr.coupon_id = c.coupon_id
+      JOIN t_promo_sku_rel AS psr
+        ON psr.product_id = p.product_id
+       AND psr.coupon_id = c.coupon_id
+      WHERE o.order_status = 'PAID'
+        AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
+        AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+        AND ul.level_name IN ('VIP3', 'VIP4', 'VIP5')
+        AND cat.category_name = '美妆'
+        AND m.is_self_operated IS TRUE
+        AND c.coupon_type = 'full_reduction'
+    required_tables:
+      - t_order
+      - t_user
+      - t_user_level
+      - t_order_detail
+      - t_product
+      - t_category
+      - t_merchant
+      - t_coupon
+    required_junctions:
+      - t_order_coupon_rel
+      - t_promo_sku_rel
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - merchant_name
+      - product_name
+      - coupon_name
+    anchor_date: "2026-10-01"
+    tags:
+      - junction
+      - promo
+
+  - id: smoke_complex_003
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: complex
+    dialect: postgres
+    question: 统计上个月华东大区VIP3以上用户购买自营美妆的已支付商品数量
+    gold_sql: |
+      WITH qualified_details AS (
+          SELECT DISTINCT
+              od.detail_id,
+              od.quantity,
+              m.merchant_id,
+              m.merchant_name
+          FROM t_order AS o
+          JOIN t_user AS u ON o.user_id = u.user_id
+          JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+          JOIN t_user_region_map AS urm ON u.user_id = urm.user_id
+          JOIN t_region AS r ON urm.region_id = r.region_id
+          JOIN t_order_detail AS od ON o.order_id = od.order_id
+          JOIN t_product AS p ON od.product_id = p.product_id
+          JOIN t_category AS cat ON p.category_id = cat.category_id
+          JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+          WHERE ul.level_name IN ('VIP3', 'VIP4', 'VIP5')
+            AND r.region_name = '华东'
+            AND cat.category_name = '美妆'
+            AND m.is_self_operated IS TRUE
+            AND o.order_status = 'PAID'
+            AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
+            AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+      )
+      SELECT merchant_name, SUM(quantity)::bigint AS total_quantity
+      FROM qualified_details
+      GROUP BY merchant_id, merchant_name
+    required_tables:
+      - t_order
+      - t_user
+      - t_user_level
+      - t_region
+      - t_order_detail
+      - t_product
+      - t_category
+      - t_merchant
+    required_junctions:
+      - t_user_region_map
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - merchant_name
+      - total_quantity
+    anchor_date: "2026-10-01"
+    tags:
+      - junction
+      - aggregation
+
+  - id: smoke_complex_004
+    source: custom
+    source_version: ecommerce-v1
+    database_id: ecommerce
+    difficulty: complex
+    dialect: postgres
+    question: 统计上个月华东大区VIP3以上用户使用满减优惠券购买自营美妆、且该优惠券适用于所购商品的已支付订单数和实付金额
+    gold_sql: |
+      WITH qualified_orders AS (
+          SELECT DISTINCT
+              o.order_id,
+              o.total_amount,
+              m.merchant_id,
+              m.merchant_name
+          FROM t_order AS o
+          JOIN t_user AS u ON o.user_id = u.user_id
+          JOIN t_user_level AS ul ON u.user_level_id = ul.level_id
+          JOIN t_user_region_map AS urm ON u.user_id = urm.user_id
+          JOIN t_region AS r ON urm.region_id = r.region_id
+          JOIN t_order_coupon_rel AS ocr ON o.order_id = ocr.order_id
+          JOIN t_coupon AS c ON ocr.coupon_id = c.coupon_id
+          JOIN t_order_detail AS od ON o.order_id = od.order_id
+          JOIN t_product AS p ON od.product_id = p.product_id
+          JOIN t_category AS cat ON p.category_id = cat.category_id
+          JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+          WHERE ul.level_name IN ('VIP3', 'VIP4', 'VIP5')
+            AND r.region_name = '华东'
+            AND c.coupon_type = 'full_reduction'
+            AND cat.category_name = '美妆'
+            AND m.is_self_operated IS TRUE
+            AND o.order_status = 'PAID'
+            AND o.created_at >= TIMESTAMP '2026-09-01 00:00:00'
+            AND o.created_at < TIMESTAMP '2026-10-01 00:00:00'
+            AND EXISTS (
+                SELECT 1
+                FROM t_promo_sku_rel AS psr
+                WHERE psr.product_id = p.product_id
+                  AND psr.coupon_id = c.coupon_id
+            )
+      )
+      SELECT
+          merchant_name,
+          COUNT(*)::bigint AS total_orders,
+          SUM(total_amount) AS net_pay_amount
+      FROM qualified_orders
+      GROUP BY merchant_id, merchant_name
+    required_tables:
+      - t_order
+      - t_user
+      - t_user_level
+      - t_region
+      - t_coupon
+      - t_order_detail
+      - t_product
+      - t_category
+      - t_merchant
+    required_junctions:
+      - t_user_region_map
+      - t_order_coupon_rel
+      - t_promo_sku_rel
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - merchant_name
+      - total_orders
+      - net_pay_amount
+    anchor_date: "2026-10-01"
+    tags:
+      - long-join
+      - junction-recall
+      - dedup
