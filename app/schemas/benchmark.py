@@ -21,7 +21,7 @@ class BenchmarkCase(BaseModel):
     source_version: str
     database_id: str
     difficulty: BenchmarkDifficulty
-    dialect: Literal["postgres"]
+    dialect: Literal["postgres", "sqlite"]
     question: str = Field(min_length=1)
     gold_sql: str = Field(min_length=1)
     required_tables: list[str]

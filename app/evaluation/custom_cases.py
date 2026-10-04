@@ -95,10 +95,10 @@ def dump_custom_cases(cases: list[BenchmarkCase]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def referenced_tables(sql: str) -> set[str]:
+def referenced_tables(sql: str, *, dialect: str = "postgres") -> set[str]:
     """用 SQLGlot 收集物理表。CTE 名称不算表。"""
 
-    parsed = sqlglot.parse_one(sql, read="postgres")
+    parsed = sqlglot.parse_one(sql, read=dialect)
     if not isinstance(parsed, exp.Expression):
         raise ValueError("gold SQL did not parse")
     cte_names = {cte.alias for cte in parsed.find_all(exp.CTE) if cte.alias}
