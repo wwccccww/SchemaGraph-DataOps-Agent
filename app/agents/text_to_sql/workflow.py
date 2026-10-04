@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol, TypedDict, cast
+from typing import Any, Literal, Protocol, TypedDict, cast
 from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
@@ -35,6 +35,14 @@ MAX_RECOVERY_ROUNDS = 3
 MAX_MODEL_CALLS = 1 + MAX_RECOVERY_ROUNDS
 CIRCUIT_THRESHOLD = 3
 GENERATION_TEMPERATURE = 0.0
+TextToSqlVariant = Literal["zero_shot", "schema_rag", "schema_graph", "self_healing"]
+TEXT_TO_SQL_VARIANTS: tuple[TextToSqlVariant, ...] = (
+    "zero_shot",
+    "schema_rag",
+    "schema_graph",
+    "self_healing",
+)
+ZERO_SHOT_SCHEMA = "PostgreSQL 数据库 ecommerce，schema 为 public。只生成一条只读 SELECT。"
 
 Catalog = tuple[Sequence[TableDocument], Sequence[SchemaEdge]]
 
@@ -52,6 +60,7 @@ class TextToSqlState(TypedDict):
     request_id: str
     question: str
     database_id: str
+    variant: str
     execute: bool
     max_rows: int
     selected_tools: list[dict[str, object]]
@@ -138,10 +147,13 @@ async def run_text_to_sql(
     execute: bool = True,
     max_rows: int = 1000,
     request_id: str | None = None,
+    variant: TextToSqlVariant = "self_healing",
 ) -> TextToSqlResponse:
-    """运行一次问数。评测标签和 Gold SQL 不是参数。"""
+    """运行一次问数。评测标签和 Gold SQL 不是参数。默认走自愈。"""
 
     identifier = request_id or f"req_{uuid4().hex}"
+    if variant not in TEXT_TO_SQL_VARIANTS:
+        raise ValueError(f"unknown text-to-sql variant: {variant}")
     if database_id != DATABASE_ID:
         return TextToSqlResponse(
             request_id=identifier,
@@ -159,6 +171,7 @@ async def run_text_to_sql(
             request_id=identifier,
             question=question,
             database_id=database_id,
+            variant=variant,
             execute=execute,
             max_rows=max_rows,
         )
@@ -178,6 +191,7 @@ def _initial_state(
     request_id: str,
     question: str,
     database_id: str,
+    variant: str,
     execute: bool,
     max_rows: int,
 ) -> TextToSqlState:
@@ -185,6 +199,7 @@ def _initial_state(
         "request_id": request_id,
         "question": question,
         "database_id": database_id,
+        "variant": variant,
         "execute": execute,
         "max_rows": max_rows,
         "selected_tools": [],
@@ -212,6 +227,8 @@ def _route_tools(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def route_tools(state: TextToSqlState) -> dict[str, object]:
+        if state["variant"] == "zero_shot":
+            return {"selected_tools": []}
         tools = await services.select_tools(state["question"])
         return {"selected_tools": [_tool_payload(tool) for tool in tools]}
 
@@ -222,6 +239,8 @@ def _retrieve_schema(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def retrieve_schema(state: TextToSqlState) -> dict[str, object]:
+        if state["variant"] == "zero_shot":
+            return {"seed_tables": []}
         seeds = await services.select_seeds(state["question"])
         return {"seed_tables": [seed.table_name for seed in seeds]}
 
@@ -232,12 +251,32 @@ def _expand_schema_graph(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def expand_schema_graph(state: TextToSqlState) -> dict[str, object]:
+        if state["variant"] == "zero_shot":
+            return {
+                "status": "running",
+                "seed_tables": [],
+                "expanded_tables": [],
+                "schema_context": ZERO_SHOT_SCHEMA,
+                "schema_token_count": services.token_counter.count(ZERO_SHOT_SCHEMA),
+                "truncated": False,
+            }
         if not state["seed_tables"]:
             return _fail("no_schema_seed", "没有检索到实体种子表", retryable=False)
         documents, edges = await services.load_catalog()
         by_name = {document.table_name: document for document in documents}
         if any(name not in by_name or by_name[name].is_junction for name in state["seed_tables"]):
             return _fail("junction_seed_leak", "种子结果包含不可用的表", retryable=False)
+        if state["variant"] == "schema_rag":
+            selected = [by_name[name] for name in state["seed_tables"]]
+            context = render_schema_context(selected)
+            return {
+                "status": "running",
+                "seed_tables": list(state["seed_tables"]),
+                "expanded_tables": [],
+                "schema_context": context,
+                "schema_token_count": services.token_counter.count(context),
+                "truncated": False,
+            }
         result = expand_schema(
             documents,
             edges,
@@ -372,6 +411,8 @@ def _after_execute(state: TextToSqlState) -> str:
 
 
 def _failure_target(state: TextToSqlState) -> str:
+    if state["variant"] != "self_healing":
+        return "finish"
     if state["circuit_breaker_triggered"] or state["attempt"] >= MAX_MODEL_CALLS:
         return "finish"
     return "repair_sql"
