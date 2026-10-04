@@ -4,7 +4,7 @@
 
 本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-> 当前状态：阶段 0–3 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG）。Agent 和完整评测运行器尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。
+> 当前状态：阶段 0–4 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG、Text-to-SQL 纵向闭环）。慢 SQL 工作流和完整评测运行器尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。
 
 ---
 
@@ -99,9 +99,17 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 
 这些值只有在固定数据、模型、Prompt 和代码版本的评测任务完成后，才能由报告转换为 Measured。
 
-## 阶段 0–3 启动
+## 阶段 0–4 启动
 
-阶段 0 提供空 API、PostgreSQL 16 + pgvector、沙箱只读角色和测试入口。阶段 1 在显式执行造数后提供 12 表和 10 条冒烟 Gold SQL。阶段 2 提供外键图扩展。阶段 3 在显式建索引后提供 BGE-M3 Schema-RAG 和 Top-3 Tool-RAG。API 启动不会自动造数或下载模型，Gold SQL 也不会进入生成 Prompt。
+阶段 0 提供 API、PostgreSQL 16 + pgvector、沙箱只读角色和测试入口。阶段 1 在显式执行造数后提供 12 表和 10 条冒烟 Gold SQL。阶段 2 提供外键图扩展。阶段 3 在显式建索引后提供 BGE-M3 Schema-RAG 和 Top-3 Tool-RAG。阶段 4 提供 DeepSeek 网关、LangGraph 问数、SQLGlot 只读门禁、沙箱执行和 Error Hash 熔断。API 启动不会自动造数、下载向量模型或下载 tokenizer，Gold SQL 也不会进入生成 Prompt。
+
+配置 `DEEPSEEK_API_KEY` 后可以提问：
+
+```bash
+uv run python -m app.agents.text_to_sql "按等级编号升序查询全部会员等级的名称和折扣率"
+```
+
+`POST /v1/text-to-sql` 接收 `question`、`database_id`、`execute` 和 `max_rows`。同一规范化错误连续出现 3 次会熔断，总模型调用不超过 4 次。
 
 真实向量索引需要额外安装检索依赖，并在 12 表已经创建后执行：
 

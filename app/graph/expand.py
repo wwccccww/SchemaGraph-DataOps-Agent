@@ -34,7 +34,7 @@ class TokenCounter(Protocol):
 
 
 class EstimatedTokenCounter:
-    """阶段 4 接入 DeepSeek tokenizer 之前的临时估算器。"""
+    """不加载模型词表的临时估算器。问数工作流会改用 DeepSeek tokenizer。"""
 
     def count(self, text: str) -> int:
         if text == "":

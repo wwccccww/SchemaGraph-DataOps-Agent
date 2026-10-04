@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,6 +17,7 @@ _PLACEHOLDER_PASSWORDS = frozenset(
         "replace-with-local-sandbox-password",
     }
 )
+_PLACEHOLDER_API_KEY = "replace-with-deepseek-api-key"
 _SANDBOX_ROLE = "sandbox_readonly"
 
 
@@ -39,6 +41,9 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, ge=1, le=65535)
     db_init_attempts: int = Field(default=30, ge=1, le=120)
     db_init_delay_seconds: float = Field(default=1.0, gt=0, le=30)
+    deepseek_api_key: SecretStr | None = None
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-chat"
 
     @field_validator("postgres_user", "postgres_db")
     @classmethod
@@ -55,6 +60,31 @@ class Settings(BaseSettings):
             raise ValueError("password must be a non-empty string without NUL")
         if password in _PLACEHOLDER_PASSWORDS:
             raise ValueError("password still uses a placeholder from .env.example")
+        return value
+
+    @field_validator("deepseek_api_key")
+    @classmethod
+    def validate_api_key(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is None:
+            return None
+        secret = value.get_secret_value()
+        if secret.strip() == "" or "\x00" in secret or secret == _PLACEHOLDER_API_KEY:
+            raise ValueError("DEEPSEEK_API_KEY must be a real non-empty key")
+        return value
+
+    @field_validator("deepseek_base_url")
+    @classmethod
+    def validate_base_url(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or parsed.netloc == "":
+            raise ValueError("DEEPSEEK_BASE_URL must be an http(s) URL")
+        return value.rstrip("/")
+
+    @field_validator("deepseek_model")
+    @classmethod
+    def validate_model_name(cls, value: str) -> str:
+        if value.strip() == "" or any(character.isspace() for character in value):
+            raise ValueError("DEEPSEEK_MODEL must be a single token")
         return value
 
     @property
