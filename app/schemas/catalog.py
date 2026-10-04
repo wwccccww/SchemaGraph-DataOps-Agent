@@ -26,7 +26,7 @@ class ColumnDocument(BaseModel):
 
 
 class TableDocument(BaseModel):
-    """表级文档。向量字段留到阶段 3 再写入。"""
+    """表级文档。Catalog 提取时向量字段为空，索引行另行保存模型、版本和向量。"""
 
     model_config = ConfigDict(extra="forbid")
 
