@@ -98,7 +98,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
 - Generic Prompt 版本 `text-to-sql-generic-v7`：在 v6 基础上增加 TPC-DS 促销商品/item、income_band、ship_mode、web_site 等 join 口径与实体表提示；词汇种子对「直邮/促销商品」优先 item+promotion。
-- TPC-DS 外部模型评测会把 cases.yaml 中的 **`semantic_contract`**（与问句一并冻结，非 Gold SQL）注入输出形状，并在自愈阶段做投影/缺表复核；BIRD 暂无该字段。
+- TPC-DS 外部模型评测会把 cases.yaml 中的 **`semantic_contract`**（与问句一并冻结，非 Gold SQL）注入输出形状，并在自愈阶段做投影/缺表复核；契约 `filters` 含 `primary_fact=` / 促销口径，由用例审计生成，不暴露 `required_tables` 列表。BIRD 暂无该字段。
 - 环境变量（外部模型评测最低要求）：
   - `DEEPSEEK_API_KEY`（必填）
   - BIRD：`--database-root` 指向 `dev_databases`；可选 `BIRD_DATABASE_ROOT` 供集成测试
