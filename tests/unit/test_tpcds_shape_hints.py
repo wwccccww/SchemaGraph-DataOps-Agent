@@ -72,6 +72,14 @@ def test_promo_item_question_requires_item_entity_and_join_hint() -> None:
     assert any("促销商品" in line for line in shape.joins)
 
 
+def test_catalog_sales_only_does_not_require_catalog_page() -> None:
+    question = "统计 2001 年目录销售按婚姻状况汇总净利润。"
+    documents = [_doc(n) for n in ("catalog_sales", "customer", "date_dim", "catalog_page")]
+    shape = extract_generic_shape(question, documents)
+    assert "catalog_sales" in shape.entities
+    assert "catalog_page" not in shape.entities
+
+
 def test_catalog_returns_question_does_not_require_catalog_sales() -> None:
     question = (
         "统计 2001 年各仓库所在州、退货原因和商品类别的目录退货金额，并关联呼叫中心。"

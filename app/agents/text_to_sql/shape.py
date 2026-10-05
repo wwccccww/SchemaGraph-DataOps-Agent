@@ -64,9 +64,12 @@ _ENTITIES = (
     (re.compile(r"门店销售|store sales"), ("store_sales",)),
     (re.compile(r"门店退货|store returns"), ("store_returns", "store")),
     (re.compile(r"目录退货|catalog returns"), ("catalog_returns",)),
-    (re.compile(r"目录销售|catalog sales"), ("catalog_sales", "catalog_page")),
+    (re.compile(r"目录页|catalog page|目录部门"), ("catalog_page",)),
+    (re.compile(r"目录销售|catalog sales"), ("catalog_sales",)),
     (re.compile(r"网站退货|web returns"), ("web_returns", "web_page")),
-    (re.compile(r"网站销售|web sales"), ("web_sales", "web_site", "web_page")),
+    (re.compile(r"网页类型|web page type"), ("web_page",)),
+    (re.compile(r"网站名|web site name"), ("web_site",)),
+    (re.compile(r"网站销售|web sales"), ("web_sales",)),
     (
         re.compile(r"门店所在|同一门店|同店|门店州|各门店|store state"),
         ("store",),
@@ -472,8 +475,18 @@ def _join_hints(
         )
     if re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE) and "ship_mode" in visible:
         hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
-    if re.search(r"网站|web site|web_site", question, re.IGNORECASE) and "web_site" in visible:
+    if re.search(r"网站名|web site name", question, re.IGNORECASE) and "web_site" in visible:
         hints.append("网站维度用 web_site 表，通过 web_sales 或 catalog_sales 关联。")
+    if re.search(r"既在.+又在", question) and {"store_sales", "web_sales"} <= visible:
+        hints.append(
+            "跨渠道顾客：用 web_sales 子集（customer+item）过滤 store_sales，"
+            "最终只汇总门店销售金额；不要 UNION ALL 合并两渠道金额。"
+        )
+    if "比较" in question and {"store_sales", "web_sales"} <= visible:
+        hints.append(
+            "渠道对比：各渠道独立 CTE 汇总后按 item_category/sales_year JOIN，"
+            "输出 store_sales_amount 与 web_sales_amount 两列，不要 UNION 成单列。"
+        )
     if (
         {"schools", "frpm", "satscores"} <= visible
         or ("schools" in visible and "frpm" in visible)

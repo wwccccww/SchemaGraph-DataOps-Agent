@@ -97,9 +97,25 @@ def _fact_filters(required_tables: list[str], question: str) -> list[str]:
     filters = [f"primary_facts={','.join(sorted(sales))}"]
     if "退货" in question and "销售" in question:
         filters.append("returns_vs_sales=separate_cte")
-    if len(sales) >= 2 and ("渠道" in question or len(chosen) >= 2):
+        return filters
+    if re.search(r"既在.+又在", question) and len(sales) >= 2:
+        filters.append("cross_channel_buyers=customer_and_item")
+        return filters
+    if "比较" in question and len([name for name in sales if name.endswith("_sales")]) >= 2:
+        filters.append("channel_pivot_compare=true")
+        return filters
+    if len(sales) >= 2 and all(name.endswith("_returns") for name in sales):
+        filters.append("multi_returns_union=true")
+        return filters
+    if _multi_channel_sales_union_question(question):
         filters.append("multi_channel_union=true")
     return filters
+
+
+def _multi_channel_sales_union_question(question: str) -> bool:
+    if "渠道" in question:
+        return True
+    return bool(re.search(r"门店、目录和网站|三条渠道", question))
 
 
 def _filters_from_question(question: str) -> list[str]:
@@ -115,6 +131,8 @@ def _filters_from_question(question: str) -> list[str]:
         filters.append("returns_present=true")
     if "库存" in question and re.search(r"卖|售", question):
         filters.append("inventory_sold_items=subquery")
+    if "出生年份" in question or re.search(r"birth year", question, re.IGNORECASE):
+        filters.append("birth_year_not_null=true")
     return filters
 
 

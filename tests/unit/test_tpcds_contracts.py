@@ -89,6 +89,37 @@ def test_returns_and_sales_question_adds_separate_cte_hint() -> None:
     assert "returns_vs_sales=separate_cte" in contract.filters
 
 
+def test_cross_channel_buyers_not_union() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年既在门店又在网站购买过的顾客，按顾客所在州汇总门店销售金额。",
+            required_tables=[
+                "customer",
+                "customer_address",
+                "date_dim",
+                "item",
+                "store_sales",
+                "web_sales",
+            ],
+            expected_columns=["customer_state", "sales_amount"],
+        )
+    )
+    assert "cross_channel_buyers=customer_and_item" in contract.filters
+    assert "multi_channel_union=true" not in contract.filters
+
+
+def test_compare_question_uses_channel_pivot() -> None:
+    contract = contract_for(
+        _case(
+            question="比较 2001 年同一商品类别在网站和门店的销售金额。",
+            required_tables=["store_sales", "web_sales", "date_dim", "item", "store", "web_site"],
+            expected_columns=["item_category", "store_sales_amount", "web_sales_amount"],
+        )
+    )
+    assert "channel_pivot_compare=true" in contract.filters
+    assert "multi_channel_union=true" not in contract.filters
+
+
 def test_channel_question_picks_catalog_sales() -> None:
     contract = contract_for(
         _case(

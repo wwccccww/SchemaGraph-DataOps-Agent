@@ -239,7 +239,11 @@ def check_frozen_semantic_contract(
                     "直邮促销过滤需 ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail='Y')",
                 )
             )
-    skip_sk_cte = "multi_channel_union=true" in contract.filters
+    skip_sk_cte = (
+        "multi_channel_union=true" in contract.filters
+        or "multi_returns_union=true" in contract.filters
+        or "channel_pivot_compare=true" in contract.filters
+    )
     cte_name = None if skip_sk_cte else _sk_heavy_cte_without_dimensions(
         described, contract.group_keys
     )
@@ -417,6 +421,21 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "多渠道销售须分渠道 CTE（各事实表+date_dim 过滤年份）用 UNION ALL 合并，"
                 "再 JOIN item 按 channel/item_category/sales_year 汇总；不要单条 SQL 同时 JOIN 多个 *_sales。"
             )
+        if item == "cross_channel_buyers=customer_and_item":
+            hints.append(
+                "跨渠道顾客：web_sales 侧 CTE 取 (customer_sk, item_sk)，"
+                "JOIN store_sales 同一 customer+item 后只 SUM 门店 ss_ext_sales_price。"
+            )
+        if item == "channel_pivot_compare=true":
+            hints.append(
+                "渠道对比：各渠道独立 CTE 汇总，JOIN 后输出 *_sales_amount 多列（如 store_sales_amount、web_sales_amount）。"
+            )
+        if item == "multi_returns_union=true":
+            hints.append(
+                "多退货事实：store_returns 与 catalog_returns 等分 CTE UNION ALL 后再按 reason/category 汇总。"
+            )
+        if item == "birth_year_not_null=true":
+            hints.append("出生年份维度需 customer.c_birth_year IS NOT NULL。")
         if item == "returns_present=true":
             hints.append(
                 "退货金额用事实表 cr_return_amount / wr_return_amt / sr_return_amt 等 *_return_amount 列，"
