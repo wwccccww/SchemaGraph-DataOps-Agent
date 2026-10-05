@@ -167,6 +167,38 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_frpm_eligibility_uses_percent_column_formula() -> None:
+    question = "FRPM eligibility rate and SAT rankings for schools"
+    documents = [
+        TableDocument(
+            database_id="california_schools",
+            schema_name="main",
+            table_name="frpm",
+            table_comment=None,
+            columns=[
+                ColumnDocument(
+                    name="Percent (%) Eligible FRPM (K-12)",
+                    data_type="REAL",
+                    nullable=True,
+                    comment=None,
+                ),
+                ColumnDocument(
+                    name="Enrollment (K-12)",
+                    data_type="INTEGER",
+                    nullable=True,
+                    comment=None,
+                ),
+            ],
+            is_junction=False,
+            content_hash="sha256:frpm",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    text = format_generic_shape(shape)
+    assert "Percent (%) Eligible FRPM" in text
+    assert "重算" in text
+
+
 def test_sat_performance_requires_left_join_satscores() -> None:
     from app.agents.text_to_sql.shape import check_answer_shape
 

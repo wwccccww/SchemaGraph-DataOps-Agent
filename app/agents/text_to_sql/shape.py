@@ -464,13 +464,27 @@ def _formulas(
     question: str,
     documents: Sequence[TableDocument],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if re.search(
+        r"FRPM eligibility|Eligible FRPM|Percent.*FRPM|FRPM percentage",
+        question,
+        re.IGNORECASE,
+    ):
+        pct = _first_column(
+            documents,
+            ("percent (%) eligible frpm (k-12)", "percent (%) eligible frpm", "eligible frpm"),
+        )
+        if pct is not None:
+            return (
+                f"FRPM 比例用 frpm `{pct}` * 100 AS FRPMPercentage，"
+                "不要仅用 Free Meal Count/Enrollment 重算",
+            ), (pct,)
     if re.search(r"rate|比例|百分比|percentage", question, re.IGNORECASE) is None:
         return (), ()
     count = _first_column(documents, ("free meal count", "frpm count"))
     enrollment = _first_column(documents, ("enrollment (k-12)", "enrollment"))
     if count is None or enrollment is None:
         return (), ()
-    text = f"免费餐比例用 {count} * 1.0 / {enrollment}，不要直接用现成百分比列代替"
+    text = f"免费餐比例用 {count} * 1.0 / {enrollment}；若无 FRPM 列再手算"
     return (text,), (count, enrollment)
 
 
@@ -564,6 +578,22 @@ def _join_hints(
     ):
         hints.append(
             "frpm 算餐食比例时在 WHERE 加 `Enrollment (K-12)` > 0，避免除零或无效行。"
+        )
+    if (
+        "schools" in visible
+        and "satscores" in visible
+        and re.search(r"district average|district avg|compare.*district", question, re.IGNORECASE)
+    ):
+        hints.append(
+            "学区 SAT 均分按 schools.District 聚合 satscores，不要用 satscores.dname 代替 schools.District。"
+        )
+    if {"disp", "client", "account"} <= visible and re.search(
+        r"owner|account holder|client.*account|card holder",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "Financial 库：account 与 client 经 disp 连接，账户持有人用 disp.type = 'OWNER'。"
         )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
