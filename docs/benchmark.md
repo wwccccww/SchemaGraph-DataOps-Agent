@@ -104,6 +104,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - TPC-DS：`POSTGRES_USER` / `POSTGRES_PASSWORD` 或 `TPCDS_POSTGRES_*`，库名默认 `tpcds`
   - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
 - 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
+- **Measured 基线（2026-10-05，DeepSeek Chat，generic v6，本地快照）**：报告目录在 `reports/`（不入 Git）。BIRD 50 条全量 EX **0/50**（`schema_graph` 旧默认；细类以 `response_shape` 为主）；TPC-DS 30 条全量 EX **0/30**（`self_healing`，`--timeout 180`；细类以 `missing_required_table` 为主）。后续 Prompt/检索迭代应对比同目录新 run 的 `summary.json`。
 
 ## 3. 用例生命周期
 
