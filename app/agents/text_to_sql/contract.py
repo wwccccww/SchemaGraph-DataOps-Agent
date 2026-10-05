@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
@@ -40,12 +41,15 @@ class AnswerContract:
     category_scope: CategoryScope
     time_window: tuple[str, str] | None
     dedup_key: str | None
+    output_fields: tuple[str, ...] = ()
+    constants: tuple[tuple[str, str], ...] = ()
 
     def as_pairs(self) -> tuple[tuple[str, str], ...]:
         if self.time_window is None:
             window = "无"
         else:
             window = f"{self.time_window[0]}/{self.time_window[1]}"
+        rendered_constants = ",".join(f"{name}={value}" for name, value in self.constants)
         return (
             ("dimensions", ",".join(self.dimensions)),
             ("dimension_fields", ",".join(self.dimension_fields)),
@@ -54,6 +58,8 @@ class AnswerContract:
             ("category_scope", self.category_scope),
             ("time_window", window),
             ("dedup_key", self.dedup_key or ""),
+            ("output_fields", ",".join(self.output_fields)),
+            ("constants", rendered_constants),
         )
 
 
@@ -72,6 +78,9 @@ def format_answer_contract(contract: AnswerContract) -> str:
     if contract.time_window is not None:
         start, end = contract.time_window
         window = f"[{start}, {end})"
+    constants = "无"
+    if contract.constants:
+        constants = "、".join(f"{name}='{value}'" for name, value in contract.constants)
     return "\n".join(
         (
             "答案契约：",
@@ -82,6 +91,10 @@ def format_answer_contract(contract: AnswerContract) -> str:
             f"category_scope: {contract.category_scope}",
             f"time_window: {window}",
             f"dedup_key: {contract.dedup_key or '无'}",
+            f"output_fields: {_shown(contract.output_fields)}",
+            f"constants: {constants}",
+            "最终 SELECT 的别名和顺序必须与 output_fields 一致。",
+            "constants 中的值必须作为字符串字面量投影，不能改成函数计算结果。",
             "每个 dimension 出现在最终结果粒度中，dimension_fields 和 measures 出现在最终投影。",
             "单个维度值若被契约回显，不能只返回一个没有该列的标量。",
             "品类默认精确匹配当前节点。只有问题写明及其子类或全部下级时才展开。",
@@ -90,6 +103,29 @@ def format_answer_contract(contract: AnswerContract) -> str:
             "dedup_key 不是“无”时，先按该键形成事实集合，再做最终聚合。",
         )
     )
+
+
+def format_query_plan(contract: AnswerContract, join_paths: Sequence[str]) -> str:
+    """事实粒度、有序输出和当前 Schema 里的外键路径。不读取 Gold。"""
+
+    grain = contract.dedup_key or "结果行"
+    lines = [
+        "查询计划：",
+        f"事实粒度：{grain}",
+        f"输出列：{_shown(contract.output_fields)}",
+    ]
+    if contract.dedup_key:
+        lines.append(f"去重：聚合前按 {contract.dedup_key} 形成事实集合。")
+    if contract.constants:
+        shown = "、".join(f"{name}='{value}'" for name, value in contract.constants)
+        lines.append(f"常量列：{shown}")
+    if join_paths:
+        lines.append("合法外键：")
+        lines.extend(join_paths)
+    else:
+        lines.append("合法外键：无")
+    lines.append("CTE 被外层引用的列必须出现在该 CTE 的投影中。")
+    return "\n".join(lines)
 
 
 def check_contract(
@@ -105,6 +141,7 @@ def check_contract(
     if shape.parse_error is not None:
         return ()
     findings: list[SemanticFinding] = []
+    _check_output(contract, shape.projections, sql, findings)
     _check_projection(contract, shape.projections, findings)
     _check_measures(contract, shape, sql, findings)
     _check_grain(contract, shape, findings)
@@ -132,6 +169,10 @@ class _Builder:
         self._measures()
         self._fields(text)
         self._groups(text)
+        group = category_group_name(text)
+        if group is not None:
+            members = "、".join(_CATEGORY_GROUPS[group])
+            self.filters.append(f"品类组 {group} 包含 {members}")
         if self.category_scope == "exact":
             self.filters.append("品类名称只匹配当前节点")
 
@@ -144,6 +185,8 @@ class _Builder:
             category_scope=self.category_scope,
             time_window=self.window,
             dedup_key=self.dedup_key,
+            output_fields=_output_fields(self.question),
+            constants=_constants(self.question, self.window),
         )
 
     @property
@@ -272,12 +315,7 @@ class _Builder:
         if "商品数量" in text and "大区" in text:
             self.fields.append("merchant_name")
         single_level = re.search(r"VIP[1-5]用户", text) and "VIP3、VIP4" not in text
-        if (
-            single_level
-            and "订单数" in text
-            and "实付金额" in text
-            and "适用于" not in text
-        ):
+        if single_level and "订单数" in text and "实付金额" in text and "适用于" not in text:
             self.fields.append("level_name")
         if "各品类" in text:
             self.fields.append("category_name")
@@ -306,6 +344,180 @@ class _Builder:
             self.dimensions.extend(("地区", "优惠券"))
         elif "实付金额" in text or "商品数量" in text or ("订单数" in text and "商家" in text):
             self.dimensions.append("商家")
+
+
+_CATEGORY_GROUPS: dict[str, tuple[str, ...]] = {
+    "个护数码": (
+        "美妆",
+        "护肤",
+        "彩妆",
+        "香水",
+        "手机",
+        "电脑",
+        "耳机",
+        "相机",
+        "男装",
+        "女装",
+    ),
+    "食品家居": (
+        "零食",
+        "饮料",
+        "生鲜",
+        "粮油",
+        "家具",
+        "灯具",
+        "收纳",
+        "厨具",
+        "冰箱",
+        "洗衣机",
+    ),
+}
+_REGIONS = ("华北", "华东", "华中", "华南", "西南", "西北")
+
+
+def category_group_name(question: str) -> str | None:
+    """问句列出一整组品类时，返回业务组名。"""
+
+    for name, members in _CATEGORY_GROUPS.items():
+        if all(member in question for member in members):
+            return name
+    return None
+
+
+def _output_fields(question: str) -> tuple[str, ...]:
+    """按业务响应规范给出最终投影的别名和顺序。不读取 Gold。"""
+
+    text = question
+    if "折扣率" in text and "会员等级" in text:
+        return ("level_id", "level_name", "discount_rate")
+    if "每个会员等级" in text and "用户数量" in text:
+        return ("level_name", "user_count")
+    if "会员等级下" in text and "用户数量" in text:
+        return ("level_name", "user_count")
+    if "省份" in text:
+        return ("province_name",)
+    if "状态为" in text and "订单数量" in text:
+        return ("order_month", "order_status", "order_count")
+    if "在售商品数量" in text:
+        return ("category_name", "product_count")
+    if "满减类型" in text or "折扣类型" in text:
+        return ("coupon_type", "coupon_count")
+    if "优惠券编号" in text:
+        return ("coupon_id", "coupon_name")
+    if "商家的数量" in text:
+        return ("merchant_kind", "merchant_count")
+    if "商家名称" in text and "查询" in text:
+        return ("merchant_id", "merchant_name")
+    if "一级" in text and "名称" in text:
+        return ("category_id", "category_name")
+    if "末级" in text and "数量" in text:
+        return ("category_kind", "category_count")
+    if "用户编号" in text and "订单" in text:
+        return ("user_id", "order_count")
+    if "明细行数" in text:
+        return ("category_name", "detail_count")
+    if "品类和销量" in text:
+        return ("order_month", "category_name", "total_quantity")
+    if "商家、商品和优惠券" in text:
+        return ("merchant_name", "product_name", "coupon_name")
+    if category_group_name(text) is not None and "实付金额" in text:
+        return (
+            "region_name",
+            "category_group",
+            "merchant_name",
+            "total_orders",
+            "net_pay_amount",
+        )
+    if "商品数量" in text and "大区" in text:
+        if _SPAN.search(text):
+            return ("region_name", "category_name", "merchant_name", "total_quantity")
+        return ("merchant_name", "total_quantity")
+    if "查询" in text and "商品" in text and "统计" not in text:
+        return ("product_id", "product_name", "merchant_name")
+    if "实付金额" in text:
+        single_level = re.search(r"VIP[1-5]用户", text) and "VIP3、VIP4" not in text
+        if single_level and "适用于" not in text and _SPAN.search(text):
+            return ("level_name", "merchant_name", "total_orders", "net_pay_amount")
+        return ("merchant_name", "total_orders", "net_pay_amount")
+    if "销售金额" in text and "VIP" in text:
+        return ("level_name", "is_self_operated", "gross_amount")
+    if "销售金额" in text:
+        return ("category_name", "gross_amount")
+    if "大区" in text and "优惠券" in text and "订单数" in text and "实付" not in text:
+        return ("region_name", "coupon_type", "order_count")
+    if "购买" in text and "数量" in text and "大区" not in text:
+        if "商品" in text:
+            return ("level_name", "category_name", "total_quantity")
+        return ("level_name", "total_quantity")
+    if "订单数" in text and "商家" in text:
+        return ("merchant_name", "order_count")
+    return ()
+
+
+def _constants(question: str, window: tuple[str, str] | None) -> tuple[tuple[str, str], ...]:
+    rows: list[tuple[str, str]] = []
+    label = _month_label(question, window)
+    if label is not None and ("状态为" in question or "品类和销量" in question):
+        rows.append(("order_month", label))
+    if "状态为" in question and "已支付" in question:
+        rows.append(("order_status", "PAID"))
+    if "状态为" in question and "已取消" in question:
+        rows.append(("order_status", "CANCELLED"))
+    if "商家的数量" in question:
+        kind = "third_party" if "非自营" in question else "self_operated"
+        rows.append(("merchant_kind", kind))
+    if "末级" in question and "数量" in question:
+        rows.append(("category_kind", "leaf"))
+    group = category_group_name(question)
+    if group is not None:
+        rows.append(("category_group", group))
+        region = _region_name(question)
+        if region is not None:
+            rows.append(("region_name", region))
+    return tuple(rows)
+
+
+def _month_label(question: str, window: tuple[str, str] | None) -> str | None:
+    if "上个月" in question and window is not None:
+        return window[0][:7]
+    match = _MONTH.search(question)
+    if match is None:
+        return None
+    return f"{int(match.group(1)):04d}-{int(match.group(2)):02d}"
+
+
+def _region_name(question: str) -> str | None:
+    found = [name for name in _REGIONS if name in question]
+    if len(found) == 1:
+        return found[0]
+    return None
+
+
+def _check_output(
+    contract: AnswerContract,
+    projections: tuple[str, ...],
+    sql: str,
+    findings: list[SemanticFinding],
+) -> None:
+    if contract.output_fields:
+        actual = tuple(name.lower() for name in projections)
+        expected = tuple(name.lower() for name in contract.output_fields)
+        if actual != expected:
+            shown = "、".join(projections) if projections else "无"
+            findings.append(
+                SemanticFinding(
+                    "contract_mismatch",
+                    f"期望投影顺序 {'、'.join(contract.output_fields)}；实际投影为 {shown}",
+                )
+            )
+    for name, literal in contract.constants:
+        if f"'{literal}'" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "contract_mismatch",
+                    f"期望常量 {name}='{literal}'；实际没有这个字符串字面量",
+                )
+            )
 
 
 def _shown(values: tuple[str, ...]) -> str:

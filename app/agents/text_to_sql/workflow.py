@@ -9,14 +9,19 @@ from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
-from app.agents.text_to_sql.contract import AnswerContract, check_contract, extract_answer_contract
+from app.agents.text_to_sql.contract import (
+    AnswerContract,
+    check_contract,
+    extract_answer_contract,
+    format_query_plan,
+)
 from app.agents.text_to_sql.prompt import (
     SYSTEM_PROMPT,
     extract_sql,
     render_generation_prompt,
     render_repair_prompt,
 )
-from app.agents.text_to_sql.semantic import SemanticFinding, check_semantics
+from app.agents.text_to_sql.semantic import SemanticFinding, check_cte_outputs, check_semantics
 from app.db.catalog import DATABASE_ID
 from app.graph.expand import TokenCounter, expand_schema, render_schema_context
 from app.llm.gateway import ChatModel
@@ -101,6 +106,13 @@ class TextToSqlState(TypedDict):
     anchor_date: str
     contract_repairs: int
     repair_trace: list[dict[str, object]]
+    join_paths: list[str]
+    initial_sql: str
+    candidate_sql: str | None
+    candidate_columns: list[str]
+    candidate_rows: list[list[JsonValue]]
+    candidate_score: int
+    candidate_execution_ms: float | None
 
 
 @dataclass(frozen=True)
@@ -206,6 +218,7 @@ async def inspect_text_to_sql(
     request_id: str | None = None,
     variant: TextToSqlVariant = "self_healing",
     anchor_date: str = "2026-10-01",
+    initial_sql: str | None = None,
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -239,6 +252,7 @@ async def inspect_text_to_sql(
                     execute=execute,
                     max_rows=max_rows,
                     anchor_date=anchor_date,
+                    initial_sql=initial_sql or "",
                 )
             )
             return TextToSqlInspection(
@@ -266,6 +280,7 @@ def _initial_state(
     execute: bool,
     max_rows: int,
     anchor_date: str,
+    initial_sql: str,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -296,6 +311,13 @@ def _initial_state(
         "anchor_date": anchor_date,
         "contract_repairs": 0,
         "repair_trace": [],
+        "join_paths": [],
+        "initial_sql": initial_sql,
+        "candidate_sql": None,
+        "candidate_columns": [],
+        "candidate_rows": [],
+        "candidate_score": 0,
+        "candidate_execution_ms": None,
     }
 
 
@@ -352,6 +374,7 @@ def _expand_schema_graph(
                 "schema_context": context,
                 "schema_token_count": services.token_counter.count(context),
                 "truncated": False,
+                "join_paths": _join_paths(edges, state["seed_tables"]),
             }
         result = expand_schema(
             documents,
@@ -378,6 +401,7 @@ def _expand_schema_graph(
             if name in by_name
         ]
         context = render_schema_context(selected, result.edges)
+        selected_names = [document.table_name for document in selected]
         return {
             "status": "running",
             "seed_tables": list(result.seed_tables),
@@ -385,18 +409,21 @@ def _expand_schema_graph(
             "schema_context": context,
             "schema_token_count": result.context_tokens,
             "truncated": result.context_truncated,
+            "join_paths": _join_paths(result.edges, selected_names),
         }
 
     return expand_schema_graph
 
 
 async def _build_prompt(state: TextToSqlState) -> dict[str, object]:
+    contract = _contract(state)
     return {
         "prompt": render_generation_prompt(
             question=state["question"],
             schema_context=state["schema_context"],
             tools=_tools(state),
-            contract=_contract(state),
+            contract=contract,
+            plan=format_query_plan(contract, state["join_paths"]),
         )
     }
 
@@ -405,6 +432,9 @@ def _generate_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def generate_sql(state: TextToSqlState) -> dict[str, object]:
+        preset = state["initial_sql"].strip()
+        if state["attempt"] == 0 and preset:
+            return {"generated_sql": preset, "attempt": 1, "initial_sql": ""}
         content = await services.model.complete(
             _messages(state["prompt"]),
             temperature=GENERATION_TEMPERATURE,
@@ -417,15 +447,18 @@ def _generate_sql(
 async def _validate_sql(state: TextToSqlState) -> dict[str, object]:
     decision = check_read_only_sql(state["generated_sql"] or "")
     if decision.error is not None:
-        return _record_error(state, decision.error)
+        return _fail_or_restore(state, decision.error)
+    findings = list(check_cte_outputs(decision.sql))
     if state["variant"] == "self_healing" and state["attempt"] > 1:
-        findings = check_contract(
-            question=state["question"],
-            sql=decision.sql,
-            anchor_date=state["anchor_date"],
+        findings.extend(
+            check_contract(
+                question=state["question"],
+                sql=decision.sql,
+                anchor_date=state["anchor_date"],
+            )
         )
-        if findings:
-            return _record_error(state, _review_error(findings))
+    if findings:
+        return _fail_or_restore(state, _review_error(findings))
     return {"status": "validated", "generated_sql": decision.sql}
 
 
@@ -436,7 +469,7 @@ def _execute_sql(
         sql = state["generated_sql"] or ""
         outcome = await services.execute(sql, max_rows=state["max_rows"])
         if isinstance(outcome, ExecutionError):
-            return _record_error(state, outcome)
+            return _fail_or_restore(state, outcome)
         success = {
             "status": "succeeded",
             "columns": [name for name, _database_type in outcome.columns],
@@ -484,10 +517,13 @@ def _execute_sql(
                     },
                 ]
             return success
-        return {
-            **success,
-            **_record_error(state, _review_error(findings)),
-        }
+        score = _execution_score(len(findings))
+        if _should_keep_candidate(state, score):
+            return _fail_or_restore(state, _review_error(findings))
+        recorded = _record_error(state, _review_error(findings))
+        if score > state["candidate_score"]:
+            recorded.update(_candidate_update(state, outcome, score))
+        return {**success, **recorded}
 
     return execute_sql
 
@@ -496,6 +532,7 @@ def _repair_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def repair_sql(state: TextToSqlState) -> dict[str, object]:
+        contract = _contract(state)
         prompt = render_repair_prompt(
             question=state["question"],
             schema_context=state["schema_context"],
@@ -503,7 +540,8 @@ def _repair_sql(
             previous_sql=state["generated_sql"] or "",
             error_category=state["error_category"] or "",
             error_message=state["error_message"] or "",
-            contract=_contract(state),
+            contract=contract,
+            plan=format_query_plan(contract, state["join_paths"]),
         )
         content = await services.model.complete(
             _messages(prompt),
@@ -534,6 +572,8 @@ def _after_expand(state: TextToSqlState) -> str:
 def _after_validate(state: TextToSqlState) -> str:
     if state["status"] == "validated":
         return "execute_sql" if state["execute"] else "finish"
+    if state["status"] == "succeeded":
+        return "finish"
     return _failure_target(state)
 
 
@@ -592,6 +632,84 @@ def _record_error(state: TextToSqlState, error: ExecutionError) -> dict[str, obj
 
 def _contract(state: TextToSqlState) -> AnswerContract:
     return extract_answer_contract(state["question"], anchor_date=state["anchor_date"])
+
+
+def _join_paths(edges: Sequence[SchemaEdge], tables: Sequence[str]) -> list[str]:
+    selected = {name.lower() for name in tables}
+    lines: list[str] = []
+    for edge in edges:
+        if edge.source_table.lower() not in selected or edge.target_table.lower() not in selected:
+            continue
+        left = ",".join(edge.source_columns)
+        right = ",".join(edge.target_columns)
+        lines.append(f"{edge.source_table}.{left} = {edge.target_table}.{right}")
+    return lines
+
+
+def _execution_score(finding_count: int) -> int:
+    return max(1, 1000 - finding_count)
+
+
+def _should_keep_candidate(state: TextToSqlState, score: int) -> bool:
+    return bool(
+        state["attempt"] > 1
+        and state["candidate_sql"]
+        and state["candidate_score"] > 0
+        and score <= state["candidate_score"]
+    )
+
+
+def _candidate_update(
+    state: TextToSqlState,
+    outcome: ExecutionSuccess,
+    score: int,
+) -> dict[str, object]:
+    return {
+        "candidate_sql": state["generated_sql"],
+        "candidate_columns": [name for name, _database_type in outcome.columns],
+        "candidate_rows": json_rows(outcome.rows),
+        "candidate_score": score,
+        "candidate_execution_ms": outcome.execution_time_ms,
+    }
+
+
+def _fail_or_restore(state: TextToSqlState, error: ExecutionError) -> dict[str, object]:
+    recorded = _record_error(state, error)
+    if not _should_keep_candidate(state, 0):
+        return recorded
+    trace = recorded["repair_trace"]
+    if not isinstance(trace, list):
+        return recorded
+    category = recorded.get("error_category")
+    symptom = category if isinstance(category, str) else ""
+    return _restore_candidate(state, trace, symptom)
+
+
+def _restore_candidate(
+    state: TextToSqlState,
+    trace: list[dict[str, object]] | None = None,
+    symptom: str = "",
+) -> dict[str, object]:
+    steps = list(state["repair_trace"] if trace is None else trace)
+    steps.append(
+        {
+            "attempt": state["attempt"],
+            "category": "kept_candidate",
+            "symptom": symptom or state["error_category"] or "",
+            "sql_hash": sql_hash(state["candidate_sql"]),
+        }
+    )
+    return {
+        "status": "succeeded",
+        "generated_sql": state["candidate_sql"],
+        "columns": list(state["candidate_columns"]),
+        "rows": [list(row) for row in state["candidate_rows"]],
+        "db_execution_ms": state["candidate_execution_ms"],
+        "error_category": None,
+        "error_message": None,
+        "error_retryable": False,
+        "repair_trace": steps,
+    }
 
 
 def _review_error(findings: Sequence[SemanticFinding]) -> ExecutionError:

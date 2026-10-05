@@ -591,6 +591,29 @@ def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
         repair_trace=(("2", "aggregation_grain", "sha256:abc", "sha256:sql"),),
     )
     assert grain == "grouping_grain"
+    ordered, order_symptoms = classify_badcase(
+        question="按等级编号升序查询VIP2会员等级的名称和折扣率",
+        gold_sql=(
+            "SELECT level_id, level_name, discount_rate FROM t_user_level WHERE level_name = 'VIP2'"
+        ),
+        predicted_sql=(
+            "SELECT level_name, discount_rate, level_id FROM t_user_level WHERE level_name = 'VIP2'"
+        ),
+        required_tables=(),
+        error_category=None,
+        ex=0,
+    )
+    assert ordered == "response_shape"
+    assert "level_id" in dict(order_symptoms)["projection_order"]
+    _plain_with, with_symptoms = classify_badcase(
+        question="统计订单",
+        gold_sql="SELECT order_id FROM t_order",
+        predicted_sql="WITH paid AS (SELECT order_id FROM t_order) SELECT order_id FROM paid",
+        required_tables=(),
+        error_category=None,
+        ex=0,
+    )
+    assert dict(with_symptoms)["recursive_cte"] == ""
     assert "level_name" in dict(grain_symptoms)["missing_projections"]
     assert "aggregation_grain" in dict(grain_symptoms)["repair_trace"]
 

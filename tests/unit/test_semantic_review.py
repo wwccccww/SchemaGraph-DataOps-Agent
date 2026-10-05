@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 import sqlglot
-from app.agents.text_to_sql.semantic import HUGE_PLAN_ROWS, check_semantics
+from app.agents.text_to_sql.semantic import HUGE_PLAN_ROWS, check_cte_outputs, check_semantics
 from app.db.ecommerce_schema import ecommerce_sql
 from app.db.tables import FOREIGN_KEYS
 from app.evaluation.custom_cases import load_custom_cases
@@ -303,6 +303,15 @@ def test_custom_gold_passes_static_review_without_gold_inputs() -> None:
             plan_rows=272,
         )
         assert findings == (), (case.id, findings)
+        assert check_cte_outputs(case.gold_sql) == (), case.id
+
+    hidden = check_cte_outputs(
+        """
+        WITH merchants AS (SELECT merchant_id FROM t_merchant)
+        SELECT m.is_self_operated FROM merchants AS m
+        """
+    )
+    assert any("is_self_operated" in item.message for item in hidden)
 
 
 def test_custom_gold_functions_stay_inside_the_existing_allow_list() -> None:

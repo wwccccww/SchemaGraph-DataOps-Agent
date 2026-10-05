@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from app.agents.text_to_sql.contract import check_contract, extract_answer_contract
+from app.agents.text_to_sql.contract import (
+    check_contract,
+    extract_answer_contract,
+    format_query_plan,
+)
 from app.agents.text_to_sql.prompt import render_generation_prompt
 from app.evaluation.custom_cases import load_custom_cases
+from app.evaluation.sql_shape import describe_sql
 
 _PROJECTION_IDS = (
     "custom_basic_001",
@@ -64,6 +69,11 @@ def test_gold_sql_satisfies_the_question_contract() -> None:
             anchor_date=case.anchor_date.isoformat(),
         )
         assert findings == (), (case.id, case.question, findings)
+        contract = extract_answer_contract(
+            case.question,
+            anchor_date=case.anchor_date.isoformat(),
+        )
+        assert contract.output_fields == describe_sql(case.gold_sql).projections
 
 
 def test_category_time_and_dedup_have_positive_and_negative_examples() -> None:
@@ -140,6 +150,19 @@ def test_prompt_places_the_contract_before_schema_context() -> None:
     )
 
     assert prompt.index("答案契约") < prompt.index("可用表")
+    plan = format_query_plan(
+        extract_answer_contract(question),
+        ["t_order.user_id = t_user.user_id"],
+    )
+    assert "输出列" in plan
+    assert "合法外键" in plan
+    grouped = extract_answer_contract(
+        "统计2026年1月至9月华北大区VIP3、VIP4和VIP5用户使用满减优惠券购买自营"
+        "美妆、护肤、彩妆、香水、手机、电脑、耳机、相机、男装或女装的已支付订单数和实付金额"
+    )
+    assert grouped.output_fields[1] == "category_group"
+    assert ("category_group", "个护数码") in grouped.constants
+    assert ("region_name", "华北") in grouped.constants
     assert "2026-09-01 00:00:00" in prompt
     assert "GOLD" not in prompt
     assert "required_tables" not in prompt

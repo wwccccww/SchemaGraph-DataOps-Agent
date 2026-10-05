@@ -46,6 +46,7 @@ _FORBIDDEN = (
 # 门禁按渲染后的函数名审计，不把内部名加入白名单。
 _SURFACE_FUNCTION_NAMES: dict[type[exp.Expression], str] = {
     exp.TimestampTrunc: "date_trunc",
+    exp.TimeToStr: "to_char",
 }
 _ALLOWED_FUNCTIONS = frozenset(
     {

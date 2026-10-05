@@ -65,6 +65,12 @@ def test_date_trunc_uses_the_postgres_function_name() -> None:
     assert decision.error is None
 
 
+def test_to_char_uses_the_postgres_function_name() -> None:
+    decision = check_read_only_sql("SELECT to_char(CURRENT_DATE, 'YYYY-MM')")
+
+    assert decision.error is None
+
+
 def test_unknown_function_stays_rejected() -> None:
     decision = check_read_only_sql("SELECT secret_probe(1)")
 

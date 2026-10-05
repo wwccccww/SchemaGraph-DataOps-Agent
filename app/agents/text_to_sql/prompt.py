@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from app.agents.text_to_sql.contract import AnswerContract, format_answer_contract
 from app.schemas.retrieval import ToolHit
 
-PROMPT_VERSION = "text-to-sql-v1"
+PROMPT_VERSION = "text-to-sql-v2"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -31,6 +31,7 @@ def render_generation_prompt(
     schema_context: str,
     tools: Sequence[ToolHit],
     contract: AnswerContract | None = None,
+    plan: str | None = None,
 ) -> str:
     """组装首轮上下文。Schema 文本由调用方保证不超过预算。"""
 
@@ -39,6 +40,7 @@ def render_generation_prompt(
         schema_context=schema_context,
         tools=tools,
         contract=contract,
+        plan=plan,
         repair=None,
     )
 
@@ -52,6 +54,7 @@ def render_repair_prompt(
     error_category: str,
     error_message: str,
     contract: AnswerContract | None = None,
+    plan: str | None = None,
 ) -> str:
     """把结构化错误附到下一轮。不附带原始异常。"""
 
@@ -60,6 +63,7 @@ def render_repair_prompt(
         schema_context=schema_context,
         tools=tools,
         contract=contract,
+        plan=plan,
         repair=(previous_sql, error_category, error_message),
     )
 
@@ -70,6 +74,7 @@ def _render(
     schema_context: str,
     tools: Sequence[ToolHit],
     contract: AnswerContract | None,
+    plan: str | None,
     repair: tuple[str, str, str] | None,
 ) -> str:
     tool_lines = [
@@ -87,6 +92,8 @@ def _render(
     sections = [f"问题：\n{question}"]
     if contract is not None:
         sections.append(format_answer_contract(contract))
+    if plan:
+        sections.append(plan)
     sections.extend(
         (
             f"可用表：\n{schema_context}",

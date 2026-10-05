@@ -288,6 +288,7 @@ async def evaluate_case(
     *,
     variant: TextToSqlVariant,
     execute: SqlExecute = execute_readonly,
+    initial_sql: str | None = None,
 ) -> CaseResult:
     """生成并执行 Agent SQL。Gold SQL 不进入工作流。"""
 
@@ -300,6 +301,7 @@ async def evaluate_case(
         max_rows=1000,
         variant=variant,
         anchor_date=case.anchor_date.isoformat(),
+        initial_sql=initial_sql,
     )
     response = inspection.response
     latency_ms = int((time.perf_counter() - started) * 1000)
@@ -361,8 +363,19 @@ async def run_ablation(
 
     records: list[CaseResult] = []
     for case in cases:
+        shared_sql: str | None = None
         for variant in variants:
-            records.append(await evaluate_case(case, services, variant=variant, execute=execute))
+            initial = shared_sql if variant == "self_healing" else None
+            record = await evaluate_case(
+                case,
+                services,
+                variant=variant,
+                execute=execute,
+                initial_sql=initial,
+            )
+            if variant == "schema_graph" and record.prediction.sql:
+                shared_sql = record.prediction.sql
+            records.append(record)
     baseline = None
     if documents is not None and token_counter is not None:
         baseline = baseline_schema_tokens(documents, token_counter)

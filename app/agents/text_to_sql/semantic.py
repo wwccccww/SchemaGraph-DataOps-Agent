@@ -614,6 +614,93 @@ def _remember(node: exp.Expression, mapping: dict[str, str]) -> None:
     mapping[node.name.lower()] = node.name.lower()
 
 
+def check_cte_outputs(sql: str) -> tuple[SemanticFinding, ...]:
+    """外层引用的 CTE 列必须由该 CTE 投影。执行数据库之前就能判断。"""
+
+    try:
+        parsed = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return ()
+    if not isinstance(parsed, exp.Expression):
+        return ()
+    outputs = _cte_outputs(parsed)
+    if not outputs:
+        return ()
+    findings: list[SemanticFinding] = []
+    seen: set[tuple[str, str]] = set()
+    for select in parsed.find_all(exp.Select):
+        alias_map = _scope_aliases(select)
+        for column in _columns_owned_by(select):
+            qualifier = column.table
+            if not qualifier:
+                continue
+            target = alias_map.get(qualifier.lower())
+            if target is None or target not in outputs:
+                continue
+            if column.name.lower() in outputs[target]:
+                continue
+            key = (target, column.name.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            findings.append(
+                SemanticFinding(
+                    "undefined_column",
+                    f"CTE {target} 没有输出 {column.name}",
+                )
+            )
+    return tuple(findings)
+
+
+def _cte_outputs(expression: exp.Expression) -> dict[str, set[str]]:
+    outputs: dict[str, set[str]] = {}
+    for cte in expression.find_all(exp.CTE):
+        alias = cte.alias if isinstance(cte.alias, str) else ""
+        body = cte.this
+        if not alias or not isinstance(body, exp.Expression):
+            continue
+        select = body if isinstance(body, exp.Select) else body.find(exp.Select)
+        if not isinstance(select, exp.Select):
+            continue
+        names = {
+            projection.alias_or_name.lower()
+            for projection in select.expressions
+            if isinstance(projection.alias_or_name, str) and projection.alias_or_name
+        }
+        outputs[alias.lower()] = names
+    return outputs
+
+
+def _columns_owned_by(select: exp.Select) -> tuple[exp.Column, ...]:
+    nodes: list[exp.Expression] = []
+    for expression in select.expressions:
+        if isinstance(expression, exp.Expression):
+            nodes.append(expression)
+    for key in ("where", "group", "having", "order"):
+        node = select.args.get(key)
+        if isinstance(node, exp.Expression):
+            nodes.append(node)
+    joins = select.args.get("joins")
+    if isinstance(joins, list):
+        nodes.extend(join for join in joins if isinstance(join, exp.Join))
+    found: list[exp.Column] = []
+    for node in nodes:
+        for column in node.find_all(exp.Column):
+            if _owning_select(column) is select:
+                found.append(column)
+    return tuple(found)
+
+
+def _owning_select(node: exp.Expression) -> exp.Select | None:
+    current: exp.Expression | None = node
+    while current is not None:
+        if isinstance(current, exp.Select):
+            return current
+        parent = current.parent
+        current = parent if isinstance(parent, exp.Expression) else None
+    return None
+
+
 def _reaches_row_limit(row_count: int | None, max_rows: int | None) -> bool:
     return row_count is not None and max_rows is not None and max_rows > 0 and row_count >= max_rows
 

@@ -8,6 +8,10 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
+import sqlglot
+from sqlglot import exp
+from sqlglot.errors import SqlglotError
+
 from app.agents.text_to_sql.contract import extract_answer_contract
 from app.evaluation.sql_shape import PredictionShape, describe_sql
 
@@ -107,14 +111,12 @@ def _primary(
         return "time_anchor"
     if _grain_mismatch(gold, predicted):
         return "grouping_grain"
+    if _response_shape(symptoms):
+        return "response_shape"
     if _symptom_value(symptoms, "missing_filter_literals"):
         return "filter_scope"
-    if _symptom_value(symptoms, "join_difference"):
-        return "join_shape"
-    if _symptom_value(symptoms, "missing_projections") or _symptom_value(
-        symptoms, "extra_projections"
-    ):
-        return "projection"
+    if _join_semantics(gold.sql or "", predicted.sql or "", symptoms):
+        return "join_semantics"
     return "other_result_mismatch"
 
 
@@ -135,12 +137,14 @@ def _symptoms(
     rows = [
         ("missing_projections", ",".join(missing)),
         ("extra_projections", ",".join(extra)),
+        ("projection_order", _projection_order(gold, predicted)),
         ("gold_group_by", " | ".join(gold_groups)),
         ("predicted_group_by", " | ".join(predicted_groups)),
         ("aggregation_only_in_cte", _cte_only(predicted)),
-        ("missing_filter_literals", ",".join(_missing_literals(gold, predicted))),
+        ("missing_output_labels", ",".join(_missing_output_labels(gold, predicted))),
+        ("missing_filter_literals", ",".join(_missing_filter_literals(gold, predicted))),
         ("category_scope", _category_scope(question, predicted.sql or "")),
-        ("join_difference", _join_difference(gold, predicted)),
+        ("join_shape_difference", _join_difference(gold, predicted)),
         ("runtime_clock", "true" if _CLOCK.search(predicted.sql or "") else ""),
         ("recursive_cte", _recursive_symptom(predicted.sql or "")),
         ("repair_trace", _repair_symptom(repair_trace)),
@@ -170,14 +174,101 @@ def _cte_only(shape: PredictionShape) -> str:
     return ""
 
 
-def _missing_literals(gold: PredictionShape, predicted: PredictionShape) -> tuple[str, ...]:
+def _response_shape(symptoms: tuple[tuple[str, str], ...]) -> bool:
+    return any(
+        _symptom_value(symptoms, name)
+        for name in (
+            "missing_projections",
+            "extra_projections",
+            "projection_order",
+            "missing_output_labels",
+        )
+    )
+
+
+def _join_semantics(
+    gold_sql: str,
+    predicted_sql: str,
+    symptoms: tuple[tuple[str, str], ...],
+) -> bool:
+    if not _symptom_value(symptoms, "join_shape_difference"):
+        return False
+    gold_dedup = "distinct" in gold_sql.lower() and "order_id" in gold_sql.lower()
+    predicted_dedup = "distinct" in predicted_sql.lower() and "order_id" in predicted_sql.lower()
+    if gold_dedup and not predicted_dedup:
+        return True
+    gold_groups = _symptom_value(symptoms, "gold_group_by")
+    predicted_groups = _symptom_value(symptoms, "predicted_group_by")
+    return bool(gold_groups and predicted_groups and gold_groups != predicted_groups)
+
+
+def _projection_order(gold: PredictionShape, predicted: PredictionShape) -> str:
+    if gold.projections == predicted.projections:
+        return ""
+    if set(gold.projections) != set(predicted.projections):
+        return ""
+    return f"gold={','.join(gold.projections)};predicted={','.join(predicted.projections)}"
+
+
+def _missing_output_labels(gold: PredictionShape, predicted: PredictionShape) -> tuple[str, ...]:
     predicted_text = predicted.sql or ""
-    missing: list[str] = []
-    for literal in _LITERAL.findall(gold.sql or ""):
-        labeled = literal in {"PAID", "CANCELLED"} or _looks_like_label(literal)
-        if labeled and literal not in predicted_text:
-            missing.append(literal)
+    missing = [
+        literal
+        for literal in _select_literals(gold.sql or "")
+        if _is_label(literal) and literal not in predicted_text
+    ]
     return tuple(dict.fromkeys(missing))
+
+
+def _missing_filter_literals(gold: PredictionShape, predicted: PredictionShape) -> tuple[str, ...]:
+    predicted_text = predicted.sql or ""
+    output_labels = set(_select_literals(gold.sql or ""))
+    missing = [
+        literal
+        for literal in _where_literals(gold.sql or "")
+        if literal not in output_labels and _is_label(literal) and literal not in predicted_text
+    ]
+    return tuple(dict.fromkeys(missing))
+
+
+def _select_literals(sql: str) -> tuple[str, ...]:
+    if not sql.strip():
+        return ()
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return ()
+    outer = expression if isinstance(expression, exp.Select) else expression.find(exp.Select)
+    if not isinstance(outer, exp.Select):
+        return ()
+    found: list[str] = []
+    for projection in outer.expressions:
+        found.extend(_LITERAL.findall(projection.sql(dialect="postgres")))
+    return tuple(dict.fromkeys(found))
+
+
+def _where_literals(sql: str) -> tuple[str, ...]:
+    return _literals_in(sql, exp.Where, exp.Having)
+
+
+def _literals_in(sql: str, *kinds: type[exp.Expression]) -> tuple[str, ...]:
+    if not sql.strip():
+        return ()
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return ()
+    found: list[str] = []
+    for kind in kinds:
+        for node in expression.find_all(kind):
+            found.extend(_LITERAL.findall(node.sql(dialect="postgres")))
+    return tuple(dict.fromkeys(found))
+
+
+def _is_label(literal: str) -> bool:
+    if literal in {"PAID", "CANCELLED"}:
+        return True
+    return _looks_like_label(literal)
 
 
 def _looks_like_label(literal: str) -> bool:
@@ -208,11 +299,24 @@ def _join_difference(gold: PredictionShape, predicted: PredictionShape) -> str:
 
 
 def _recursive_symptom(sql: str) -> str:
-    lowered = sql.lower()
-    if "with recursive" in lowered:
-        return "declared"
-    if re.search(r"\bwith\b", lowered) and "recursive" not in lowered:
-        return "not_declared"
+    if not sql.strip():
+        return ""
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return ""
+    for clause in expression.find_all(exp.With):
+        recursive = bool(clause.args.get("recursive"))
+        for cte in clause.find_all(exp.CTE):
+            name = cte.alias if isinstance(cte.alias, str) else ""
+            body = cte.this
+            if not name or not isinstance(body, exp.Expression):
+                continue
+            refers_to_self = any(table.name == name for table in body.find_all(exp.Table))
+            if refers_to_self and not recursive:
+                return "self_reference"
+            if refers_to_self and recursive:
+                return "declared"
     return ""
 
 

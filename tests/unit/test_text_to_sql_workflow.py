@@ -8,6 +8,7 @@ from app.agents.text_to_sql.workflow import (
     MAX_MODEL_CALLS,
     ServiceBundle,
     build_graph,
+    inspect_text_to_sql,
     run_text_to_sql,
 )
 from app.graph.expand import EstimatedTokenCounter
@@ -124,6 +125,23 @@ def _bundle(
         token_counter=EstimatedTokenCounter(),
         estimate_plan_rows=estimate_plan_rows,
     )
+
+
+async def test_self_healing_starts_from_the_shared_sql_without_a_first_model_call() -> None:
+    model = ScriptedModel(["SELECT 1"])
+    shared = "SELECT level_id FROM t_user_level"
+
+    inspection = await inspect_text_to_sql(
+        _bundle(model, RecordingExecutor()),
+        question="查询会员等级",
+        database_id="ecommerce",
+        initial_sql=shared,
+    )
+
+    assert inspection.response.status == "succeeded"
+    assert inspection.response.attempts == 1
+    assert inspection.response.sql == shared
+    assert model.prompts == []
 
 
 def test_graph_uses_the_documented_node_names() -> None:
@@ -352,7 +370,7 @@ async def test_huge_plan_triggers_one_review_then_accepts_the_repair() -> None:
     assert "required_tables" not in model.prompts[1]
 
 
-async def test_repeated_semantic_failures_trip_the_circuit_and_hide_sql() -> None:
+async def test_repeated_semantic_failures_keep_the_executed_sql() -> None:
     model = ScriptedModel(["SELECT 1"])
     response = await run_text_to_sql(
         _bundle(model, RecordingExecutor()),
@@ -360,15 +378,15 @@ async def test_repeated_semantic_failures_trip_the_circuit_and_hide_sql() -> Non
         database_id="ecommerce",
     )
 
-    assert response.status == "failed"
+    assert response.status == "succeeded"
     assert response.attempts == 2
-    assert response.sql is None
-    assert response.rows is None
-    assert response.error is not None
-    assert response.error.category == "no_progress"
+    assert response.sql == "SELECT 1"
+    assert response.rows == [[1]]
     assert "missing_entity" in model.prompts[1]
     assert "答案契约" in model.prompts[0]
-    assert model.prompts[0].index("答案契约") < model.prompts[0].index("可用表")
+    assert "查询计划" in model.prompts[0]
+    assert model.prompts[0].index("答案契约") < model.prompts[0].index("查询计划")
+    assert model.prompts[0].index("查询计划") < model.prompts[0].index("可用表")
     assert "required_tables" not in " ".join(model.prompts)
     assert "difficulty" not in " ".join(model.prompts)
     assert "GOLD" not in " ".join(model.prompts)
@@ -395,11 +413,9 @@ async def test_contract_repair_stops_when_the_symptom_does_not_clear() -> None:
         database_id="ecommerce",
     )
 
-    assert response.status == "failed"
+    assert response.status == "succeeded"
     assert response.attempts == 2
-    assert response.sql is None
-    assert response.error is not None
-    assert response.error.category == "no_progress"
+    assert response.sql == first_sql
     assert executor.calls == [first_sql]
     assert "期望" in model.prompts[1]
     assert "实际" in model.prompts[1]
