@@ -9,6 +9,7 @@ _PLAN = [
         "Plan": {
             "Node Type": "Nested Loop",
             "Total Cost": 10.5,
+            "Plan Rows": 3,
             "Shared Hit Blocks": 1,
             "Shared Read Blocks": 2,
             "Plans": [
@@ -34,6 +35,7 @@ def test_analyzed_plan_sums_blocks_and_uses_root_execution_time() -> None:
     assert summary.shared_hit_blocks == 5
     assert summary.shared_read_blocks == 7
     assert summary.nodes[1].relation == "t_order"
+    assert summary.plan_rows == 3.0
 
 
 def test_plan_without_analyze_keeps_runtime_fields_empty() -> None:

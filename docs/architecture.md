@@ -86,6 +86,9 @@ SchemaGraph-DataOps-Agent 面向两类彼此独立的任务：
 - 图扩展后的表数量不超过 12。
 - Schema Context 使用 DeepSeek 对应 tokenizer 计数，不超过 3.5k token。
 - 生成 SQL 必须通过应用层 AST 门禁和数据库层只读门禁。
+- 自愈组在执行成功后做静态复核：投影是否覆盖问句要求返回的内容、问句点名的实体是否出现、JOIN 是否落在外键上、聚合是否被多的一端放大、有没有笛卡尔积、结果是否为空或达到行数上限、EXPLAIN 计划行数是否过大。复核通过不再调用模型；失败才把发现交给 `repair_sql`。
+- Schema-RAG 和 Schema Graph 执行成功后结束，不因为复核再次调用模型。
+- 复核不读取 Gold SQL、Gold 结果、`required_tables` 或难度。
 - 同一规范化错误连续出现 3 次时立即熔断。
 - 工作流必须设置最大总迭代数，避免不同错误交替出现导致无限循环。
 

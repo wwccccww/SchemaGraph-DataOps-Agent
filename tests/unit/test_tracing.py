@@ -62,7 +62,7 @@ def _text(attributes: Mapping[str, object]) -> str:
 async def test_success_span_records_only_the_required_fields() -> None:
     clear_spans()
     response = await run_text_to_sql(
-        _bundle(ScriptedModel(["SELECT 1"]), RecordingExecutor()),
+        _bundle(ScriptedModel(["SELECT level_id FROM t_user_level"]), RecordingExecutor()),
         question="查询会员等级",
         database_id="ecommerce",
     )
@@ -80,7 +80,8 @@ async def test_success_span_records_only_the_required_fields() -> None:
     assert int(cast(int, attributes["schema_context_tokens"])) > 0
     assert tuple(cast(Sequence[object], attributes["selected_tools"])) == ("get_table_schema",)
     assert attributes["generation_attempt"] == 1
-    assert attributes["sql_hash"] == sql_hash("SELECT 1")
+    assert response.sql is not None
+    assert attributes["sql_hash"] == sql_hash(response.sql)
     assert attributes["error_hash"] == ""
     assert attributes["db_execution_ms"] == 0.1
     assert attributes["planner_total_cost"] == 0.0
@@ -88,7 +89,8 @@ async def test_success_span_records_only_the_required_fields() -> None:
     assert attributes["circuit_breaker_triggered"] is False
     rendered = _text(attributes)
     assert "查询会员等级" not in rendered
-    assert "SELECT 1" not in rendered
+    assert response.sql not in rendered
+    assert "level_id" not in rendered
 
 
 async def test_unsupported_database_still_emits_one_span() -> None:

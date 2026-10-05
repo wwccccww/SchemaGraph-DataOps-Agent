@@ -24,6 +24,7 @@
 - SQLGlot 做语法和全 AST 只读检查；
 - PostgreSQL 最小权限 Role + READ ONLY 事务；
 - 将 SQLSTATE 和规范化错误反馈给模型；
+- 执行成功后复核投影、问句点名的实体、外键 JOIN、聚合粒度、笛卡尔积、空结果或过大结果，以及 EXPLAIN 计划行数；复核通过不再调用模型，只有自愈组在复核失败时进入原有修复；
 - 同一 Error Hash 连续出现 3 次时熔断；
 - 独立统计 Pass@1、Pass@3 和 Recovery@3。
 

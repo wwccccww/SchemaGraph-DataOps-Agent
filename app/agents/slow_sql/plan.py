@@ -24,6 +24,7 @@ class PlanSummary:
     shared_hit_blocks: int | None
     shared_read_blocks: int | None
     nodes: tuple[PlanNode, ...]
+    plan_rows: float | None = None
 
 
 def parse_explain(payload: object, *, analyzed: bool) -> PlanSummary:
@@ -37,6 +38,7 @@ def parse_explain(payload: object, *, analyzed: bool) -> PlanSummary:
         raise ValueError("explain plan is missing total cost")
     nodes: list[PlanNode] = []
     hit, read = _walk(plan, nodes)
+    plan_rows = _plan_rows(plan.get("Plan Rows"))
     if not analyzed:
         return PlanSummary(
             total_cost=float(plan["Total Cost"]),
@@ -44,6 +46,7 @@ def parse_explain(payload: object, *, analyzed: bool) -> PlanSummary:
             shared_hit_blocks=None,
             shared_read_blocks=None,
             nodes=tuple(nodes),
+            plan_rows=plan_rows,
         )
     elapsed = root.get("Execution Time")
     return PlanSummary(
@@ -52,6 +55,7 @@ def parse_explain(payload: object, *, analyzed: bool) -> PlanSummary:
         shared_hit_blocks=hit,
         shared_read_blocks=read,
         nodes=tuple(nodes),
+        plan_rows=plan_rows,
     )
 
 
@@ -79,6 +83,12 @@ def _walk(plan: Mapping[str, object], nodes: list[PlanNode]) -> tuple[int, int]:
             hit += child_hit
             read += child_read
     return hit, read
+
+
+def _plan_rows(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value)
 
 
 def _block_count(value: object) -> int:

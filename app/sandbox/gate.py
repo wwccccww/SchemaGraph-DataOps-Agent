@@ -185,6 +185,16 @@ class GateDecision:
     error: ExecutionError | None
 
 
+def allowed_read_only_functions() -> frozenset[str]:
+    """返回只读函数白名单。
+
+    只有 Gold SQL 已经使用、并且本身只读的函数才可以加入。
+    不能因为模型写出了未知函数就放行。
+    """
+
+    return _ALLOWED_FUNCTIONS
+
+
 def check_read_only_sql(sql: str) -> GateDecision:
     """遍历整棵 AST。失败时不得把原始 SQL 发给数据库。"""
 

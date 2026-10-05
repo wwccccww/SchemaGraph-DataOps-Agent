@@ -15,6 +15,7 @@ from app.agents.text_to_sql.prompt import (
     render_generation_prompt,
     render_repair_prompt,
 )
+from app.agents.text_to_sql.semantic import check_semantics
 from app.db.catalog import DATABASE_ID
 from app.graph.expand import TokenCounter, expand_schema, render_schema_context
 from app.llm.gateway import ChatModel
@@ -25,7 +26,7 @@ from app.observability.tracing import (
     set_request_attributes,
     sql_hash,
 )
-from app.sandbox.errors import ExecutionError
+from app.sandbox.errors import ExecutionError, make_error
 from app.sandbox.execute import ExecutionSuccess
 from app.sandbox.gate import check_read_only_sql
 from app.schemas.catalog import SchemaEdge, TableDocument
@@ -59,6 +60,13 @@ class SqlExecutor(Protocol):
 
     async def __call__(self, sql: str, *, max_rows: int) -> ExecutionSuccess | ExecutionError:
         """返回结果或结构化错误。"""
+
+
+class PlanRowEstimator(Protocol):
+    """读取 EXPLAIN 的计划行数。失败时返回 None。"""
+
+    async def __call__(self, sql: str) -> float | None:
+        """返回根节点的 Plan Rows。"""
 
 
 class TextToSqlState(TypedDict):
@@ -99,6 +107,7 @@ class ServiceBundle:
     load_catalog: Callable[[], Awaitable[Catalog]]
     execute: SqlExecutor
     token_counter: TokenCounter
+    estimate_plan_rows: PlanRowEstimator | None = None
 
 
 def build_graph(services: ServiceBundle) -> Any:
@@ -111,6 +120,7 @@ def build_graph(services: ServiceBundle) -> Any:
         load_catalog=services.load_catalog,
         execute=services.execute,
         token_counter=services.token_counter,
+        estimate_plan_rows=services.estimate_plan_rows,
     )
     builder = StateGraph(TextToSqlState)
     builder.add_node("route_tools", cast(Any, _route_tools(bound)))
@@ -404,11 +414,46 @@ def _execute_sql(
         outcome = await services.execute(sql, max_rows=state["max_rows"])
         if isinstance(outcome, ExecutionError):
             return _record_error(state, outcome)
-        return {
+        success = {
             "status": "succeeded",
             "columns": [name for name, _database_type in outcome.columns],
             "rows": json_rows(outcome.rows),
             "db_execution_ms": outcome.execution_time_ms,
+            "error_category": None,
+            "error_message": None,
+            "error_retryable": False,
+        }
+        if state["variant"] != "self_healing":
+            return success
+        documents, edges = await services.load_catalog()
+        plan_rows = None
+        if services.estimate_plan_rows is not None:
+            plan_rows = await services.estimate_plan_rows(sql)
+        findings = check_semantics(
+            question=state["question"],
+            sql=sql,
+            documents=documents,
+            edges=edges,
+            selected_tables=[*state["seed_tables"], *state["expanded_tables"]],
+            row_count=outcome.row_count,
+            truncated=outcome.truncated,
+            max_rows=state["max_rows"],
+            plan_rows=plan_rows,
+        )
+        if not findings:
+            return success
+        message = "；".join(f"{item.category}: {item.message}" for item in findings)
+        return {
+            **success,
+            **_record_error(
+                state,
+                make_error(
+                    category=findings[0].category,
+                    message=message,
+                    exception_type="SemanticReview",
+                    retryable=True,
+                ),
+            ),
         }
 
     return execute_sql

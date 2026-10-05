@@ -1,0 +1,248 @@
+"""静态复核不读取 Gold，但 Gold SQL 不能被误报。"""
+
+from __future__ import annotations
+
+import re
+
+import sqlglot
+from app.agents.text_to_sql.semantic import HUGE_PLAN_ROWS, check_semantics
+from app.db.ecommerce_schema import ecommerce_sql
+from app.db.tables import FOREIGN_KEYS
+from app.evaluation.custom_cases import load_custom_cases
+from app.sandbox.gate import allowed_read_only_functions, check_read_only_sql
+from app.schemas.catalog import ColumnDocument, SchemaEdge, TableDocument
+from sqlglot import exp
+
+_STRUCTURAL = (exp.And, exp.Or, exp.Not, exp.Exists, exp.Cast, exp.TryCast, exp.Case, exp.If)
+_LEVEL_QUESTION = "按等级编号升序查询全部会员等级的名称和折扣率"
+_LEVEL_SQL = "SELECT level_id, level_name, discount_rate FROM t_user_level ORDER BY level_id"
+
+
+def test_projection_entity_join_grain_and_result_checks() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+
+    missing_name = check_semantics(
+        question=_LEVEL_QUESTION,
+        sql="SELECT level_id FROM t_user_level ORDER BY level_id",
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "projection_mismatch" for item in missing_name)
+    assert all("required_tables" not in item.message for item in missing_name)
+
+    covered = check_semantics(
+        question=_LEVEL_QUESTION,
+        sql=_LEVEL_SQL,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+        plan_rows=5,
+    )
+    assert covered == ()
+
+    missing_entity = check_semantics(
+        question="查询会员等级的名称",
+        sql="SELECT 1",
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(
+        item.category == "missing_entity" and "t_user_level" in item.message
+        for item in missing_entity
+    )
+
+    hidden = check_semantics(
+        question="查询会员等级的名称",
+        sql="SELECT 1",
+        documents=documents,
+        edges=edges,
+        selected_tables=["t_product"],
+        row_count=1,
+    )
+    assert all(item.category != "missing_entity" for item in hidden)
+
+    cartesian = check_semantics(
+        question="查询订单",
+        sql="SELECT o.order_id FROM t_order AS o, t_user AS u",
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "cartesian_product" for item in cartesian)
+
+    bad_join = check_semantics(
+        question="查询订单",
+        sql="SELECT o.order_id FROM t_order AS o JOIN t_user AS u ON o.order_id = u.user_id",
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "join_not_on_graph" for item in bad_join)
+
+    good_join = check_semantics(
+        question="查询订单",
+        sql="SELECT o.order_id FROM t_order AS o JOIN t_user AS u ON o.user_id = u.user_id",
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert all(
+        item.category not in {"join_not_on_graph", "cartesian_product"} for item in good_join
+    )
+
+    fanout = check_semantics(
+        question="统计已支付订单的实付金额",
+        sql=(
+            "SELECT SUM(o.total_amount) FROM t_order AS o "
+            "JOIN t_order_detail AS od ON o.order_id = od.order_id"
+        ),
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "aggregation_grain" for item in fanout)
+
+    grouped = check_semantics(
+        question="统计每个会员等级的用户数量",
+        sql=(
+            "SELECT COUNT(*) FROM t_user AS u "
+            "JOIN t_user_level AS ul ON u.user_level_id = ul.level_id"
+        ),
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any("GROUP BY" in item.message for item in grouped)
+
+    empty = check_semantics(
+        question=_LEVEL_QUESTION,
+        sql=_LEVEL_SQL,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=0,
+    )
+    assert [item.category for item in empty] == ["empty_result"]
+
+    huge = check_semantics(
+        question=_LEVEL_QUESTION,
+        sql=_LEVEL_SQL,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1000,
+        max_rows=1000,
+        plan_rows=float(HUGE_PLAN_ROWS),
+    )
+    assert {item.category for item in huge} == {"result_too_large", "explain_cardinality"}
+
+
+def test_custom_gold_passes_static_review_without_gold_inputs() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    for case in load_custom_cases():
+        findings = check_semantics(
+            question=case.question,
+            sql=case.gold_sql,
+            documents=documents,
+            edges=edges,
+            selected_tables=selected,
+            row_count=1,
+            max_rows=1000,
+            plan_rows=272,
+        )
+        assert findings == (), (case.id, findings)
+
+
+def test_custom_gold_functions_stay_inside_the_existing_allow_list() -> None:
+    used: set[str] = set()
+    for case in load_custom_cases():
+        decision = check_read_only_sql(case.gold_sql)
+        assert decision.error is None
+        expression = sqlglot.parse_one(case.gold_sql, read="postgres")
+        for node in expression.walk():
+            if not isinstance(node, exp.Func) or isinstance(node, _STRUCTURAL):
+                continue
+            name = node.name.lower() if isinstance(node, exp.Anonymous) else node.sql_name().lower()
+            used.add(name)
+
+    allowed = allowed_read_only_functions()
+    assert used == {"count", "sum"}
+    assert used <= allowed
+    assert "pg_sleep" not in allowed
+
+
+def _documents() -> list[TableDocument]:
+    columns: dict[str, list[ColumnDocument]] = {}
+    table_comments: dict[str, str] = {}
+    column_comments: dict[tuple[str, str], str] = {}
+    current = ""
+    for line in ecommerce_sql().splitlines():
+        create = re.match(r"^CREATE TABLE (t_[a-z0-9_]+) \(", line)
+        if create:
+            current = create.group(1)
+            columns[current] = []
+            continue
+        column = re.match(r"^    ([a-z_]+) ", line)
+        if current and column:
+            columns[current].append(
+                ColumnDocument(name=column.group(1), data_type="text", nullable=True)
+            )
+        table_comment = re.match(r"^COMMENT ON TABLE (t_[a-z0-9_]+) IS '([^']*)';$", line)
+        if table_comment:
+            table_comments[table_comment.group(1)] = table_comment.group(2)
+        column_comment = re.match(
+            r"^COMMENT ON COLUMN (t_[a-z0-9_]+)\.([a-z_]+) IS '([^']*)';$",
+            line,
+        )
+        if column_comment:
+            column_comments[(column_comment.group(1), column_comment.group(2))] = (
+                column_comment.group(3)
+            )
+    documents: list[TableDocument] = []
+    for name, specs in columns.items():
+        comment = table_comments[name]
+        documents.append(
+            TableDocument(
+                database_id="ecommerce",
+                schema_name="public",
+                table_name=name,
+                table_comment=comment,
+                columns=[
+                    spec.model_copy(update={"comment": column_comments.get((name, spec.name))})
+                    for spec in specs
+                ],
+                is_junction="[Junction Table]" in comment,
+                content_hash=f"sha256:{name}",
+            )
+        )
+    return documents
+
+
+def _edges() -> list[SchemaEdge]:
+    return [
+        SchemaEdge(
+            source_table=item.source_table,
+            source_columns=[item.source_column],
+            target_table=item.target_table,
+            target_columns=[item.target_column],
+            constraint_name=item.constraint_name,
+            weight=1.0,
+            inferred=False,
+            confidence=1.0,
+        )
+        for item in FOREIGN_KEYS
+    ]

@@ -15,6 +15,7 @@ from app.retrieval.embedder import BgeM3Embedder, Embedder
 from app.retrieval.index import search_dynamic_schema_seeds, search_tools
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess, execute_readonly
+from app.sandbox.explain import explain_readonly
 from app.schemas.catalog import SchemaEdge, TableDocument
 from app.schemas.retrieval import SchemaSeed, ToolHit
 
@@ -78,6 +79,12 @@ def build_services(
     async def execute(sql: str, *, max_rows: int) -> ExecutionSuccess | ExecutionError:
         return await execute_readonly(sql, max_rows=max_rows)
 
+    async def estimate_plan_rows(sql: str) -> float | None:
+        outcome = await explain_readonly(sql, analyze=False)
+        if isinstance(outcome, ExecutionError):
+            return None
+        return outcome.plan_rows
+
     return ServiceBundle(
         model=model,
         select_tools=select_tools,
@@ -85,4 +92,5 @@ def build_services(
         load_catalog=load_catalog,
         execute=execute,
         token_counter=token_counter,
+        estimate_plan_rows=estimate_plan_rows,
     )
