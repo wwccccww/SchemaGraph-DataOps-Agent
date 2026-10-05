@@ -26,6 +26,47 @@ def test_sat_performance_level_requires_case_bucket() -> None:
     assert any("CASE" in message for message in messages)
 
 
+def test_rank_window_counts_as_aggregate_for_shape_checks() -> None:
+    from app.agents.text_to_sql.shape import _AGGREGATE
+
+    assert _AGGREGATE.search("SELECT RANK() OVER (ORDER BY enrollment DESC) FROM schools")
+
+
+def test_frpm_category_labels_for_coe_charter() -> None:
+    question = (
+        "For charter schools in Fresno County Office of Education, categorizing schools "
+        "by their FRPM percentage levels."
+    )
+    sql = (
+        'SELECT CASE WHEN f."Percent (%) Eligible FRPM (K-12)" * 100 < 40 THEN \'High\' END '
+        'FROM frpm f WHERE f."County Name" = \'Fresno County Office of Education\''
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert any("District Name" in message for message in messages)
+    assert any("High FRPM" in message for message in messages)
+
+
+def test_loan_running_ok_uses_count_status() -> None:
+    loan_doc = TableDocument(
+        database_id="financial",
+        schema_name="main",
+        table_name="loan",
+        table_comment=None,
+        columns=[],
+        is_junction=False,
+        content_hash="sha256:loan",
+    )
+    question = "What is the percentage of loans running with no issues in each region?"
+    sql = (
+        "SELECT ROUND(100.0 * SUM(x) / COUNT(*), 2), ROUND(AVG(duration), 2) "
+        "FROM loan GROUP BY region"
+    )
+    findings = check_answer_shape(question, sql, (loan_doc,), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert any("COUNT(status)" in message for message in messages)
+
+
 def test_charter_prefers_schools_table() -> None:
     question = "Is it a charter school?"
     sql = (

@@ -27,7 +27,10 @@ _MEASURE = re.compile(
     r"|\bpercentage\b|\brate\b",
     re.IGNORECASE,
 )
-_AGGREGATE = re.compile(r"\b(?:sum|count|avg|min|max)\s*\(", re.IGNORECASE)
+_AGGREGATE = re.compile(
+    r"\b(?:sum|count|avg|min|max)\s*\(|\b(?:rank|row_number|dense_rank)\s*\(",
+    re.IGNORECASE,
+)
 _GROUP_AXIS = re.compile(
     r"各|按[^。]{0,16}汇总|按[^。]{0,16}统计"
     r"|\bgroup(?:ed|ing)?\s+(?:them\s+)?by\b"
@@ -230,12 +233,63 @@ def check_answer_shape(
                     "SAT 指标应对 satscores 使用 LEFT JOIN（cds=CDSCode），不要 INNER JOIN 丢掉无 SAT 学校",
                 )
             )
-        if re.search(r"'High'|'Medium'|'Low'", sql) and "below average" not in lowered:
+        if (
+            re.search(r"performance level", question, re.IGNORECASE)
+            and re.search(r"'High'|'Medium'|'Low'", sql)
+            and "below average" not in lowered
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
                     "SATPerformance 标签用 No SAT Data / Below Average / Average / Above Average，"
                     "不要用 High/Medium/Low",
+                )
+            )
+    if re.search(
+        r"FRPM percentage levels|categorizing.*FRPM|FRPMCategory",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(
+            r"THEN\s+'High'|THEN\s+'Medium'|THEN\s+'Low'",
+            sql,
+            re.IGNORECASE,
+        ) and not re.search(r"High FRPM|Medium FRPM|Low FRPM", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档标签用 High FRPM / Medium FRPM / Low FRPM，"
+                    "阈值按 frpm 小数列 >0.75 / >0.50，不要用 High/Medium/Low 或 ×100 后的百分比阈值",
+                )
+            )
+        if re.search(
+            r"Percent\s*\(\%\)\s*Eligible\s*FRPM[^)]*\*\s*100|PercentFRPM.*\* *100",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PercentFRPM 直接用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，不要 ×100",
+                )
+            )
+    if re.search(r"County Office of Education", question, re.IGNORECASE):
+        if re.search(r"County Name", sql) and re.search(r"Office of Education", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "County Office of Education 学区过滤用 frpm.`District Name` = "
+                    "'Fresno County Office of Education'（或问句中的 COE 名称），不要用 `County Name`",
+                )
+            )
+        if re.search(r"\bs\.Charter\b|\bschools\.Charter\b", sql, re.IGNORECASE) and (
+            "charter school (y/n)" not in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "charter 过滤优先 frpm.`Charter School (Y/N)` = 1（与 BIRD Gold 一致），"
+                    "不要仅用 schools.Charter",
                 )
             )
     if re.search(r"charter", question, re.IGNORECASE) and any(
@@ -272,6 +326,36 @@ def check_answer_shape(
                 SemanticFinding(
                     "projection_mismatch",
                     "正常进行中的贷款用 loan.status = 'C' 计入 running OK，不是 'A'",
+                )
+            )
+        if re.search(r"count\s*\(\s*\*\s*\)", sql, re.IGNORECASE) and not re.search(
+            r"count\s*\(\s*status\s*\)",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "running OK 占比分母用 COUNT(status)，不要用 COUNT(*)",
+                )
+            )
+        if re.search(r"round\s*\(\s*avg\s*\(\s*duration", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "avg_duration 用 AVG(duration) 原精度，中间 CTE 不要 ROUND",
+                )
+            )
+        if re.search(
+            r"round\s*\(\s*100(?:\.0)?\s*\*\s*sum\s*\(\s*running",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "percentage_running_ok 在 CTE 用 CAST(SUM(running_ok) AS REAL)*100/COUNT(status)，"
+                    "只在最终 SELECT ROUND；diff_from_overall 依赖未 ROUND 的中间值",
                 )
             )
     has_frpm = any(document.table_name.lower() == "frpm" for document in documents)
@@ -661,6 +745,24 @@ def _join_hints(
         hints.append(
             "与 overall 对比：overall 汇总 CTE 按 loan_size_category 等并行维度 GROUP BY，"
             "再 JOIN 对齐该键；不要单行 CROSS JOIN 全局百分比。"
+        )
+    if "loan" in visible and re.search(
+        r"running with no issues|percentage of loans running",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "running OK 占比：COUNT(status) 作分母；CTE 内 percentage 不 ROUND；"
+            "avg_duration 不 ROUND；最终 SELECT 再 ROUND percentage 与 diff_from_overall。"
+        )
+    if "frpm" in visible and re.search(
+        r"County Office of Education|FRPM percentage levels",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "COE charter 题：frpm.`District Name` 过滤学区；`Charter School (Y/N)`=1；"
+            "PercentFRPM 用小数列；FRPMCategory 为 High FRPM / Medium FRPM / Low FRPM（0.75/0.50）。"
         )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
