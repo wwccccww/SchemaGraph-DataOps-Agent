@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 
 from app.agents.text_to_sql.workflow import (
     MAX_MODEL_CALLS,
+    ZERO_SHOT_SCHEMA,
     ServiceBundle,
     build_graph,
     inspect_text_to_sql,
@@ -421,3 +422,151 @@ async def test_contract_repair_stops_when_the_symptom_does_not_clear() -> None:
     assert "实际" in model.prompts[1]
     assert "GOLD" not in " ".join(model.prompts)
     assert "required_tables" not in " ".join(model.prompts)
+
+
+def _schools_bundle(model: ScriptedModel, executor: RecordingExecutor) -> ServiceBundle:
+    async def select_tools(_question: str) -> list[ToolHit]:
+        return []
+
+    async def select_seeds(_question: str) -> list[SchemaSeed]:
+        return [
+            SchemaSeed(
+                database_id="california_schools",
+                schema_name="main",
+                table_name="schools",
+                content_hash="sha256:schools",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            )
+        ]
+
+    async def load_catalog() -> tuple[list[TableDocument], list[object]]:
+        return [
+            TableDocument(
+                database_id="california_schools",
+                schema_name="main",
+                table_name="schools",
+                table_comment=None,
+                columns=[
+                    ColumnDocument(name="cds", data_type="TEXT", nullable=False, comment=None)
+                ],
+                is_junction=False,
+                content_hash="sha256:schools",
+            )
+        ], []
+
+    return ServiceBundle(
+        model=model,
+        select_tools=select_tools,
+        select_seeds=select_seeds,
+        load_catalog=load_catalog,
+        execute=executor,
+        token_counter=EstimatedTokenCounter(),
+        database_id="california_schools",
+    )
+
+
+async def test_registered_sqlite_database_uses_a_generic_prompt() -> None:
+    model = ScriptedModel(["SELECT COUNT(*) FROM schools"])
+    response = await run_text_to_sql(
+        _schools_bundle(model, RecordingExecutor()),
+        question="How many schools are there?",
+        database_id="california_schools",
+        variant="schema_graph",
+    )
+
+    assert response.status == "succeeded"
+    assert response.error is None
+    prompt = model.prompts[0]
+    assert "SQLite 数据库 california_schools" in prompt
+    assert "答案契约" not in prompt
+    assert "护肤品" not in prompt
+    assert ZERO_SHOT_SCHEMA not in prompt
+
+
+async def test_generic_zero_shot_names_the_sqlite_database() -> None:
+    model = ScriptedModel(["SELECT 1"])
+    response = await run_text_to_sql(
+        _schools_bundle(model, RecordingExecutor()),
+        question="How many schools are there?",
+        database_id="california_schools",
+        variant="zero_shot",
+        execute=False,
+    )
+
+    assert response.status == "succeeded"
+    assert "SQLite 数据库 california_schools" in model.prompts[0]
+    assert ZERO_SHOT_SCHEMA not in model.prompts[0]
+    assert "答案契约" not in model.prompts[0]
+
+
+async def test_registered_database_with_the_ecommerce_bundle_does_not_call_the_model() -> None:
+    model = ScriptedModel(["SELECT 1"])
+    response = await run_text_to_sql(
+        _bundle(model, RecordingExecutor()),
+        question="How many schools are there?",
+        database_id="california_schools",
+        variant="schema_graph",
+    )
+
+    assert response.status == "failed"
+    assert response.error is not None
+    assert response.error.category == "cross_database_catalog"
+    assert response.attempts == 0
+    assert model.prompts == []
+
+
+async def test_catalog_from_another_database_stops_before_the_model() -> None:
+    model = ScriptedModel(["SELECT 1"])
+
+    async def select_tools(_question: str) -> list[ToolHit]:
+        return []
+
+    async def select_seeds(_question: str) -> list[SchemaSeed]:
+        return [
+            SchemaSeed(
+                database_id="california_schools",
+                schema_name="main",
+                table_name="schools",
+                content_hash="sha256:schools",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            )
+        ]
+
+    async def load_catalog() -> tuple[list[TableDocument], list[object]]:
+        return [
+            TableDocument(
+                database_id="ecommerce",
+                schema_name="public",
+                table_name="schools",
+                table_comment=None,
+                columns=[
+                    ColumnDocument(name="cds", data_type="TEXT", nullable=False, comment=None)
+                ],
+                is_junction=False,
+                content_hash="sha256:schools",
+            )
+        ], []
+
+    response = await run_text_to_sql(
+        ServiceBundle(
+            model=model,
+            select_tools=select_tools,
+            select_seeds=select_seeds,
+            load_catalog=load_catalog,
+            execute=RecordingExecutor(),
+            token_counter=EstimatedTokenCounter(),
+            database_id="california_schools",
+        ),
+        question="How many schools are there?",
+        database_id="california_schools",
+        variant="schema_graph",
+    )
+
+    assert response.status == "failed"
+    assert response.error is not None
+    assert response.error.category == "cross_database_catalog"
+    assert model.prompts == []

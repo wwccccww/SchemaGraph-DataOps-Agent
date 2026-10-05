@@ -10,10 +10,25 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v1"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
 )
+SQLITE_SYSTEM_PROMPT = (
+    "你是 SQLite 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
+    "不要解释，不要写入数据，不要使用未给出的工具。"
+)
+
+
+def system_prompt_for(*, dialect: str, profile: str) -> str:
+    """电商问数继续使用原来的 PostgreSQL 系统提示。"""
+
+    if profile == "ecommerce" or dialect != "sqlite":
+        return SYSTEM_PROMPT
+    return SQLITE_SYSTEM_PROMPT
+
+
 _FENCE = re.compile(r"```(?:sql|postgresql)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)
 
 

@@ -16,13 +16,13 @@ from app.agents.text_to_sql.contract import (
     format_query_plan,
 )
 from app.agents.text_to_sql.prompt import (
-    SYSTEM_PROMPT,
     extract_sql,
     render_generation_prompt,
     render_repair_prompt,
+    system_prompt_for,
 )
 from app.agents.text_to_sql.semantic import SemanticFinding, check_cte_outputs, check_semantics
-from app.db.catalog import DATABASE_ID
+from app.datasources.registry import resolve_data_source
 from app.graph.expand import TokenCounter, expand_schema, render_schema_context
 from app.llm.gateway import ChatModel
 from app.observability.tracing import (
@@ -104,6 +104,9 @@ class TextToSqlState(TypedDict):
     circuit_breaker_triggered: bool
     db_execution_ms: float | None
     anchor_date: str
+    dialect: str
+    profile: str
+    schema_name: str
     contract_repairs: int
     repair_trace: list[dict[str, object]]
     join_paths: list[str]
@@ -124,6 +127,7 @@ class ServiceBundle:
     execute: SqlExecutor
     token_counter: TokenCounter
     estimate_plan_rows: PlanRowEstimator | None = None
+    database_id: str = "ecommerce"
 
 
 def build_graph(services: ServiceBundle) -> Any:
@@ -137,6 +141,7 @@ def build_graph(services: ServiceBundle) -> Any:
         execute=services.execute,
         token_counter=services.token_counter,
         estimate_plan_rows=services.estimate_plan_rows,
+        database_id=services.database_id,
     )
     builder = StateGraph(TextToSqlState)
     builder.add_node("route_tools", cast(Any, _route_tools(bound)))
@@ -180,6 +185,7 @@ class TextToSqlInspection:
     response: TextToSqlResponse
     generated_sql: str | None
     repair_trace: tuple[dict[str, object], ...] = ()
+    prompt: str = ""
 
 
 async def run_text_to_sql(
@@ -228,7 +234,8 @@ async def inspect_text_to_sql(
     final: TextToSqlState | None = None
     with request_span("text_to_sql") as span:
         try:
-            if database_id != DATABASE_ID:
+            source = resolve_data_source(database_id)
+            if source is None:
                 return TextToSqlInspection(
                     response=TextToSqlResponse(
                         request_id=identifier,
@@ -242,6 +249,8 @@ async def inspect_text_to_sql(
                     ),
                     generated_sql=None,
                 )
+            if services.database_id != database_id:
+                return _catalog_rejection(identifier)
             graph = cast(CompiledGraph, build_graph(services))
             final = await graph.ainvoke(
                 _initial_state(
@@ -253,12 +262,16 @@ async def inspect_text_to_sql(
                     max_rows=max_rows,
                     anchor_date=anchor_date,
                     initial_sql=initial_sql or "",
+                    dialect=source.dialect,
+                    profile=source.profile,
+                    schema_name=source.schema_name,
                 )
             )
             return TextToSqlInspection(
                 response=_response(final),
                 generated_sql=final["generated_sql"],
                 repair_trace=tuple(final["repair_trace"]),
+                prompt=final["prompt"],
             )
         finally:
             set_request_attributes(span, _trace_fields(services, final))
@@ -281,6 +294,9 @@ def _initial_state(
     max_rows: int,
     anchor_date: str,
     initial_sql: str,
+    dialect: str,
+    profile: str,
+    schema_name: str,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -309,6 +325,9 @@ def _initial_state(
         "circuit_breaker_triggered": False,
         "db_execution_ms": None,
         "anchor_date": anchor_date,
+        "dialect": dialect,
+        "profile": profile,
+        "schema_name": schema_name,
         "contract_repairs": 0,
         "repair_trace": [],
         "join_paths": [],
@@ -350,23 +369,26 @@ def _expand_schema_graph(
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def expand_schema_graph(state: TextToSqlState) -> dict[str, object]:
         if state["variant"] == "zero_shot":
+            schema = _zero_shot_schema(state)
             return {
                 "status": "running",
                 "seed_tables": [],
                 "expanded_tables": [],
-                "schema_context": ZERO_SHOT_SCHEMA,
-                "schema_token_count": services.token_counter.count(ZERO_SHOT_SCHEMA),
+                "schema_context": schema,
+                "schema_token_count": services.token_counter.count(schema),
                 "truncated": False,
             }
         if not state["seed_tables"]:
             return _fail("no_schema_seed", "没有检索到实体种子表", retryable=False)
         documents, edges = await services.load_catalog()
+        if _catalog_mismatch(documents, state["database_id"]):
+            return _fail("cross_database_catalog", "检索到的表不属于当前数据库", retryable=False)
         by_name = {document.table_name: document for document in documents}
         if any(name not in by_name or by_name[name].is_junction for name in state["seed_tables"]):
             return _fail("junction_seed_leak", "种子结果包含不可用的表", retryable=False)
         if state["variant"] == "schema_rag":
             selected = [by_name[name] for name in state["seed_tables"]]
-            context = render_schema_context(selected, edges)
+            context = _visible_schema(state, render_schema_context(selected, edges))
             return {
                 "status": "running",
                 "seed_tables": list(state["seed_tables"]),
@@ -400,14 +422,14 @@ def _expand_schema_graph(
             for name in (*result.seed_tables, *result.expanded_tables)
             if name in by_name
         ]
-        context = render_schema_context(selected, result.edges)
+        context = _visible_schema(state, render_schema_context(selected, result.edges))
         selected_names = [document.table_name for document in selected]
         return {
             "status": "running",
             "seed_tables": list(result.seed_tables),
             "expanded_tables": list(result.expanded_tables),
             "schema_context": context,
-            "schema_token_count": result.context_tokens,
+            "schema_token_count": services.token_counter.count(context),
             "truncated": result.context_truncated,
             "join_paths": _join_paths(result.edges, selected_names),
         }
@@ -423,7 +445,7 @@ async def _build_prompt(state: TextToSqlState) -> dict[str, object]:
             schema_context=state["schema_context"],
             tools=_tools(state),
             contract=contract,
-            plan=format_query_plan(contract, state["join_paths"]),
+            plan=_plan(contract, state),
         )
     }
 
@@ -436,7 +458,7 @@ def _generate_sql(
         if state["attempt"] == 0 and preset:
             return {"generated_sql": preset, "attempt": 1, "initial_sql": ""}
         content = await services.model.complete(
-            _messages(state["prompt"]),
+            _messages(state, state["prompt"]),
             temperature=GENERATION_TEMPERATURE,
         )
         return {"generated_sql": extract_sql(content), "attempt": state["attempt"] + 1}
@@ -445,11 +467,15 @@ def _generate_sql(
 
 
 async def _validate_sql(state: TextToSqlState) -> dict[str, object]:
-    decision = check_read_only_sql(state["generated_sql"] or "")
+    decision = check_read_only_sql(state["generated_sql"] or "", dialect=state["dialect"])
     if decision.error is not None:
         return _fail_or_restore(state, decision.error)
-    findings = list(check_cte_outputs(decision.sql))
-    if state["variant"] == "self_healing" and state["attempt"] > 1:
+    findings = list(check_cte_outputs(decision.sql, dialect=state["dialect"]))
+    if (
+        state["profile"] == "ecommerce"
+        and state["variant"] == "self_healing"
+        and state["attempt"] > 1
+    ):
         findings.extend(
             check_contract(
                 question=state["question"],
@@ -483,6 +509,8 @@ def _execute_sql(
         if state["variant"] != "self_healing":
             return success
         documents, edges = await services.load_catalog()
+        if _catalog_mismatch(documents, state["database_id"]):
+            return _fail_or_restore(state, _catalog_error())
         plan_rows = None
         if services.estimate_plan_rows is not None:
             plan_rows = await services.estimate_plan_rows(sql)
@@ -497,15 +525,18 @@ def _execute_sql(
                 truncated=outcome.truncated,
                 max_rows=state["max_rows"],
                 plan_rows=plan_rows,
+                business_rules=state["profile"] == "ecommerce",
+                dialect=state["dialect"],
             )
         )
-        findings.extend(
-            check_contract(
-                question=state["question"],
-                sql=sql,
-                anchor_date=state["anchor_date"],
+        if state["profile"] == "ecommerce":
+            findings.extend(
+                check_contract(
+                    question=state["question"],
+                    sql=sql,
+                    anchor_date=state["anchor_date"],
+                )
             )
-        )
         findings = _actionable_findings(findings)
         if not findings:
             if state["repair_trace"]:
@@ -543,10 +574,10 @@ def _repair_sql(
             error_category=state["error_category"] or "",
             error_message=state["error_message"] or "",
             contract=contract,
-            plan=format_query_plan(contract, state["join_paths"]),
+            plan=_plan(contract, state),
         )
         content = await services.model.complete(
-            _messages(prompt),
+            _messages(state, prompt),
             temperature=GENERATION_TEMPERATURE,
         )
         return {
@@ -632,8 +663,70 @@ def _record_error(state: TextToSqlState, error: ExecutionError) -> dict[str, obj
     }
 
 
-def _contract(state: TextToSqlState) -> AnswerContract:
+def _contract(state: TextToSqlState) -> AnswerContract | None:
+    if state["profile"] != "ecommerce":
+        return None
     return extract_answer_contract(state["question"], anchor_date=state["anchor_date"])
+
+
+def _plan(contract: AnswerContract | None, state: TextToSqlState) -> str | None:
+    if contract is None:
+        return None
+    return format_query_plan(contract, state["join_paths"])
+
+
+def _catalog_rejection(request_id: str) -> TextToSqlInspection:
+    return TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id=request_id,
+            status="failed",
+            attempts=0,
+            error=ApiError(
+                category="cross_database_catalog",
+                message="检索到的表不属于当前数据库",
+                retryable=False,
+            ),
+        ),
+        generated_sql=None,
+    )
+
+
+def _catalog_error() -> ExecutionError:
+    return make_error(
+        category="cross_database_catalog",
+        message="检索到的表不属于当前数据库",
+        exception_type="CatalogIsolation",
+        retryable=False,
+    )
+
+
+def _catalog_mismatch(documents: Sequence[TableDocument], database_id: str) -> bool:
+    return any(document.database_id != database_id for document in documents)
+
+
+def _dialect_label(dialect: str) -> str:
+    if dialect == "sqlite":
+        return "SQLite"
+    return "PostgreSQL"
+
+
+def _zero_shot_schema(state: TextToSqlState) -> str:
+    if state["profile"] == "ecommerce":
+        return ZERO_SHOT_SCHEMA
+    return (
+        f"{_dialect_label(state['dialect'])} 数据库 {state['database_id']}，"
+        f"schema 为 {state['schema_name']}。只生成一条只读 SELECT。"
+    )
+
+
+def _visible_schema(state: TextToSqlState, context: str) -> str:
+    if state["profile"] == "ecommerce":
+        return context
+    header = (
+        f"{_dialect_label(state['dialect'])} 数据库 {state['database_id']}，"
+        f"schema 为 {state['schema_name']}。"
+    )
+    return f"{header}\n{context}"
 
 
 def _join_paths(edges: Sequence[SchemaEdge], tables: Sequence[str]) -> list[str]:
@@ -742,9 +835,12 @@ def _fail(category: str, message: str, *, retryable: bool) -> dict[str, object]:
     }
 
 
-def _messages(prompt: str) -> list[Mapping[str, str]]:
+def _messages(state: TextToSqlState, prompt: str) -> list[Mapping[str, str]]:
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "system",
+            "content": system_prompt_for(dialect=state["dialect"], profile=state["profile"]),
+        },
         {"role": "user", "content": prompt},
     ]
 

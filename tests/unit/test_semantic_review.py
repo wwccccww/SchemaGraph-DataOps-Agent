@@ -360,6 +360,34 @@ def test_quantity_fanout_requires_detail_dedup_before_the_region_map() -> None:
     assert "aggregate_over_fanout" not in {item.category for item in cleared}
 
 
+def test_generic_profile_skips_ecommerce_fact_grain() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    question = "统计上个月华东大区VIP3以上用户购买自营美妆的已支付商品数量"
+    fanned = """
+        SELECT m.merchant_name, SUM(od.quantity) AS total_quantity
+        FROM t_order_detail AS od
+        JOIN t_order AS o ON od.order_id = o.order_id
+        JOIN t_user_region_map AS urm ON o.user_id = urm.user_id
+        JOIN t_merchant AS m ON od.product_id = m.merchant_id
+        GROUP BY m.merchant_name
+    """
+    findings = check_semantics(
+        question=question,
+        sql=fanned,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+        business_rules=False,
+    )
+    categories = {item.category for item in findings}
+    assert "missing_fact_dedup" not in categories
+    assert "aggregate_over_fanout" not in categories
+    assert "refanout_after_dedup" not in categories
+
+
 def test_cte_outputs_satisfy_requested_projection() -> None:
     documents = _documents()
     edges = _edges()

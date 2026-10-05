@@ -78,13 +78,13 @@ class PredictionShape:
         }
 
 
-def describe_sql(sql: str | None) -> PredictionShape:
+def describe_sql(sql: str | None, *, dialect: str = "postgres") -> PredictionShape:
     """解析一条预测 SQL。空文本和语法错误返回带说明的空结构。"""
 
     if sql is None or sql.strip() == "":
         return PredictionShape.empty(parse_error="SQL 为空")
     try:
-        statements = sqlglot.parse(sql, read="postgres", error_level=sqlglot.ErrorLevel.RAISE)
+        statements = sqlglot.parse(sql, read=dialect, error_level=sqlglot.ErrorLevel.RAISE)
     except SqlglotError:
         return PredictionShape.empty(sql=sql, parse_error="SQL 无法解析")
     expressions = [statement for statement in statements if statement is not None]

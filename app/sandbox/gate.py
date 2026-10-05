@@ -201,13 +201,15 @@ def allowed_read_only_functions() -> frozenset[str]:
     return _ALLOWED_FUNCTIONS
 
 
-def check_read_only_sql(sql: str) -> GateDecision:
+def check_read_only_sql(sql: str, *, dialect: str = "postgres") -> GateDecision:
     """遍历整棵 AST。失败时不得把原始 SQL 发给数据库。"""
 
+    if dialect not in {"postgres", "sqlite"}:
+        return GateDecision(sql="", error=_reject("syntax_error", "不支持的 SQL 方言"))
     if sql.strip() == "":
         return GateDecision(sql="", error=_reject("syntax_error", "SQL 为空"))
     try:
-        statements = sqlglot.parse(sql, read="postgres", error_level=sqlglot.ErrorLevel.RAISE)
+        statements = sqlglot.parse(sql, read=dialect, error_level=sqlglot.ErrorLevel.RAISE)
     except SqlglotError:
         return GateDecision(sql="", error=_reject("syntax_error", "SQL 无法解析"))
     expressions = [statement for statement in statements if statement is not None]
@@ -228,7 +230,7 @@ def check_read_only_sql(sql: str) -> GateDecision:
     recursive = _recursive_cte_error(expression)
     if recursive is not None:
         return GateDecision(sql="", error=recursive)
-    return GateDecision(sql=expression.sql(dialect="postgres"), error=None)
+    return GateDecision(sql=expression.sql(dialect=dialect), error=None)
 
 
 def _function_name(node: exp.Func) -> str:

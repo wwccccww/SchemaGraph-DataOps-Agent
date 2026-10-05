@@ -44,21 +44,24 @@ def check_semantics(
     truncated: bool = False,
     max_rows: int | None = None,
     plan_rows: float | None = None,
+    business_rules: bool = True,
+    dialect: str = "postgres",
 ) -> tuple[SemanticFinding, ...]:
     """返回按类别排序的发现。没有发现表示这条 SQL 可以通过复核。"""
 
     findings: list[SemanticFinding] = []
     shown = _shown_documents(documents, selected_tables)
-    shape = describe_sql(sql)
+    shape = describe_sql(sql, dialect=dialect)
     if shape.parse_error is None and question.strip():
         try:
-            expression = sqlglot.parse_one(sql, read="postgres")
+            expression = sqlglot.parse_one(sql, read=dialect)
         except SqlglotError:
             expression = None
         if isinstance(expression, exp.Expression):
             catalog = {document.table_name.lower() for document in shown}
             _check_entities(question, shape.referenced_tables, shown, sql, findings)
-            findings.extend(check_fact_grain(sql, question=question))
+            if business_rules:
+                findings.extend(check_fact_grain(sql, question=question))
             _check_projection(question, expression, shown, findings)
             _check_joins(expression, edges, catalog, findings)
             _check_grain(question, expression, edges, catalog, findings)
@@ -866,11 +869,11 @@ def _column_names(node: exp.Expression, owner: exp.Select) -> set[str]:
     }
 
 
-def check_cte_outputs(sql: str) -> tuple[SemanticFinding, ...]:
+def check_cte_outputs(sql: str, *, dialect: str = "postgres") -> tuple[SemanticFinding, ...]:
     """外层引用的 CTE 列必须由该 CTE 投影。执行数据库之前就能判断。"""
 
     try:
-        parsed = sqlglot.parse_one(sql, read="postgres")
+        parsed = sqlglot.parse_one(sql, read=dialect)
     except SqlglotError:
         return ()
     if not isinstance(parsed, exp.Expression):
