@@ -14,6 +14,7 @@ import sqlglot
 import yaml
 from sqlglot import exp
 
+from app.evaluation.gold_oracle import contract_for, dataset, oracle_record
 from app.evaluation.smoke import load_smoke_cases
 from app.schemas.benchmark import BenchmarkCase, BenchmarkDifficulty
 
@@ -83,7 +84,16 @@ def build_custom_cases() -> list[BenchmarkCase]:
     cases = [*basic, *medium, *complex_cases]
     if [len(basic), len(medium), len(complex_cases)] != [50, 50, 32]:
         raise RuntimeError("custom case builder drifted from 50/50/32")
-    return cases
+    source = dataset()
+    return [
+        case.model_copy(
+            update={
+                "semantic_contract": contract_for(case),
+                "oracle": oracle_record(case, source),
+            }
+        )
+        for case in cases
+    ]
 
 
 def dump_custom_cases(cases: list[BenchmarkCase]) -> str:
@@ -872,14 +882,52 @@ def _emit_case(case: BenchmarkCase) -> list[str]:
     lines.extend(_emit_list("expected_columns", payload["expected_columns"]))
     lines.append(f"    anchor_date: {json.dumps(payload['anchor_date'])}")
     lines.extend(_emit_list("tags", payload["tags"]))
+    lines.extend(_emit_contract(payload["semantic_contract"]))
+    lines.extend(_emit_oracle(payload["oracle"]))
     return lines
 
 
-def _emit_list(key: str, values: object) -> list[str]:
+def _emit_contract(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        raise TypeError("semantic_contract")
+    lines = ["    semantic_contract:"]
+    lines.extend(_emit_list("projections", payload["projections"], indent=6))
+    lines.extend(_emit_list("group_keys", payload["group_keys"], indent=6))
+    lines.extend(_emit_list("filters", payload["filters"], indent=6))
+    lines.append(f"      category_scope: {payload['category_scope']}")
+    window = payload["time_window"]
+    if window is None:
+        lines.append("      time_window: null")
+    else:
+        if not isinstance(window, dict):
+            raise TypeError("time_window")
+        lines.append("      time_window:")
+        lines.append(f"        start: {json.dumps(window['start'])}")
+        lines.append(f"        end: {json.dumps(window['end'])}")
+        lines.append(f"        anchor_date: {json.dumps(window['anchor_date'])}")
+    dedup = payload["dedup_key"]
+    lines.append("      dedup_key: null" if dedup is None else f"      dedup_key: {dedup}")
+    return lines
+
+
+def _emit_oracle(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        raise TypeError("oracle")
+    lines = ["    oracle:"]
+    lines.append(f"      method: {payload['method']}")
+    lines.append(f"      result_digest: {json.dumps(payload['result_digest'])}")
+    lines.append(f"      row_count: {payload['row_count']}")
+    lines.extend(_emit_list("reviewer_ids", payload["reviewer_ids"], indent=6))
+    lines.append(f"      status: {payload['status']}")
+    return lines
+
+
+def _emit_list(key: str, values: object, indent: int = 4) -> list[str]:
     if not isinstance(values, list):
         raise TypeError(key)
+    pad = " " * indent
     if not values:
-        return [f"    {key}: []"]
-    lines = [f"    {key}:"]
-    lines.extend(f"      - {json.dumps(item, ensure_ascii=False)}" for item in values)
+        return [f"{pad}{key}: []"]
+    lines = [f"{pad}{key}:"]
+    lines.extend(f"{pad}  - {json.dumps(item, ensure_ascii=False)}" for item in values)
     return lines

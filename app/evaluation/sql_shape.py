@@ -12,6 +12,26 @@ from app.observability.tracing import sql_hash
 
 
 @dataclass(frozen=True)
+class ScopeShape:
+    """外层或单个 CTE 的投影、聚合、分组和 JOIN。"""
+
+    name: str
+    projections: tuple[str, ...]
+    joins: tuple[str, ...]
+    group_by: tuple[str, ...]
+    aggregations: tuple[str, ...]
+
+    def as_json(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "projections": list(self.projections),
+            "joins": list(self.joins),
+            "group_by": list(self.group_by),
+            "aggregations": list(self.aggregations),
+        }
+
+
+@dataclass(frozen=True)
 class PredictionShape:
     """一条预测 SQL 的结构摘要。SQL 原文只进入本地评测报告。"""
 
@@ -25,6 +45,7 @@ class PredictionShape:
     aggregations: tuple[str, ...]
     order_by: tuple[str, ...]
     parse_error: str | None
+    scopes: tuple[ScopeShape, ...] = ()
 
     @classmethod
     def empty(cls, *, sql: str | None = None, parse_error: str | None = None) -> PredictionShape:
@@ -53,6 +74,7 @@ class PredictionShape:
             "aggregations": list(self.aggregations),
             "order_by": list(self.order_by),
             "parse_error": self.parse_error,
+            "scopes": [scope.as_json() for scope in self.scopes],
         }
 
 
@@ -91,13 +113,63 @@ def describe_sql(sql: str | None) -> PredictionShape:
         sql_hash=sql_hash(sql),
         referenced_tables=tables,
         projections=_projections(select),
-        joins=_joins(expression),
+        joins=_joins(select),
         predicates=_predicates(select),
         group_by=_group_by(select),
         aggregations=_aggregations(select),
         order_by=_order_by(select),
         parse_error=None,
+        scopes=_scopes(expression, select),
     )
+
+
+def _scopes(expression: exp.Expr, outer: exp.Select) -> tuple[ScopeShape, ...]:
+    scopes = [_scope_shape("outer", outer)]
+    for cte in expression.find_all(exp.CTE):
+        body = cte.this
+        if not isinstance(body, exp.Expression):
+            continue
+        name = cte.alias if isinstance(cte.alias, str) and cte.alias else "cte"
+        scopes.append(_scope_shape(name, body))
+    return tuple(scopes)
+
+
+def _scope_shape(name: str, node: exp.Expression) -> ScopeShape:
+    selects = _union_selects(node)
+    if not selects:
+        return ScopeShape(name, (), (), (), ())
+    joins: list[str] = []
+    groups: list[str] = []
+    aggregations: list[str] = []
+    for select in selects:
+        joins.extend(_joins(select))
+        groups.extend(_group_by(select))
+        aggregations.extend(_aggregations(select))
+    return ScopeShape(
+        name,
+        _projections(selects[0]),
+        tuple(joins),
+        tuple(groups),
+        tuple(dict.fromkeys(aggregations)),
+    )
+
+
+def _union_selects(node: exp.Expression) -> list[exp.Select]:
+    if isinstance(node, exp.Select):
+        return [node]
+    if isinstance(node, exp.Union):
+        found: list[exp.Select] = []
+        left = node.this
+        right = node.expression
+        if isinstance(left, exp.Expression):
+            found.extend(_union_selects(left))
+        if isinstance(right, exp.Expression):
+            found.extend(_union_selects(right))
+        return found
+    select = node.find(exp.Select)
+    if isinstance(select, exp.Select):
+        return [select]
+    return []
 
 
 def _tables(expression: exp.Expr) -> tuple[str, ...]:

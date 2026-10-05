@@ -272,6 +272,18 @@ def _projected_ref(column: exp.Column, aliases: Mapping[str, str]) -> tuple[str 
     return aliases.get(column.table.lower()), name
 
 
+@dataclass(frozen=True)
+class _Origin:
+    """一列能追溯到的物理列。无法证明时 proven 为假。"""
+
+    columns: frozenset[tuple[str, str]]
+    proven: bool
+    via_cte: bool
+
+
+_Lineage = dict[str, dict[str, frozenset[tuple[str, str]] | None]]
+
+
 def _check_joins(
     expression: exp.Expression,
     edges: Sequence[SchemaEdge],
@@ -279,6 +291,8 @@ def _check_joins(
     findings: list[SemanticFinding],
 ) -> None:
     accepted = _fk_pairs(edges)
+    lineage: _Lineage = {}
+    _fill_lineage(expression, catalog, lineage)
     for select in expression.find_all(exp.Select):
         aliases = _scope_aliases(select)
         joins = select.args.get("joins")
@@ -286,7 +300,7 @@ def _check_joins(
             continue
         for join in joins:
             if isinstance(join, exp.Join):
-                _check_join(join, aliases, accepted, catalog, findings)
+                _check_join(join, aliases, accepted, catalog, lineage, findings)
 
 
 def _check_join(
@@ -294,10 +308,14 @@ def _check_join(
     aliases: Mapping[str, str],
     accepted: set[frozenset[tuple[str, str]]],
     catalog: set[str],
+    lineage: _Lineage,
     findings: list[SemanticFinding],
 ) -> None:
     target = join.this
-    if not isinstance(target, exp.Table) or target.name.lower() not in catalog:
+    if not isinstance(target, exp.Table):
+        return
+    target_name = target.name.lower()
+    if target_name not in catalog and target_name not in lineage:
         return
     condition = join.args.get("on")
     if not isinstance(condition, exp.Expression) or _is_true(condition):
@@ -306,40 +324,165 @@ def _check_join(
     equalities = [node for node in condition.find_all(exp.EQ) if isinstance(node, exp.EQ)]
     matched = False
     recorded = False
+    saw_unverified = False
     for equality in equalities:
-        pair = _equality_pair(equality, aliases, catalog)
-        if pair is None:
+        left = _origin_of(equality.left, aliases, catalog, lineage)
+        right = _origin_of(equality.right, aliases, catalog, lineage)
+        if left is None or right is None:
             continue
-        if pair not in accepted:
-            recorded = True
-            left, right = sorted(pair)
+        if not left.proven or not right.proven:
+            saw_unverified = True
+            continue
+        pairs = [
+            frozenset({one, other})
+            for one in left.columns
+            for other in right.columns
+            if one != other
+        ]
+        if any(pair in accepted for pair in pairs):
+            matched = True
+            continue
+        if not pairs:
+            continue
+        recorded = True
+        if left.via_cte or right.via_cte:
             findings.append(
                 SemanticFinding(
                     "join_not_on_graph",
-                    f"JOIN 条件 {left[0]}.{left[1]} = {right[0]}.{right[1]} 不是外键",
+                    f"{target.name} 的 JOIN 沿 CTE 血缘不是外键",
                 )
             )
             continue
-        matched = True
-    if not matched and not recorded:
+        pair = pairs[0]
+        first, second = sorted(pair)
         findings.append(
             SemanticFinding(
                 "join_not_on_graph",
-                f"{target.name} 的 JOIN 条件没有落在外键上",
+                f"JOIN 条件 {first[0]}.{first[1]} = {second[0]}.{second[1]} 不是外键",
             )
         )
+    if matched or recorded:
+        return
+    if saw_unverified:
+        findings.append(
+            SemanticFinding(
+                "join_unverified",
+                f"{target.name} 的 JOIN 经过 CTE，血缘不能证明外键",
+            )
+        )
+        return
+    findings.append(
+        SemanticFinding(
+            "join_not_on_graph",
+            f"{target.name} 的 JOIN 条件没有落在外键上",
+        )
+    )
 
 
-def _equality_pair(
-    equality: exp.EQ,
+def _fill_lineage(node: exp.Expression, catalog: set[str], lineage: _Lineage) -> None:
+    clause = node.args.get("with_")
+    if not isinstance(clause, exp.With):
+        return
+    for cte in clause.expressions:
+        if isinstance(cte, exp.CTE) and isinstance(cte.this, exp.Expression):
+            _fill_lineage(cte.this, catalog, lineage)
+            _record_cte(cte, catalog, lineage)
+
+
+def _record_cte(cte: exp.CTE, catalog: set[str], lineage: _Lineage) -> None:
+    name = cte.alias
+    body = cte.this
+    if not isinstance(name, str) or name == "" or not isinstance(body, exp.Expression):
+        return
+    found: dict[str, set[tuple[str, str]]] = {}
+    unknown: set[str] = set()
+    for select in _union_selects(body):
+        aliases = _scope_aliases(select)
+        for projection in select.expressions:
+            key = _output_name(projection)
+            if key is None:
+                continue
+            origins = _projection_origins(projection, select, aliases, catalog, lineage)
+            if origins is None:
+                if key not in found:
+                    unknown.add(key)
+                continue
+            unknown.discard(key)
+            found.setdefault(key, set()).update(origins)
+    lineage[name.lower()] = {
+        **{key: frozenset(value) for key, value in found.items()},
+        **{key: None for key in unknown},
+    }
+
+
+def _projection_origins(
+    projection: exp.Expression,
+    select: exp.Select,
     aliases: Mapping[str, str],
     catalog: set[str],
+    lineage: _Lineage,
 ) -> frozenset[tuple[str, str]] | None:
-    left = _column_ref(equality.left, aliases, catalog)
-    right = _column_ref(equality.right, aliases, catalog)
-    if left is None or right is None or left == right:
+    columns = [
+        column
+        for column in projection.find_all(exp.Column)
+        if isinstance(column, exp.Column) and not _nested_select(column, select)
+    ]
+    if not columns:
         return None
-    return frozenset({left, right})
+    found: set[tuple[str, str]] = set()
+    for column in columns:
+        origin = _origin_of(column, aliases, catalog, lineage)
+        if origin is None or not origin.proven or not origin.columns:
+            return None
+        found.update(origin.columns)
+    return frozenset(found)
+
+
+def _output_name(projection: exp.Expression) -> str | None:
+    name = projection.alias_or_name
+    if isinstance(name, str) and name != "":
+        return name.lower()
+    return None
+
+
+def _union_selects(node: exp.Expression) -> list[exp.Select]:
+    if isinstance(node, exp.Select):
+        return [node]
+    if isinstance(node, exp.Union):
+        found: list[exp.Select] = []
+        left = node.this
+        right = node.expression
+        if isinstance(left, exp.Expression):
+            found.extend(_union_selects(left))
+        if isinstance(right, exp.Expression):
+            found.extend(_union_selects(right))
+        return found
+    select = node.find(exp.Select)
+    if isinstance(select, exp.Select):
+        return [select]
+    return []
+
+
+def _origin_of(
+    node: exp.Expr,
+    aliases: Mapping[str, str],
+    catalog: set[str],
+    lineage: _Lineage,
+) -> _Origin | None:
+    if not isinstance(node, exp.Column) or not node.table:
+        return None
+    table = aliases.get(node.table.lower())
+    if table is None:
+        return None
+    if table in catalog:
+        return _Origin(frozenset({(table, node.name.lower())}), True, False)
+    info = lineage.get(table)
+    if info is None:
+        return None
+    stored = info.get(node.name.lower()) if node.name.lower() in info else None
+    if node.name.lower() not in info or stored is None:
+        return _Origin(frozenset(), False, True)
+    return _Origin(stored, True, True)
 
 
 def _column_ref(
@@ -347,12 +490,10 @@ def _column_ref(
     aliases: Mapping[str, str],
     catalog: set[str],
 ) -> tuple[str, str] | None:
-    if not isinstance(node, exp.Column) or not node.table:
+    origin = _origin_of(node, aliases, catalog, {})
+    if origin is None or not origin.proven or len(origin.columns) != 1 or origin.via_cte:
         return None
-    table = aliases.get(node.table.lower())
-    if table is None or table not in catalog:
-        return None
-    return table, node.name.lower()
+    return next(iter(origin.columns))
 
 
 def _fk_pairs(edges: Sequence[SchemaEdge]) -> set[frozenset[tuple[str, str]]]:

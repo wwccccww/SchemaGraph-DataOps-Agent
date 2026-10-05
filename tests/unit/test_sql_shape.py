@@ -41,6 +41,28 @@ def test_cte_name_is_not_a_referenced_table() -> None:
     assert shape.referenced_tables == ("t_order",)
 
 
+def test_cte_aggregation_is_reported_separately_from_the_outer_select() -> None:
+    shape = describe_sql(
+        """
+        WITH counts AS (
+            SELECT level_id, COUNT(*) AS user_count
+            FROM t_user
+            GROUP BY level_id
+        )
+        SELECT level_id, user_count FROM counts
+        """
+    )
+
+    assert shape.parse_error is None
+    assert shape.aggregations == ()
+    assert shape.group_by == ()
+    by_name = {scope.name: scope for scope in shape.scopes}
+    assert by_name["outer"].aggregations == ()
+    assert by_name["counts"].aggregations == ("count",)
+    assert by_name["counts"].group_by == ("level_id",)
+    assert shape.referenced_tables == ("t_user",)
+
+
 def test_unparsed_and_write_sql_keep_the_text_without_raising() -> None:
     broken = describe_sql("NOT SQL AT ALL")
     write = describe_sql("INSERT INTO t_user VALUES (1)")

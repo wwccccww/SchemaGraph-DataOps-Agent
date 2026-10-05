@@ -1,0 +1,1327 @@
+{
+  "snapshot": "1a711b840a8117c8b474b76fd678c5fbfb71178ddc1d02d6e861a91c4af22f04",
+  "benchmark_version": "ecommerce-v1",
+  "status": "oracle_matched",
+  "cases": {
+    "custom_basic_001": {
+      "method": "python",
+      "result_digest": "sha256:e50e0d45ce2877067a1945f0a50f3758ef95e50e5d53e57651614a29fc85a4be",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_002": {
+      "method": "python",
+      "result_digest": "sha256:87f052afdcff845dce800b38ef76a9f3367d2ef325349923c748f030364f204f",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_003": {
+      "method": "python",
+      "result_digest": "sha256:98676d15f0989e650edf168e73a524564bc0c18e6ad3a7c551a442a1f94b0ce1",
+      "row_count": 25,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_004": {
+      "method": "python",
+      "result_digest": "sha256:a2892d269a0a9346364b94a9055c2c184f10cfa1be873bed4fbdd72396f70f32",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_005": {
+      "method": "python",
+      "result_digest": "sha256:7533a205a44a2f58bec23329f6e1ca74d458c2de74c099112e61bdf2da01a3c2",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_006": {
+      "method": "python",
+      "result_digest": "sha256:f42c736878536b7bd0d2e529a47ba16a4595a080f6ab77194822fab0e9fa7771",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_007": {
+      "method": "python",
+      "result_digest": "sha256:d67b268e338d864bfa19f8ac93887d08d8dd1c6d8ee56ac723c3525548e7f292",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_008": {
+      "method": "python",
+      "result_digest": "sha256:04e4a9fab7685c3f716fa1c2bed125ea2786079c5975bc2ef04c73d5217ed7ac",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_009": {
+      "method": "python",
+      "result_digest": "sha256:f9a604c9c81d1dd2a3080adcc5271041e4d45c6092e310c00c11b9957f4bef8c",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_010": {
+      "method": "python",
+      "result_digest": "sha256:722279c5c041a3d9f7740503c3c3e540dece5fdc6302f8715e8841ebea85eba3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_011": {
+      "method": "python",
+      "result_digest": "sha256:b9889b569b2e0883aee39e6e57105e9fb707b62e35e3d0a73f5b6571e7de52a1",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_012": {
+      "method": "python",
+      "result_digest": "sha256:331437c8fecd8b486368868e9cc0ebf6c1a1712a5b82271e012e3d21020cd3b9",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_013": {
+      "method": "python",
+      "result_digest": "sha256:f0453fd2d86cb89378db9aae73131dde7fd6a7f312f2344bb7bf897f0f27ffe6",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_014": {
+      "method": "python",
+      "result_digest": "sha256:0a6b1f4dd282fcb9265ab3757bdaa1a0e3a11d23ca21ecedf44fe6d693a7527c",
+      "row_count": 8,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_015": {
+      "method": "python",
+      "result_digest": "sha256:8eed5f5d8d82222c1dae9f111d1534b7f75577b95d31d1f9c7baf81111aaac50",
+      "row_count": 7,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_016": {
+      "method": "python",
+      "result_digest": "sha256:5f00b8f482ac74ff3ac23017e128691198bcd57ad7c79263607b118e8f287be0",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_017": {
+      "method": "python",
+      "result_digest": "sha256:ac11bcf600f5e0d4f946a2f93d5aa150f81c9f9c70228abbdc6250259e318809",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_018": {
+      "method": "python",
+      "result_digest": "sha256:6623d423dac4d0b732fad5dd5b78e00af8ed2a7359ce3a461b13e83fb399d412",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_019": {
+      "method": "python",
+      "result_digest": "sha256:c5d90b67ddfffc1684ad0da97c13a4ab9814bbf735e7d44eece13b8e0962e446",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_020": {
+      "method": "python",
+      "result_digest": "sha256:63f32f25514f61cf433340ec860d01362f6fd0aa30b645919878e4f642dbab9e",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_021": {
+      "method": "python",
+      "result_digest": "sha256:37a187fe90789802a4d192a6ac50cc7b0254b10441dc26591fb48705e90f85c6",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_022": {
+      "method": "python",
+      "result_digest": "sha256:cf44399d0f9605630b54ba6c7205e3c46c9831dd0ae9df2973ae282c1c2cbdd8",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_023": {
+      "method": "python",
+      "result_digest": "sha256:aa1175bd0ee781fc3889e25bd29983f5e86bd6239d01316ec8f167467e0ea1bc",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_024": {
+      "method": "python",
+      "result_digest": "sha256:b750207e1505bdc6fc50c1a4730b59a2fd2166df2072e5131cf69c3f90fcf3a3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_025": {
+      "method": "python",
+      "result_digest": "sha256:39b5ae8fc837ca90dc5a180c0b484ab576917f15608770578817fbbf61070050",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_026": {
+      "method": "python",
+      "result_digest": "sha256:80527dcc19bb17248f65983e7b87f2e92382b32d5ad7f13b031e5d8988373987",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_027": {
+      "method": "python",
+      "result_digest": "sha256:037dd93ef5427988834b6f39db45e38a67cc9f3fa70fa6b8efceeb5aa15e56eb",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_028": {
+      "method": "python",
+      "result_digest": "sha256:3126c5b94e793aad91e891de7e493e1d9d0d0db54aa6e3a3917308c6048de453",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_029": {
+      "method": "python",
+      "result_digest": "sha256:5386b34cf3316078b85239968326df2aa1da8a4680e13e3a42b0806614722229",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_030": {
+      "method": "python",
+      "result_digest": "sha256:c74d8e861dd2730936fd1ad8012079f7e9ca8b220c3919a3c7648480fe4a2245",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_031": {
+      "method": "python",
+      "result_digest": "sha256:32c424a3b6ce2bf5603af42da34d4baeb9d15ff4d07cf85c096d06e1a842c30a",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_032": {
+      "method": "python",
+      "result_digest": "sha256:26814da8ffe87707f990eaf105e7c43d21240157f5d76bfebcf3d7b7085309df",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_033": {
+      "method": "python",
+      "result_digest": "sha256:f4ebf042c404114f7832f70948b15197682a3fe1b16550abd2095a091ad7cde4",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_034": {
+      "method": "python",
+      "result_digest": "sha256:a8ae367f4bd86c837006378b3b14889efe4a746fd872247db0d1d05b8ac69c77",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_035": {
+      "method": "python",
+      "result_digest": "sha256:ab4b337d8002e0e369fb5248e8cda3a4595e274f02f6d0e42b557c219d46e904",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_036": {
+      "method": "python",
+      "result_digest": "sha256:b3378e3c3c5fa842dd766e4b3924e7b8d81f1353b5879abeb1ed7b90e84d3607",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_037": {
+      "method": "python",
+      "result_digest": "sha256:cd2752bf47b13796ba0b91c1fbb3a3a424b716cc3469a3cbc6790b4c1211a53a",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_038": {
+      "method": "python",
+      "result_digest": "sha256:26b78be075f9d6c56b171824f9991fb1df4c1d61b96a2714e4c0101bdeed4372",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_039": {
+      "method": "python",
+      "result_digest": "sha256:acab37ac3976cc2bd117b120c6e3c45bdcd6623886a3d964ea7f44d077c04986",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_040": {
+      "method": "python",
+      "result_digest": "sha256:e0df05204bbe8921973643cd9b2ef71b86b489dc293bb906e3f957b8b990461c",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_041": {
+      "method": "python",
+      "result_digest": "sha256:0793fd03ea85338b68a6ac332415b9dc16a33157b18af71cd66f05dc27ac5713",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_042": {
+      "method": "python",
+      "result_digest": "sha256:79ad70e1c7da3213aa8da8ef162eb9563bbcb3901b157fa0f9dd6a8faf8c8a22",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_043": {
+      "method": "python",
+      "result_digest": "sha256:d83ea53d67b99166db995691a15674db994da83a1c67215292a093d31cea04ab",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_044": {
+      "method": "python",
+      "result_digest": "sha256:18aa1079205129464e4f63fa0df008d508d4c28d3e9916925bee9e2324d7e677",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_045": {
+      "method": "python",
+      "result_digest": "sha256:904731e05bf232fe69ab9bfcbce849066412264147990c4ed961568cb0c10b97",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_046": {
+      "method": "python",
+      "result_digest": "sha256:dc945540f2e4469b389dcdeab21b841048f818c89fc2bcd597a256f5743d9d50",
+      "row_count": 13,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_047": {
+      "method": "python",
+      "result_digest": "sha256:428720eefda32f6d5829a8ba9176b3708db39f9d3562f71c49cc08f8e7aa88d4",
+      "row_count": 10,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_048": {
+      "method": "python",
+      "result_digest": "sha256:0d5a5a8843b75735b5c708f469b6c3c1f669cd33d8e63a2c698711de90715ba6",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_049": {
+      "method": "python",
+      "result_digest": "sha256:c1bdb433379aeca770e5d4c29f97f263350e98626733d85061f345eb2bcf1649",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_basic_050": {
+      "method": "python",
+      "result_digest": "sha256:bea39dedeeedd15647415f9d7c6fd85206ef13b359e85696a9d0993edf83176e",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_001": {
+      "method": "python",
+      "result_digest": "sha256:8446c023c2f1a6cbf218e22dcc2dd90a17fece053712c1dce09963f5814e5363",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_002": {
+      "method": "python",
+      "result_digest": "sha256:44ebbee9cff04c30e895521853e869009417f34c3d4e7d51cf0a7bb711df75bf",
+      "row_count": 13,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_003": {
+      "method": "python",
+      "result_digest": "sha256:e32bf305fe5eb30fc4f3453c31e3d89105b0c836d76cb362c7c7846619cfa922",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_004": {
+      "method": "python",
+      "result_digest": "sha256:f649feeec487f4c453b376eac35ca947049e31dfa4ecb291c7db8670a18e904b",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_005": {
+      "method": "python",
+      "result_digest": "sha256:8dbca9db01ac8130dab2562638ef084814acae182635002ff3f86d5e95d96d67",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_006": {
+      "method": "python",
+      "result_digest": "sha256:2bc537e7961905ed8ab8d71291927a2a7cf80b0f0692cfe5cefe4aecef7ebf34",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_007": {
+      "method": "python",
+      "result_digest": "sha256:0e5f0062005c74c34f6ac000709a38bdd8ed3dc6021bbb09c34fd4d3c758c4c9",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_008": {
+      "method": "python",
+      "result_digest": "sha256:a393536a75fe916460b865f4e1a148b14310b5ff8be99bd3acbd47a3055db71c",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_009": {
+      "method": "python",
+      "result_digest": "sha256:6ffa283df069e5247c6aca36f7b76e35725b72514b427f12b228e48d9cbeaa18",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_010": {
+      "method": "python",
+      "result_digest": "sha256:8520fb97ccc0025822c7caab420858c7762adf65c80f32441cc10aab9dfd9540",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_011": {
+      "method": "python",
+      "result_digest": "sha256:0feb1a1b96e604e38cc520eae5952beb63883d0af1cc87fe59c8b2ca981cf2af",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_012": {
+      "method": "python",
+      "result_digest": "sha256:551a1918909e32b12e8b12583003f0dcf7b372570a43f1e1d87e8670edf9140e",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_013": {
+      "method": "python",
+      "result_digest": "sha256:807328bfd635bec03768049cbc52184a3b9f90efa66eccf7674ba3165e44db91",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_014": {
+      "method": "python",
+      "result_digest": "sha256:f20c38349f3a2e3f437030a9e83f848b8e6369c40a98920b569410980a6cd5f5",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_015": {
+      "method": "python",
+      "result_digest": "sha256:826ca16a4b247bebe138462147681850ae9be3ff6e305b45617102c6c4fda9b8",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_016": {
+      "method": "python",
+      "result_digest": "sha256:c0b2935fee2b0a5cc7c162fb04af1a9f30d85de5abec0b2e3d9546e5cffd5caf",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_017": {
+      "method": "python",
+      "result_digest": "sha256:5b23f3f8ebd61423bf911d4b60aefc71d632de2481d4d5471d97193cdd18ed7a",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_018": {
+      "method": "python",
+      "result_digest": "sha256:7e460e4fd73ab8da6250bda3f5c64f1ed85429f3c059a46d16082ec1bfa85ab1",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_019": {
+      "method": "python",
+      "result_digest": "sha256:46fbbc9ab4b30c196280a0ae1d003540fc93d3b2624c30d682c08769142c95c9",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_020": {
+      "method": "python",
+      "result_digest": "sha256:d51a090a5e08910b23d621df0f77560280273f73639502aae22b4909ce0c49ec",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_021": {
+      "method": "python",
+      "result_digest": "sha256:1c95d91c305dfdaf301c165786c7f711cb28be5a77a703716ee6ae0de105ec34",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_022": {
+      "method": "python",
+      "result_digest": "sha256:42d39f04ad36d415e872267cc4eb2cb6217b2c41cbbe199cf0284b115021232d",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_023": {
+      "method": "python",
+      "result_digest": "sha256:a7fe311a3a54f60c5c0ad1184b25aac4145b6260795edf113d7e21d8033eecff",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_024": {
+      "method": "python",
+      "result_digest": "sha256:ece8b9a1ed0ec264ab76d26eadd22aa16191bb8967ec7f028804469c94144eb4",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_025": {
+      "method": "python",
+      "result_digest": "sha256:f4ec05f231d3a88494f1fd8f503385360e868b6b5c2e377dffd2c75f31782505",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_026": {
+      "method": "python",
+      "result_digest": "sha256:86a1783427c415cb3c8b7e7876fac7cacf68583509fbb187b375a6a2f3aa102b",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_027": {
+      "method": "python",
+      "result_digest": "sha256:cf0973dc86ac6d358f54dcf41e915f4f05507a59439bbcd77bf4ab1bf43a518a",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_028": {
+      "method": "python",
+      "result_digest": "sha256:5ade1a1fe2aa3f47f3fdc3b80a49d37a6c47fa118bfb075a28f4a3120bf419c4",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_029": {
+      "method": "python",
+      "result_digest": "sha256:f000d7e6f955dc0781c1bae0c03cea217ea0fe88eb1cfcfbbc0e0f0fc2e727e3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_030": {
+      "method": "python",
+      "result_digest": "sha256:ffec22785ec65cb220af4c5cdca9b56a5260c887b112563d3d2a9ff744509c6d",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_031": {
+      "method": "python",
+      "result_digest": "sha256:0e22f9ab69be9d65e60593368d608a83a92c12c05bf0138c7557fd17613baea8",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_032": {
+      "method": "python",
+      "result_digest": "sha256:8b9c864d5cf285d37d8f91143b436dfb369185799a4402a3725ec1a32e00e5c1",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_033": {
+      "method": "python",
+      "result_digest": "sha256:216e498df4ff06d2394778664ca5ae3e56f8f0d536d9dee9563719eb367aeb21",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_034": {
+      "method": "python",
+      "result_digest": "sha256:b47bda0d56a5c07c8e3e819e6668d250df0dc0e379aab9a8fce0c0ecb23a26c3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_035": {
+      "method": "python",
+      "result_digest": "sha256:535d76f6393c8ae1c500ea73f5bf4db88e61f158c561dce249b78f4fbffd7fcf",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_036": {
+      "method": "python",
+      "result_digest": "sha256:b17ff81af2b6b59f377458e507b747e9d49c56bf9d51fcd1993c1ab4f69f12d0",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_037": {
+      "method": "python",
+      "result_digest": "sha256:4b552da24d95ffaa0e94830d79c05126b55c292332a6ccc46269c6a31033b4f8",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_038": {
+      "method": "python",
+      "result_digest": "sha256:c11404667a720321642823715c2d3e9867f28af8dba667806caf7ae6f0809253",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_039": {
+      "method": "python",
+      "result_digest": "sha256:b3db0608c7c9db4bae354ecada868819229447b3eeb78835c8635fd7d0441a43",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_040": {
+      "method": "python",
+      "result_digest": "sha256:94b10cea43b0d07a228d500a076c1d9921faacefed3e2cf080f781845b5c42f3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_041": {
+      "method": "python",
+      "result_digest": "sha256:8ecfa917d32607d6146302189ecf554a8be7e197b890a93eae8a8b1311180c82",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_042": {
+      "method": "python",
+      "result_digest": "sha256:f463ba7c2ab4376cc9231811d80cc689b8ae71c1c835d845304d5dfe4e0b3fd4",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_043": {
+      "method": "python",
+      "result_digest": "sha256:fbd20c54990be1e2a1e844ff901f42e17be35b72f4c41996edd9ad8e58b48a68",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_044": {
+      "method": "python",
+      "result_digest": "sha256:9a403bca83c2929b67e24aba4ecafc45e04b42d5f2ec51ad701b9156c7c9244e",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_045": {
+      "method": "python",
+      "result_digest": "sha256:4efe6481ec9da153cb9e8734f6783523728cc597a9fb8e1c2290489cdca87c06",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_046": {
+      "method": "python",
+      "result_digest": "sha256:a63278950c521d3533b5621d0f49d14b113d4ac70e575911b20ab06279a5d08d",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_047": {
+      "method": "python",
+      "result_digest": "sha256:17648133bbe7596fa17fb1501b14e07f15db0fe2c48a5772350725829fd70ec0",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_048": {
+      "method": "python",
+      "result_digest": "sha256:8f4ea9a9cce79f502e7168314f116e53f9972789ddc2c9b7c2443c4b2532a392",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_049": {
+      "method": "python",
+      "result_digest": "sha256:9280e59cbb7da4749e0ec1cb56212010e99402a14c217bd8a1c8964217a80ffa",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_medium_050": {
+      "method": "python",
+      "result_digest": "sha256:37f243b9d27b58c9d2f58112e946525dca6e8ed7921215b05d95360d7c7e0b57",
+      "row_count": 40,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_001": {
+      "method": "python",
+      "result_digest": "sha256:2ccbfdd6524bde4603b8c81cfb9b5e80f392eac027b4dbba6200758c0f213aa1",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_002": {
+      "method": "python",
+      "result_digest": "sha256:b393f4317383ed3c3c12c473663148664f81783133c291e253914055ae499cfe",
+      "row_count": 4,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_003": {
+      "method": "python",
+      "result_digest": "sha256:a3e552482b014874b7738ef30edfea1ffd5ee59ba6e8cf1a61bbf9a3187b2b04",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_004": {
+      "method": "python",
+      "result_digest": "sha256:2ccbfdd6524bde4603b8c81cfb9b5e80f392eac027b4dbba6200758c0f213aa1",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_005": {
+      "method": "python",
+      "result_digest": "sha256:085573a1f2441ecbc5c3853b3fc533a681c1fe4a2c60d536c78da97fe1745d0d",
+      "row_count": 7,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_006": {
+      "method": "python",
+      "result_digest": "sha256:b53ca77ce49240c740c02cad1b2999182ad2c564cdcc0a312b1ec93595ef4cf2",
+      "row_count": 7,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_007": {
+      "method": "python",
+      "result_digest": "sha256:90eff7b6245fe3810feca1f56fba1dab65a08c1b6a9cc642f15168152300edc3",
+      "row_count": 6,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_008": {
+      "method": "python",
+      "result_digest": "sha256:5574c5a4b5275e55e3a1f05d2e4ba8b106e9ae54dafd6cc37dcae22e9a6414ad",
+      "row_count": 9,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_009": {
+      "method": "python",
+      "result_digest": "sha256:a3456c4d72515f15e5568d9af77e35cd9bd78afee4521ccf6d7d4cc7c01bbc37",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_010": {
+      "method": "python",
+      "result_digest": "sha256:e15dd96050a4c6ac062d6f7da4f2bfb42e99497ff1acd6af8778edfe3afa1232",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_011": {
+      "method": "python",
+      "result_digest": "sha256:8e72e1496d7809e16f0665a0c31dc95437ce0dbaaf0cee01cbac0edfc6ab22bd",
+      "row_count": 4,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_012": {
+      "method": "python",
+      "result_digest": "sha256:20bf8aef23816fd942a8d07f1e4533f07cbec969070f91b04614bcb9a9d261de",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_013": {
+      "method": "python",
+      "result_digest": "sha256:913051299e7b338d6016a22e6423bb8711ff30bc6855631cc86fd2a8085c0b15",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_014": {
+      "method": "python",
+      "result_digest": "sha256:b6066515dde0b03803008fb6304247d30b5256788c38f9462881a814e4a0d7c0",
+      "row_count": 8,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_015": {
+      "method": "python",
+      "result_digest": "sha256:607f9143a4eeff25eab066c8ec5d8e0abe325c20d3b6c6b605a9448113cdb39c",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_016": {
+      "method": "python",
+      "result_digest": "sha256:d57468cd6cf137d565c6c8c27a997390fcf8f9f848b927c58da9dc830e2ebb7c",
+      "row_count": 4,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_017": {
+      "method": "python",
+      "result_digest": "sha256:bae59019ba1059b86a7ef5d5cf44c87e88c1d99f82ea2571ff73a9a509c3ed85",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_018": {
+      "method": "python",
+      "result_digest": "sha256:64ba16ed724125c6969f692fd9a793b4e77d65883dc0b2b222270b57a5b18fee",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_019": {
+      "method": "python",
+      "result_digest": "sha256:ababe616ee84db8c9079535cabbb8c83c792c327fc88ee3f8d264fb367c407fd",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_020": {
+      "method": "python",
+      "result_digest": "sha256:f95667713184ed1def6c69ffdedaa0ee6d50e52764acaf6df96cbd5bdc8ce900",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_021": {
+      "method": "python",
+      "result_digest": "sha256:36eaa4d7c1f7b1292f6bacf2261a678ad8d3bd72eb2bba42cdc5cdfdc02562d3",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_022": {
+      "method": "python",
+      "result_digest": "sha256:dc9fae7059994f98f5be289bbe07b2ed14d1d785a50ca1fa5754eee1f653d234",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_023": {
+      "method": "python",
+      "result_digest": "sha256:92dd7fe346f7b12c5db524df4f5d591d65f3ab4cba64b9a3764a6f558a610e53",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_024": {
+      "method": "python",
+      "result_digest": "sha256:fa507c1abefed4a12f53e0139c50571ef40d59f2084375f9354ec79e7e33d6fa",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_025": {
+      "method": "python",
+      "result_digest": "sha256:c158e916cdbfe4e99eb4f6d387590664523018b966b5478fa832bb1e494b5165",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_026": {
+      "method": "python",
+      "result_digest": "sha256:804b0840cc3062a59ce15bd018522959be4de346e50d24e0fd3cf7cf6037fd13",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_027": {
+      "method": "python",
+      "result_digest": "sha256:ebaaea4c89a6a444bf88a4a928f4285de265478cdd583c3a77fd046932e225e2",
+      "row_count": 4,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_028": {
+      "method": "python",
+      "result_digest": "sha256:601ec9531cc273cfa642e6c7769866acd1d858ca2eb4959bd61f4afa7fcca8d9",
+      "row_count": 5,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_029": {
+      "method": "python",
+      "result_digest": "sha256:0262ad245502531a84ff2c342b8ad353529c8d67dee443ecb79b414006dad613",
+      "row_count": 1,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_030": {
+      "method": "python",
+      "result_digest": "sha256:4f783261fc4ef55026838d835b1be4b25c0c05ecfbcc6a8cacd16eb830c993ff",
+      "row_count": 3,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_031": {
+      "method": "python",
+      "result_digest": "sha256:7125e8bbac3759ee5e6218139043172af68f2ab5a225969e3f95c129a366b40b",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    },
+    "custom_complex_032": {
+      "method": "python",
+      "result_digest": "sha256:b04a8513cb819e13a225e6bf561da45195763d51eadbcab8ed62ecd1304febd7",
+      "row_count": 2,
+      "reviewer_ids": [
+        "python-dataset",
+        "gold-sql-execution"
+      ],
+      "status": "oracle_matched"
+    }
+  }
+}

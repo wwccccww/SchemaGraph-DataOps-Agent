@@ -42,6 +42,11 @@ _FORBIDDEN = (
     exp.Uncache,
     exp.LoadData,
 )
+# SQLGlot 的内部类型名和 PostgreSQL 渲染出的函数名并不总是相同。
+# 门禁按渲染后的函数名审计，不把内部名加入白名单。
+_SURFACE_FUNCTION_NAMES: dict[type[exp.Expression], str] = {
+    exp.TimestampTrunc: "date_trunc",
+}
 _ALLOWED_FUNCTIONS = frozenset(
     {
         "abs",
@@ -219,16 +224,50 @@ def check_read_only_sql(sql: str) -> GateDecision:
             rejected = _reject_function(node)
             if rejected is not None:
                 return GateDecision(sql="", error=rejected)
+    recursive = _recursive_cte_error(expression)
+    if recursive is not None:
+        return GateDecision(sql="", error=recursive)
     return GateDecision(sql=expression.sql(dialect="postgres"), error=None)
 
 
+def _function_name(node: exp.Func) -> str:
+    if isinstance(node, exp.Anonymous):
+        return node.name.lower()
+    for kind, surface in _SURFACE_FUNCTION_NAMES.items():
+        if isinstance(node, kind):
+            return surface
+    return node.sql_name().lower()
+
+
 def _reject_function(node: exp.Func) -> ExecutionError | None:
-    name = node.name.lower() if isinstance(node, exp.Anonymous) else node.sql_name().lower()
+    name = _function_name(node)
     schema = _schema_name(node)
     if schema not in {None, "pg_catalog"} or name not in _ALLOWED_FUNCTIONS:
         if _IDENTIFIER.fullmatch(name) is None:
             return _reject("disallowed_function", "函数不在允许列表中")
         return _reject("disallowed_function", f"函数不在允许列表中: {name}")
+    return None
+
+
+def _recursive_cte_error(expression: exp.Expression) -> ExecutionError | None:
+    """自身引用却没有 WITH RECURSIVE 时，在查询数据库前拒绝。"""
+
+    for clause in expression.find_all(exp.With):
+        if clause.args.get("recursive"):
+            continue
+        for cte in clause.find_all(exp.CTE):
+            name = cte.alias
+            body = cte.this
+            if not isinstance(name, str) or not isinstance(body, exp.Expression):
+                continue
+            if any(table.name == name for table in body.find_all(exp.Table)):
+                return _reject(
+                    "recursive_cte_missing",
+                    (
+                        f"CTE {name} 在定义内引用了自身。"
+                        "补上 WITH RECURSIVE，或者改成对目标值的非递归等值过滤"
+                    ),
+                )
     return None
 
 

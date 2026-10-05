@@ -57,3 +57,61 @@ def test_qualified_pg_catalog_count_is_allowed() -> None:
     decision = check_read_only_sql("SELECT pg_catalog.count(*)")
 
     assert decision.error is None
+
+
+def test_date_trunc_uses_the_postgres_function_name() -> None:
+    decision = check_read_only_sql("SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')")
+
+    assert decision.error is None
+
+
+def test_unknown_function_stays_rejected() -> None:
+    decision = check_read_only_sql("SELECT secret_probe(1)")
+
+    assert decision.error is not None
+    assert decision.error.category == "disallowed_function"
+
+
+@pytest.mark.parametrize(
+    ("case_id", "cte_name"),
+    [
+        ("custom_medium_006", "phone_category"),
+        ("custom_medium_007", "beauty_categories"),
+        ("custom_medium_022", "perfume_tree"),
+        ("custom_complex_024", "east_categories"),
+        ("custom_complex_025", "central_categories"),
+        ("custom_complex_026", "south_categories"),
+        ("custom_complex_027", "southwest_categories"),
+        ("custom_complex_028", "northwest_categories"),
+        ("custom_complex_029", "vip_categories"),
+        ("custom_complex_032", "coupon_categories"),
+    ],
+)
+def test_self_referential_cte_is_rejected_before_execution(case_id: str, cte_name: str) -> None:
+    sql = (
+        f"WITH {cte_name} AS ("
+        f"SELECT category_id FROM t_category WHERE category_name = '{case_id}' "
+        "UNION ALL "
+        f"SELECT c.category_id FROM t_category AS c JOIN {cte_name} AS parent "
+        "ON c.parent_id = parent.category_id) "
+        f"SELECT category_id FROM {cte_name}"
+    )
+
+    decision = check_read_only_sql(sql)
+
+    assert decision.error is not None
+    assert decision.error.category == "recursive_cte_missing"
+    assert "WITH RECURSIVE" in decision.error.normalized_message
+    assert "非递归等值过滤" in decision.error.normalized_message
+
+
+def test_recursive_keyword_allows_a_self_referential_cte() -> None:
+    decision = check_read_only_sql(
+        "WITH RECURSIVE phone_category AS ("
+        "SELECT category_id FROM t_category WHERE category_name = '手机' "
+        "UNION ALL SELECT c.category_id FROM t_category AS c "
+        "JOIN phone_category AS parent ON c.parent_id = parent.category_id) "
+        "SELECT category_id FROM phone_category"
+    )
+
+    assert decision.error is None

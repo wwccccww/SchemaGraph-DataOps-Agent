@@ -23,6 +23,7 @@ from app.evaluation.ablation import (
     required_table_recall_for_case,
     write_ablation_report,
 )
+from app.evaluation.badcase import classify_badcase
 from app.graph.expand import EstimatedTokenCounter
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
@@ -555,3 +556,100 @@ async def test_rejected_prediction_is_recorded_without_changing_the_response() -
     assert result.prediction.sql == sql
     assert result.prediction.referenced_tables == ("t_user",)
     assert result.prediction.parse_error == "不是只读查询"
+    assert result.primary_class == "sql_error"
+    assert result.repair_trace[0][1] == "not_read_only"
+
+
+def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
+    gold = (
+        "SELECT ul.level_name, COUNT(*) AS user_count "
+        "FROM t_user AS u JOIN t_user_level AS ul ON u.user_level_id = ul.level_id "
+        "GROUP BY ul.level_name"
+    )
+    predicted = "SELECT COUNT(*) AS user_count FROM t_user"
+    primary, symptoms = classify_badcase(
+        question="统计每个会员等级的用户数量",
+        gold_sql=gold,
+        predicted_sql=predicted,
+        required_tables=("t_user", "t_user_level"),
+        error_category=None,
+        ex=0,
+    )
+    assert primary == "missing_required_table"
+    values = dict(symptoms)
+    assert "level_name" in values["missing_projections"]
+    assert values["gold_group_by"]
+    assert values["predicted_group_by"] == ""
+
+    grain, grain_symptoms = classify_badcase(
+        question="统计每个会员等级的用户数量",
+        gold_sql=gold,
+        predicted_sql=predicted,
+        required_tables=(),
+        error_category=None,
+        ex=0,
+        repair_trace=(("2", "aggregation_grain", "sha256:abc", "sha256:sql"),),
+    )
+    assert grain == "grouping_grain"
+    assert "level_name" in dict(grain_symptoms)["missing_projections"]
+    assert "aggregation_grain" in dict(grain_symptoms)["repair_trace"]
+
+    matched, _symptoms = classify_badcase(
+        question="统计每个会员等级的用户数量",
+        gold_sql=gold,
+        predicted_sql=gold,
+        required_tables=(),
+        error_category=None,
+        ex=1,
+    )
+    assert matched == "matched"
+
+    records = [
+        _result("custom_basic_001", "schema_graph", passed=True, ex=1),
+        _result("custom_basic_002", "schema_graph", passed=False, ex=0),
+    ]
+    records[0] = _copy_class(records[0], "matched")
+    records[1] = _copy_class(records[1], "grouping_grain")
+    summary = build_summary(
+        records,
+        case_ids=["custom_basic_001", "custom_basic_002"],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-05T00:00:00Z",
+        baseline_tokens=10,
+    )
+    measured = summary["measured"]
+    assert isinstance(measured, dict)
+    badcase = measured["badcase"]
+    assert isinstance(badcase, dict)
+    graph = badcase["schema_graph"]
+    assert isinstance(graph, dict)
+    assert graph["primary_total"] == graph["denominator"]
+    assert graph["denominator"] == 2
+    matrix = measured["transition_matrix"]
+    assert isinstance(matrix, dict)
+    for item in matrix.values():
+        assert isinstance(item, dict)
+        assert item["total"] == item["denominator"]
+
+
+def _copy_class(record: CaseResult, primary: str) -> CaseResult:
+    return CaseResult(
+        case_id=record.case_id,
+        variant=record.variant,
+        passed=record.passed,
+        attempts=record.attempts,
+        seed_tables=record.seed_tables,
+        expanded_tables=record.expanded_tables,
+        junction_recall=record.junction_recall,
+        required_table_recall=record.required_table_recall,
+        schema_tokens=record.schema_tokens,
+        latency_ms=record.latency_ms,
+        error_category=record.error_category,
+        difficulty=record.difficulty,
+        ex=record.ex,
+        leaked_junctions=record.leaked_junctions,
+        prediction=record.prediction,
+        primary_class=primary,
+    )

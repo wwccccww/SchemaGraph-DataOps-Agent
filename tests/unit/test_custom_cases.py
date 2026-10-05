@@ -72,6 +72,31 @@ def test_custom_cases_match_the_static_contract() -> None:
             assert ordered is None
 
 
+def test_python_oracle_attestation_covers_every_case() -> None:
+    from app.evaluation.gold_oracle import ensure_oracle_matched
+
+    cases = load_custom_cases()
+    ensure_oracle_matched(cases)
+    leaf = next(case for case in cases if case.id == "custom_basic_048")
+    last_month = next(case for case in cases if case.id == "custom_complex_001")
+    assert leaf.semantic_contract is not None
+    assert "末级品类定义为 parent_id <> 0" in leaf.semantic_contract.filters
+    assert leaf.semantic_contract.category_scope == "exact"
+    assert last_month.semantic_contract is not None
+    assert last_month.semantic_contract.time_window is not None
+    assert last_month.semantic_contract.time_window.start == "2026-09-01 00:00:00"
+    assert last_month.semantic_contract.dedup_key == "order_id"
+    assert last_month.oracle is not None
+    assert last_month.oracle.method == "python"
+    assert all(
+        case.semantic_contract is not None
+        and case.semantic_contract.category_scope == "exact"
+        and case.oracle is not None
+        and case.oracle.row_count > 0
+        for case in cases
+    )
+
+
 def test_smoke_slice_is_copied_into_the_full_suite() -> None:
     smoke = {case.id: case for case in load_smoke_cases()}
     full = {case.id: case for case in load_custom_cases()}

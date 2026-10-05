@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from app.agents.text_to_sql.contract import extract_answer_contract
 from app.agents.text_to_sql.prompt import PROMPT_VERSION
 from app.agents.text_to_sql.workflow import (
     TEXT_TO_SQL_VARIANTS,
@@ -26,8 +27,10 @@ from app.agents.text_to_sql.workflow import (
     inspect_text_to_sql,
 )
 from app.db.seed_data import SEED
+from app.evaluation.badcase import classify_badcase
 from app.evaluation.custom_cases import load_custom_cases
 from app.evaluation.ex import results_match
+from app.evaluation.gold_oracle import ensure_oracle_matched
 from app.evaluation.sql_shape import PredictionShape, describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
 from app.graph.expand import DEFAULT_MAX_SCHEMA_TOKENS, TokenCounter, render_schema_context
@@ -75,6 +78,10 @@ class CaseResult:
     ex: int
     leaked_junctions: tuple[str, ...]
     prediction: PredictionShape = field(default_factory=PredictionShape.empty)
+    primary_class: str = ""
+    symptoms: tuple[tuple[str, str], ...] = ()
+    repair_trace: tuple[tuple[str, str, str, str], ...] = ()
+    contract_summary: tuple[tuple[str, str], ...] = ()
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -93,6 +100,20 @@ class CaseResult:
             "ex": self.ex,
             "leaked_junctions": list(self.leaked_junctions),
             "prediction": self.prediction.as_json(),
+            "primary_class": self.primary_class,
+            "symptoms": [{"name": name, "value": value} for name, value in self.symptoms],
+            "repair_trace": [
+                {
+                    "attempt": attempt,
+                    "category": category,
+                    "symptom": symptom,
+                    "sql_hash": sql_digest,
+                }
+                for attempt, category, symptom, sql_digest in self.repair_trace
+            ],
+            "contract_summary": [
+                {"name": name, "value": value} for name, value in self.contract_summary
+            ],
         }
 
 
@@ -204,6 +225,8 @@ def build_summary(
             },
             "pass_at_3": None,
             "recovery_at_3": _recovery(by_variant["self_healing"]),
+            "badcase": _badcase_summary(by_variant),
+            "transition_matrix": _transition_matrix(by_variant),
             "junction_recall": {
                 "variant": "schema_graph",
                 "rate": recall_rate,
@@ -276,6 +299,7 @@ async def evaluate_case(
         execute=True,
         max_rows=1000,
         variant=variant,
+        anchor_date=case.anchor_date.isoformat(),
     )
     response = inspection.response
     latency_ms = int((time.perf_counter() - started) * 1000)
@@ -289,6 +313,18 @@ async def evaluate_case(
     if response.status == "succeeded" and response.sql is not None:
         ex = await _execution_accuracy(case, response.sql, execute)
     error = None if response.error is None else response.error.category
+    anchor = case.anchor_date.isoformat()
+    trace = _trace_tuples(inspection.repair_trace)
+    primary, symptoms = classify_badcase(
+        question=case.question,
+        gold_sql=case.gold_sql,
+        predicted_sql=inspection.generated_sql,
+        required_tables=case.required_tables,
+        error_category=None if ex == 1 else error,
+        ex=ex,
+        anchor_date=anchor,
+        repair_trace=trace,
+    )
     return CaseResult(
         case_id=case.id,
         variant=variant,
@@ -305,6 +341,10 @@ async def evaluate_case(
         ex=ex,
         leaked_junctions=leaked,
         prediction=describe_sql(inspection.generated_sql),
+        primary_class=primary,
+        symptoms=symptoms,
+        repair_trace=trace,
+        contract_summary=extract_answer_contract(case.question, anchor_date=anchor).as_pairs(),
     )
 
 
@@ -350,6 +390,7 @@ async def _run_cli(output: str, *, model: str | None, snapshot: str | None) -> N
 
     services = get_default_services()
     cases = load_custom_cases()
+    ensure_oracle_matched(cases)
     async with get_sandbox_engine().connect() as conn:
         documents = await load_table_documents(conn)
     records, baseline = await run_ablation(
@@ -397,6 +438,65 @@ async def _execution_accuracy(
         numeric_tolerance=case.numeric_tolerance,
     )
     return 1 if matched else 0
+
+
+def _trace_tuples(
+    trace: Sequence[Mapping[str, object]],
+) -> tuple[tuple[str, str, str, str], ...]:
+    rows: list[tuple[str, str, str, str]] = []
+    for item in trace:
+        rows.append(
+            (
+                str(item.get("attempt", "")),
+                str(item.get("category", "")),
+                str(item.get("symptom", "")),
+                str(item.get("sql_hash", "")),
+            )
+        )
+    return tuple(rows)
+
+
+def _badcase_summary(
+    by_variant: Mapping[str, list[CaseResult]],
+) -> dict[str, object]:
+    """主类计数从逐条结果重算，并且每个变体的总数等于分母。"""
+
+    summary: dict[str, object] = {}
+    for variant, records in by_variant.items():
+        counts: dict[str, int] = {}
+        for record in records:
+            label = record.primary_class or "unclassified"
+            counts[label] = counts.get(label, 0) + 1
+        summary[variant] = {
+            "denominator": len(records),
+            "primary": counts,
+            "primary_total": sum(counts.values()),
+        }
+    return summary
+
+
+def _transition_matrix(
+    by_variant: Mapping[str, list[CaseResult]],
+) -> dict[str, object]:
+    """组间主类转移从逐条结果重算。"""
+
+    matrix: dict[str, object] = {}
+    variants = list(by_variant)
+    for index, left in enumerate(variants):
+        left_map = {record.case_id: record.primary_class for record in by_variant[left]}
+        for right in variants[index + 1 :]:
+            right_map = {record.case_id: record.primary_class for record in by_variant[right]}
+            shared = sorted(set(left_map) & set(right_map))
+            counts: dict[str, int] = {}
+            for case_id in shared:
+                key = f"{left_map[case_id]}->{right_map[case_id]}"
+                counts[key] = counts.get(key, 0) + 1
+            matrix[f"{left}__{right}"] = {
+                "denominator": len(shared),
+                "moves": counts,
+                "total": sum(counts.values()),
+            }
+    return matrix
 
 
 def _accuracy(records: Sequence[CaseResult]) -> dict[str, object]:

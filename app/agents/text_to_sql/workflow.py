@@ -9,13 +9,14 @@ from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
+from app.agents.text_to_sql.contract import AnswerContract, check_contract, extract_answer_contract
 from app.agents.text_to_sql.prompt import (
     SYSTEM_PROMPT,
     extract_sql,
     render_generation_prompt,
     render_repair_prompt,
 )
-from app.agents.text_to_sql.semantic import check_semantics
+from app.agents.text_to_sql.semantic import SemanticFinding, check_semantics
 from app.db.catalog import DATABASE_ID
 from app.graph.expand import TokenCounter, expand_schema, render_schema_context
 from app.llm.gateway import ChatModel
@@ -97,6 +98,9 @@ class TextToSqlState(TypedDict):
     error_retryable: bool
     circuit_breaker_triggered: bool
     db_execution_ms: float | None
+    anchor_date: str
+    contract_repairs: int
+    repair_trace: list[dict[str, object]]
 
 
 @dataclass(frozen=True)
@@ -163,6 +167,7 @@ class TextToSqlInspection:
 
     response: TextToSqlResponse
     generated_sql: str | None
+    repair_trace: tuple[dict[str, object], ...] = ()
 
 
 async def run_text_to_sql(
@@ -174,6 +179,7 @@ async def run_text_to_sql(
     max_rows: int = 1000,
     request_id: str | None = None,
     variant: TextToSqlVariant = "self_healing",
+    anchor_date: str = "2026-10-01",
 ) -> TextToSqlResponse:
     """运行一次问数。评测标签和 Gold SQL 不是参数。默认走自愈。"""
 
@@ -185,6 +191,7 @@ async def run_text_to_sql(
         max_rows=max_rows,
         request_id=request_id,
         variant=variant,
+        anchor_date=anchor_date,
     )
     return inspection.response
 
@@ -198,6 +205,7 @@ async def inspect_text_to_sql(
     max_rows: int = 1000,
     request_id: str | None = None,
     variant: TextToSqlVariant = "self_healing",
+    anchor_date: str = "2026-10-01",
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -230,11 +238,13 @@ async def inspect_text_to_sql(
                     variant=variant,
                     execute=execute,
                     max_rows=max_rows,
+                    anchor_date=anchor_date,
                 )
             )
             return TextToSqlInspection(
                 response=_response(final),
                 generated_sql=final["generated_sql"],
+                repair_trace=tuple(final["repair_trace"]),
             )
         finally:
             set_request_attributes(span, _trace_fields(services, final))
@@ -255,6 +265,7 @@ def _initial_state(
     variant: str,
     execute: bool,
     max_rows: int,
+    anchor_date: str,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -282,6 +293,9 @@ def _initial_state(
         "error_retryable": False,
         "circuit_breaker_triggered": False,
         "db_execution_ms": None,
+        "anchor_date": anchor_date,
+        "contract_repairs": 0,
+        "repair_trace": [],
     }
 
 
@@ -382,6 +396,7 @@ async def _build_prompt(state: TextToSqlState) -> dict[str, object]:
             question=state["question"],
             schema_context=state["schema_context"],
             tools=_tools(state),
+            contract=_contract(state),
         )
     }
 
@@ -401,9 +416,17 @@ def _generate_sql(
 
 async def _validate_sql(state: TextToSqlState) -> dict[str, object]:
     decision = check_read_only_sql(state["generated_sql"] or "")
-    if decision.error is None:
-        return {"status": "validated", "generated_sql": decision.sql}
-    return _record_error(state, decision.error)
+    if decision.error is not None:
+        return _record_error(state, decision.error)
+    if state["variant"] == "self_healing" and state["attempt"] > 1:
+        findings = check_contract(
+            question=state["question"],
+            sql=decision.sql,
+            anchor_date=state["anchor_date"],
+        )
+        if findings:
+            return _record_error(state, _review_error(findings))
+    return {"status": "validated", "generated_sql": decision.sql}
 
 
 def _execute_sql(
@@ -429,31 +452,41 @@ def _execute_sql(
         plan_rows = None
         if services.estimate_plan_rows is not None:
             plan_rows = await services.estimate_plan_rows(sql)
-        findings = check_semantics(
-            question=state["question"],
-            sql=sql,
-            documents=documents,
-            edges=edges,
-            selected_tables=[*state["seed_tables"], *state["expanded_tables"]],
-            row_count=outcome.row_count,
-            truncated=outcome.truncated,
-            max_rows=state["max_rows"],
-            plan_rows=plan_rows,
+        findings = list(
+            check_semantics(
+                question=state["question"],
+                sql=sql,
+                documents=documents,
+                edges=edges,
+                selected_tables=[*state["seed_tables"], *state["expanded_tables"]],
+                row_count=outcome.row_count,
+                truncated=outcome.truncated,
+                max_rows=state["max_rows"],
+                plan_rows=plan_rows,
+            )
+        )
+        findings.extend(
+            check_contract(
+                question=state["question"],
+                sql=sql,
+                anchor_date=state["anchor_date"],
+            )
         )
         if not findings:
+            if state["repair_trace"]:
+                success["repair_trace"] = [
+                    *state["repair_trace"],
+                    {
+                        "attempt": state["attempt"],
+                        "category": "accepted",
+                        "symptom": "",
+                        "sql_hash": sql_hash(sql),
+                    },
+                ]
             return success
-        message = "；".join(f"{item.category}: {item.message}" for item in findings)
         return {
             **success,
-            **_record_error(
-                state,
-                make_error(
-                    category=findings[0].category,
-                    message=message,
-                    exception_type="SemanticReview",
-                    retryable=True,
-                ),
-            ),
+            **_record_error(state, _review_error(findings)),
         }
 
     return execute_sql
@@ -470,6 +503,7 @@ def _repair_sql(
             previous_sql=state["generated_sql"] or "",
             error_category=state["error_category"] or "",
             error_message=state["error_message"] or "",
+            contract=_contract(state),
         )
         content = await services.model.complete(
             _messages(prompt),
@@ -520,18 +554,56 @@ def _failure_target(state: TextToSqlState) -> str:
 def _record_error(state: TextToSqlState, error: ExecutionError) -> dict[str, object]:
     same = state["consecutive_error_hash"] == error.error_hash
     count = state["consecutive_error_count"] + 1 if same else 1
-    tripped = count >= CIRCUIT_THRESHOLD
+    contract_repairs = state["contract_repairs"]
+    repeated_contract = error.category == "contract_mismatch" and contract_repairs >= 1
+    if error.category == "contract_mismatch":
+        contract_repairs += 1
+    stalled = (same and count >= 2) or repeated_contract
+    tripped = stalled or count >= CIRCUIT_THRESHOLD
+    category = error.category
+    message = error.normalized_message
+    if stalled:
+        category = "no_progress"
+        message = "修复没有改变症状，已标记 no_progress 并熔断"
+    elif tripped:
+        category = "circuit_breaker"
+        message = "同一规范化错误连续出现 3 次，已熔断"
+    trace = [
+        *state["repair_trace"],
+        {
+            "attempt": state["attempt"],
+            "category": category,
+            "symptom": error.error_hash,
+            "sql_hash": sql_hash(state["generated_sql"]),
+        },
+    ]
     return {
         "status": "failed",
         "consecutive_error_hash": error.error_hash,
         "consecutive_error_count": count,
         "circuit_breaker_triggered": tripped,
-        "error_category": "circuit_breaker" if tripped else error.category,
-        "error_message": (
-            "同一规范化错误连续出现 3 次，已熔断" if tripped else error.normalized_message
-        ),
+        "error_category": category,
+        "error_message": message,
         "error_retryable": False if tripped else error.retryable,
+        "contract_repairs": contract_repairs,
+        "repair_trace": trace,
     }
+
+
+def _contract(state: TextToSqlState) -> AnswerContract:
+    return extract_answer_contract(state["question"], anchor_date=state["anchor_date"])
+
+
+def _review_error(findings: Sequence[SemanticFinding]) -> ExecutionError:
+    others = [item for item in findings if item.category != "contract_mismatch"]
+    chosen = others[0] if others else findings[0]
+    message = "；".join(f"{item.category}: {item.message}" for item in findings)
+    return make_error(
+        category=chosen.category,
+        message=message,
+        exception_type="SemanticReview",
+        retryable=True,
+    )
 
 
 def _fail(category: str, message: str, *, retryable: bool) -> dict[str, object]:

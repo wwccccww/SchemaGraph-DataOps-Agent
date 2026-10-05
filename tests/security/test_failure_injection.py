@@ -29,9 +29,9 @@ async def test_repeated_writes_trip_the_breaker_without_leaking_into_the_trace()
     )
 
     assert response.status == "failed"
-    assert response.attempts == 3
+    assert response.attempts == 2
     assert response.error is not None
-    assert response.error.category == "circuit_breaker"
+    assert response.error.category == "no_progress"
     spans = finished_spans()
     assert len(spans) == 1
     attributes = attribute_map(spans[0])

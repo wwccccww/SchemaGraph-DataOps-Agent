@@ -198,11 +198,11 @@ async def test_identical_errors_trip_the_circuit_breaker() -> None:
     )
 
     assert first.status == "failed"
-    assert first.attempts == 3
+    assert first.attempts == 2
     assert first.error is not None
-    assert first.error.category == "circuit_breaker"
+    assert first.error.category == "no_progress"
     assert first.error.retryable is False
-    assert len(model.prompts) == 6
+    assert len(model.prompts) == 4
     assert executor.calls == []
     assert second.error is not None
     assert second.error.category == first.error.category
@@ -361,10 +361,47 @@ async def test_repeated_semantic_failures_trip_the_circuit_and_hide_sql() -> Non
     )
 
     assert response.status == "failed"
-    assert response.attempts == 3
+    assert response.attempts == 2
     assert response.sql is None
     assert response.rows is None
     assert response.error is not None
-    assert response.error.category == "circuit_breaker"
+    assert response.error.category == "no_progress"
     assert "missing_entity" in model.prompts[1]
+    assert "答案契约" in model.prompts[0]
+    assert model.prompts[0].index("答案契约") < model.prompts[0].index("可用表")
+    assert "required_tables" not in " ".join(model.prompts)
+    assert "difficulty" not in " ".join(model.prompts)
+    assert "GOLD" not in " ".join(model.prompts)
+
+
+async def test_contract_repair_stops_when_the_symptom_does_not_clear() -> None:
+    question = "统计上个月状态为已支付的订单数量"
+    first_sql = (
+        "SELECT COUNT(*) AS order_count FROM t_order "
+        "WHERE order_status = 'PAID' AND created_at >= CURRENT_DATE"
+    )
+    second_sql = (
+        "SELECT COUNT(*) AS order_count FROM t_order "
+        "WHERE order_status = 'PAID' "
+        "AND created_at >= TIMESTAMP '2026-09-01 00:00:00' "
+        "AND created_at < TIMESTAMP '2026-10-01 00:00:00'"
+    )
+    model = ScriptedModel([first_sql, second_sql, first_sql])
+    executor = RecordingExecutor()
+
+    response = await run_text_to_sql(
+        _bundle(model, executor),
+        question=question,
+        database_id="ecommerce",
+    )
+
+    assert response.status == "failed"
+    assert response.attempts == 2
+    assert response.sql is None
+    assert response.error is not None
+    assert response.error.category == "no_progress"
+    assert executor.calls == [first_sql]
+    assert "期望" in model.prompts[1]
+    assert "实际" in model.prompts[1]
+    assert "GOLD" not in " ".join(model.prompts)
     assert "required_tables" not in " ".join(model.prompts)

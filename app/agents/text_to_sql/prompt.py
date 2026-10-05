@@ -6,6 +6,7 @@ import json
 import re
 from collections.abc import Sequence
 
+from app.agents.text_to_sql.contract import AnswerContract, format_answer_contract
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v1"
@@ -29,10 +30,17 @@ def render_generation_prompt(
     question: str,
     schema_context: str,
     tools: Sequence[ToolHit],
+    contract: AnswerContract | None = None,
 ) -> str:
     """组装首轮上下文。Schema 文本由调用方保证不超过预算。"""
 
-    return _render(question=question, schema_context=schema_context, tools=tools, repair=None)
+    return _render(
+        question=question,
+        schema_context=schema_context,
+        tools=tools,
+        contract=contract,
+        repair=None,
+    )
 
 
 def render_repair_prompt(
@@ -43,6 +51,7 @@ def render_repair_prompt(
     previous_sql: str,
     error_category: str,
     error_message: str,
+    contract: AnswerContract | None = None,
 ) -> str:
     """把结构化错误附到下一轮。不附带原始异常。"""
 
@@ -50,6 +59,7 @@ def render_repair_prompt(
         question=question,
         schema_context=schema_context,
         tools=tools,
+        contract=contract,
         repair=(previous_sql, error_category, error_message),
     )
 
@@ -59,6 +69,7 @@ def _render(
     question: str,
     schema_context: str,
     tools: Sequence[ToolHit],
+    contract: AnswerContract | None,
     repair: tuple[str, str, str] | None,
 ) -> str:
     tool_lines = [
@@ -73,11 +84,15 @@ def _render(
         )
         for tool in tools
     ]
-    sections = [
-        f"问题：\n{question}",
-        f"可用表：\n{schema_context}",
-        "已选择的工具定义：\n" + ("\n".join(tool_lines) if tool_lines else "无"),
-    ]
+    sections = [f"问题：\n{question}"]
+    if contract is not None:
+        sections.append(format_answer_contract(contract))
+    sections.extend(
+        (
+            f"可用表：\n{schema_context}",
+            "已选择的工具定义：\n" + ("\n".join(tool_lines) if tool_lines else "无"),
+        )
+    )
     if repair is not None:
         previous_sql, category, message = repair
         sections.append(

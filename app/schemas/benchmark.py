@@ -9,6 +9,44 @@ from pydantic import BaseModel, ConfigDict, Field
 
 BenchmarkSource = Literal["custom", "tpcds-derived", "bird"]
 BenchmarkDifficulty = Literal["basic", "medium", "complex"]
+CategoryScope = Literal["exact", "descendants"]
+OracleMethod = Literal["manual", "independent_sql", "python"]
+GoldAssurance = Literal["executable", "contract_checked", "oracle_matched", "reviewed"]
+
+
+class TimeWindow(BaseModel):
+    """由锚点日展开的半开时间窗口。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start: str
+    end: str
+    anchor_date: date
+
+
+class SemanticContract(BaseModel):
+    """问句定稿后的答案形状。它不从 Gold SQL 反推。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    projections: list[str] = Field(min_length=1)
+    group_keys: list[str]
+    filters: list[str]
+    category_scope: CategoryScope
+    time_window: TimeWindow | None
+    dedup_key: Literal["order_id"] | None
+
+
+class OracleRecord(BaseModel):
+    """独立于 Gold SQL 文本的结果证据。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    method: OracleMethod
+    result_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    row_count: int = Field(ge=0)
+    reviewer_ids: list[str]
+    status: GoldAssurance
 
 
 class BenchmarkCase(BaseModel):
@@ -31,3 +69,5 @@ class BenchmarkCase(BaseModel):
     expected_columns: list[str] = Field(min_length=1)
     anchor_date: date
     tags: list[str]
+    semantic_contract: SemanticContract | None = None
+    oracle: OracleRecord | None = None

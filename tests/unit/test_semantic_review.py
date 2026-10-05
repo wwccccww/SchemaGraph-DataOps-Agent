@@ -149,6 +149,144 @@ def test_projection_entity_join_grain_and_result_checks() -> None:
     assert {item.category for item in huge} == {"result_too_large", "explain_cardinality"}
 
 
+def test_cte_lineage_distinguishes_legal_illegal_and_unverified_joins() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    legal = """
+        WITH paid_sales AS (
+            SELECT p.category_id, SUM(od.quantity) AS qty
+            FROM t_order AS o
+            JOIN t_order_detail AS od ON o.order_id = od.order_id
+            JOIN t_product AS p ON od.product_id = p.product_id
+            GROUP BY p.category_id
+        )
+        SELECT c.category_name, s.qty
+        FROM paid_sales AS s
+        JOIN t_category AS c ON s.category_id = c.category_id
+    """
+    illegal = """
+        WITH paid_sales AS (
+            SELECT o.order_id AS category_id
+            FROM t_order AS o
+        )
+        SELECT c.category_name
+        FROM paid_sales AS s
+        JOIN t_category AS c ON s.category_id = c.category_id
+    """
+    unknown = """
+        WITH paid_sales AS (
+            SELECT 1 AS category_id
+        )
+        SELECT c.category_name
+        FROM paid_sales AS s
+        JOIN t_category AS c ON s.category_id = c.category_id
+    """
+    recursive = """
+        WITH RECURSIVE vip_regions AS (
+            SELECT r.region_id, r.region_name
+            FROM t_region AS r
+            WHERE r.region_name = '华北'
+        )
+        SELECT urm.user_id
+        FROM t_user_region_map AS urm
+        JOIN vip_regions AS vr ON urm.region_id = vr.region_id
+    """
+
+    def categories(sql: str) -> set[str]:
+        return {
+            item.category
+            for item in check_semantics(
+                question="查询订单",
+                sql=sql,
+                documents=documents,
+                edges=edges,
+                selected_tables=selected,
+                row_count=1,
+            )
+        }
+
+    assert "join_not_on_graph" not in categories(legal)
+    assert "join_unverified" not in categories(legal)
+    assert "join_not_on_graph" in categories(illegal)
+    assert "join_unverified" in categories(unknown)
+    assert "join_not_on_graph" not in categories(unknown)
+    assert "join_not_on_graph" not in categories(recursive)
+    assert "join_unverified" not in categories(recursive)
+
+
+def test_reported_cte_joins_are_not_false_foreign_key_failures() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    samples = {
+        "custom_medium_047": """
+            WITH paid_sales AS (
+                SELECT p.category_id, SUM(od.quantity) AS total_quantity
+                FROM t_order AS o
+                JOIN t_order_detail AS od ON o.order_id = od.order_id
+                JOIN t_product AS p ON od.product_id = p.product_id
+                GROUP BY p.category_id
+            )
+            SELECT c.category_name, s.total_quantity
+            FROM paid_sales AS s
+            JOIN t_category AS c ON s.category_id = c.category_id
+        """,
+        "custom_medium_048": """
+            WITH month_sales AS (
+                SELECT p.category_id
+                FROM t_product AS p
+            )
+            SELECT c.category_name
+            FROM t_category AS c
+            JOIN month_sales AS s ON c.category_id = s.category_id
+        """,
+        "custom_medium_049": """
+            WITH paid_sales AS (
+                SELECT p.category_id, p.merchant_id
+                FROM t_product AS p
+            )
+            SELECT m.merchant_name
+            FROM paid_sales AS s
+            JOIN t_merchant AS m ON s.merchant_id = m.merchant_id
+        """,
+        "custom_medium_050": """
+            WITH paid_sales AS (
+                SELECT p.category_id
+                FROM t_product AS p
+                JOIN t_category AS c ON p.category_id = c.category_id
+            )
+            SELECT s.category_id
+            FROM paid_sales AS s
+            JOIN t_category AS c ON s.category_id = c.category_id
+        """,
+        "custom_complex_023": """
+            WITH RECURSIVE vip_regions AS (
+                SELECT r.region_id
+                FROM t_region AS r
+                WHERE r.region_name = '华北'
+            )
+            SELECT urm.user_id
+            FROM vip_regions AS vr
+            JOIN t_user_region_map AS urm ON vr.region_id = urm.region_id
+        """,
+    }
+    for case_id, sql in samples.items():
+        categories = {
+            item.category
+            for item in check_semantics(
+                question="查询订单",
+                sql=sql,
+                documents=documents,
+                edges=edges,
+                selected_tables=selected,
+                row_count=1,
+            )
+        }
+        assert "join_not_on_graph" not in categories, case_id
+        assert "join_unverified" not in categories, case_id
+
+
 def test_custom_gold_passes_static_review_without_gold_inputs() -> None:
     documents = _documents()
     edges = _edges()
