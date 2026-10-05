@@ -21,6 +21,25 @@ def _doc(name: str) -> TableDocument:
     )
 
 
+def test_item_category_question_does_not_require_promotion() -> None:
+    question = "统计 2001 年能关联到当前住址的顾客，在各州门店购买各商品类别的销售金额。"
+    documents = [
+        _doc(name)
+        for name in (
+            "customer",
+            "customer_address",
+            "item",
+            "promotion",
+            "store",
+            "store_sales",
+            "date_dim",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "promotion" not in shape.entities
+    assert "item" in shape.entities
+
+
 def test_promo_item_question_requires_item_entity_and_join_hint() -> None:
     question = "统计 2001 年购买过直邮促销商品的顾客，按教育程度和信用评级汇总净利润。"
     documents = [
