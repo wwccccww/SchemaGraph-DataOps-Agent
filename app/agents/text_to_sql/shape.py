@@ -85,6 +85,7 @@ _ENTITIES = (
     (re.compile(r"charter school|\bcharter\b", re.IGNORECASE), ("schools",)),
     (re.compile(r"grades?\s+(?:it\s+)?serves|grades served", re.IGNORECASE), ("schools",)),
     (re.compile(r"FRPM|free meal|free or reduced", re.IGNORECASE), ("frpm",)),
+    (re.compile(r"NSLP|Provision Types|Provision Status", re.IGNORECASE), ("frpm",)),
 )
 _MEASURE_COLUMNS = (
     (re.compile(r"销售金额|sales amount"), ("ext_sales_price", "sales_price")),
@@ -230,6 +231,15 @@ def check_answer_shape(
                 SemanticFinding(
                     "projection_mismatch",
                     "charter school 语义优先使用 schools 表的 Charter 字段，不要用 frpm 的 Y/N 列",
+                )
+            )
+    if re.search(r"Multiple Provision Types", question, re.IGNORECASE):
+        if "multiple provision types" not in lowered.replace("_", " "):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "问句要求 Multiple Provision Types，WHERE 需 frpm.`NSLP Provision Status` "
+                    "= 'Multiple Provision Types'",
                 )
             )
     return tuple(findings)
@@ -503,6 +513,11 @@ def _join_hints(
         hints.append(
             "餐食/NSLP/Enrollment 过滤或度量在 frpm（如 `NSLP Provision Status`、`County Name`），"
             "schools 上的 Magnet/GSserved 过滤仍需 JOIN frpm ON CDSCode。"
+        )
+    if re.search(r"Multiple Provision Types", question, re.IGNORECASE) and "frpm" in visible:
+        hints.append(
+            "问句点名 Multiple Provision Types 时 WHERE 需 "
+            "frpm.`NSLP Provision Status` = 'Multiple Provision Types'（与 schools 条件 AND）。"
         )
     if "satscores" in visible and re.search(
         r"performance level|SAT performance",

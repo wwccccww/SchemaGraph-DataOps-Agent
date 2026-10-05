@@ -167,6 +167,19 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_multiple_provision_types_requires_frpm_filter() -> None:
+    from app.agents.text_to_sql.shape import check_answer_shape
+
+    question = "magnet K-8 schools with Multiple Provision Types by city"
+    documents = [_doc(name) for name in ("schools", "frpm")]
+    sql = (
+        "SELECT s.City, COUNT(*) FROM schools s JOIN frpm f ON f.CDSCode = s.CDSCode "
+        "WHERE s.Magnet = 1 AND s.GSoffered = 'K-8' GROUP BY s.City"
+    )
+    findings = check_answer_shape(question, sql, documents, dialect="sqlite")
+    assert any("NSLP Provision Status" in item.message for item in findings)
+
+
 def test_california_nslp_hint_requires_frpm_join() -> None:
     question = (
         "Of the schools that offers a magnet program serving K-8, "

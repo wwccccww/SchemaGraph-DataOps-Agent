@@ -119,6 +119,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`b7956aa` generic v10**（California frpm/NSLP + SAT 总分分档提示）（`self_healing`，180s）：TPC-DS **28/30（EX 0.933）**（`run_20261005T212619Z_b7956aa_*`，未匹配 **`020、025`**，LLM 方差）；BIRD 独占 **3/50**（`run_20261005T212558Z_b7956aa_*`），可执行 **0.96**。
   - **`825f26b` BIRD 契约**（软 `core_tables`、不写 GROUP BY 键）（`self_healing`，180s，独占全量）：**3/50（EX 0.06）**（`run_20261005T212004Z_825f26b_*`），匹配 **`0028、0036、0116`**；可执行率 **0.92**（较 `e900aa5` 的 0.88），熔断 **4×**（较 6×）。
   - **`e900aa5` BIRD 契约**（首版软 `core_tables` + 修正 TPC-DS 式「末列当度量」）（`self_healing`，180s）：**3/50**（`run_20261005T211417Z_e900aa5_*`）；诊断 **41× other_result_mismatch / 6× circuit_breaker**。
   - **BIRD**（`1ab333d` 同提交全量）：**2/50**（`run_20261005T205150Z_1ab333d_*`），仍低于历史 **4/50** 峰值，待 join/grouping 与复跑。
