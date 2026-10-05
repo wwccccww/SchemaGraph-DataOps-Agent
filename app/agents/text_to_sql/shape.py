@@ -242,6 +242,18 @@ def check_answer_shape(
                     "= 'Multiple Provision Types'",
                 )
             )
+    has_frpm = any(document.table_name.lower() == "frpm" for document in documents)
+    if has_frpm and re.search(r"County Name|Alameda|Los Angeles|Fresno", question, re.IGNORECASE):
+        if "county name" not in lowered and re.search(
+            r"\bschools\.county\b|\bs\.county\b", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "县级过滤优先用 frpm.`County Name`（或 schools.County 与问句县名一致），"
+                    "不要混用错误县列导致漏行。",
+                )
+            )
     return tuple(findings)
 
 

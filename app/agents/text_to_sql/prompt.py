@@ -10,14 +10,12 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v10"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v11"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
 )
-_GENERIC_SHAPE = (
-    "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
-    "年份若既是过滤又是汇总轴，也要投影出来。度量要聚合，排序要求要写 ORDER BY。"
+_GENERIC_SHAPE_TAIL = (
     "若问句列举多项属性或 characteristics，最终 SELECT 应逐条回答，并为每列写清晰的 AS 别名。"
     "charter school、grades served、SAT performance level 等语义优先从 schools/satscores 等实体表取字段，"
     "SAT performance level 用 AvgScrRead+AvgScrMath+AvgScrWrite 总和（不要除以 3）做 CASE 分档，不要只输出原始分列。"
@@ -26,6 +24,17 @@ _GENERIC_SHAPE = (
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"
     "窗口函数（RANK/DENSE_RANK/ROW_NUMBER）写在最终 SELECT 中，不要在同一层再对窗口列做 GROUP BY；"
     "可先 CTE 算基础列，再在外层 SELECT 窗口函数并 ORDER BY。"
+)
+_GENERIC_SHAPE = (
+    "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
+    "年份若既是过滤又是汇总轴，也要投影出来。度量要聚合，排序要求要写 ORDER BY。"
+    + _GENERIC_SHAPE_TAIL
+)
+_GENERIC_SHAPE_SQLITE = (
+    "投影列必须覆盖问句与冻结契约；仅在 SQL 出现 SUM/COUNT/AVG 等聚合时写 GROUP BY，"
+    "明细行或 Top-1/Top-N（LIMIT 1 或 ROW_NUMBER=1）不要对非聚合列写 GROUP BY。"
+    "年份若既是过滤又是汇总轴，也要投影出来。有过滤又有聚合时度量要聚合；问句要求排序时写 ORDER BY。"
+    + _GENERIC_SHAPE_TAIL
 )
 _POSTGRES_JOIN = (
     " 事实表与维表优先用 *_sk 连接键；先按业务键聚合再 JOIN，避免无关桥表造成笛卡尔积。"
@@ -44,7 +53,7 @@ def system_prompt_for(*, dialect: str, profile: str) -> str:
     if profile == "ecommerce":
         return SYSTEM_PROMPT
     if dialect == "sqlite":
-        return f"{SQLITE_SYSTEM_PROMPT}{_GENERIC_SHAPE}"
+        return f"{SQLITE_SYSTEM_PROMPT}{_GENERIC_SHAPE_SQLITE}"
     return f"{SYSTEM_PROMPT}{_GENERIC_SHAPE}{_POSTGRES_JOIN}"
 
 
