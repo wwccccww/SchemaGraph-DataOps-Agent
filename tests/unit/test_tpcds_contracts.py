@@ -37,6 +37,16 @@ def test_single_fact_filter_from_required_tables() -> None:
     assert "audit_tables_strict=true" in contract.filters
 
 
+def test_multi_channel_question_adds_union_hint() -> None:
+    contract = contract_for(
+        _case(
+            question="按销售渠道汇总 2001 年门店、目录和网站销售金额。",
+            required_tables=["store_sales", "catalog_sales", "web_sales", "date_dim", "item"],
+        )
+    )
+    assert "multi_channel_union=true" in contract.filters
+
+
 def test_returns_and_sales_question_adds_separate_cte_hint() -> None:
     contract = contract_for(
         _case(

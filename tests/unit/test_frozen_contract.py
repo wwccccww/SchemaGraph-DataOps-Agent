@@ -84,6 +84,27 @@ def test_core_tables_reject_audited_extra_tables() -> None:
     assert any("请移除" in item.message and "promotion" in item.message for item in findings)
 
 
+def test_multi_channel_flat_join_is_rejected() -> None:
+    contract = SemanticContract(
+        projections=["sales_amount"],
+        group_keys=["sales_channel", "item_category", "sales_year"],
+        filters=[
+            "core_tables=store_sales,catalog_sales,web_sales,date_dim,item",
+            "multi_channel_union=true",
+            "audit_tables_strict=true",
+        ],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT SUM(ss.ss_ext_sales_price + cs.cs_ext_sales_price) "
+        "FROM store_sales ss JOIN catalog_sales cs ON ss.ss_item_sk = cs.cs_item_sk"
+    )
+    findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
+    assert any("UNION ALL" in item.message for item in findings)
+
+
 def test_returns_case_rejects_channel_sales_table() -> None:
     contract = SemanticContract(
         projections=["return_amount"],

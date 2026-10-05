@@ -199,6 +199,17 @@ def check_frozen_semantic_contract(
                 "窗口函数（RANK 等）与 GROUP BY 不要写在同一 SELECT 层；用 CTE 先算基础列，外层再 RANK/ORDER BY",
             )
         )
+    if "multi_channel_union=true" in contract.filters:
+        sales = [name for name in core_tables if name.endswith("_sales")]
+        if len(sales) >= 2:
+            hits = sum(1 for name in sales if name.lower() in referenced)
+            if hits >= 2 and "union" not in sql.lower():
+                findings.append(
+                    SemanticFinding(
+                        "missing_entity",
+                        f"多渠道请用 UNION ALL 分渠道汇总（{'、'.join(sales)}），不要在同一 SELECT 中同时 JOIN 多个渠道事实表",
+                    )
+                )
     return tuple(findings)
 
 
@@ -271,6 +282,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"
                 "不要仅用 item/store 键硬拼 promotion 或跨事实笛卡尔积。"
+            )
+        if item == "multi_channel_union=true":
+            hints.append(
+                "多渠道销售须分渠道 CTE（各事实表+date_dim 过滤年份）用 UNION ALL 合并，"
+                "再 JOIN item 按 channel/item_category/sales_year 汇总；不要单条 SQL 同时 JOIN 多个 *_sales。"
             )
     return tuple(hints)
 

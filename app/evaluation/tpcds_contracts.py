@@ -97,6 +97,8 @@ def _fact_filters(required_tables: list[str], question: str) -> list[str]:
     filters = [f"primary_facts={','.join(sorted(sales))}"]
     if "退货" in question and "销售" in question:
         filters.append("returns_vs_sales=separate_cte")
+    if len(sales) >= 2 and ("渠道" in question or len(chosen) >= 2):
+        filters.append("multi_channel_union=true")
     return filters
 
 

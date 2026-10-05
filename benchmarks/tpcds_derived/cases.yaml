@@ -221,6 +221,7 @@ cases:
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
         - "returns_vs_sales=separate_cte"
+        - "multi_channel_union=true"
         - "core_tables=date_dim,item,reason,store,store_returns,store_sales"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -569,6 +570,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=catalog_sales,store_sales,web_sales"
+        - "multi_channel_union=true"
         - "core_tables=catalog_sales,date_dim,item,store_sales,web_sales"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -1057,6 +1059,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=store_sales,web_sales"
+        - "multi_channel_union=true"
         - "core_tables=customer,customer_address,date_dim,item,store_sales,web_sales"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -1132,6 +1135,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_facts=catalog_returns,store_returns"
+        - "multi_channel_union=true"
         - "core_tables=catalog_returns,date_dim,item,reason,store_returns"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -1558,6 +1562,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=store_sales,web_sales"
+        - "multi_channel_union=true"
         - "core_tables=date_dim,item,store,store_sales,web_sales,web_site"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -1727,6 +1732,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=catalog_sales,web_sales"
+        - "multi_channel_union=true"
         - "core_tables=catalog_sales,date_dim,item,ship_mode,warehouse,web_sales"
         - "audit_tables_strict=true"
       category_scope: exact
@@ -2199,6 +2205,7 @@ cases:
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
         - "returns_vs_sales=separate_cte"
+        - "multi_channel_union=true"
         - "core_tables=customer,customer_address,customer_demographics,date_dim,household_demographics,income_band,item,promotion,reason,store,store_returns,store_sales"
         - "audit_tables_strict=true"
       category_scope: exact
