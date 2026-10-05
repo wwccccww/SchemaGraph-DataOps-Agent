@@ -208,10 +208,11 @@ async def score_prediction(
     predicted_outcome: ExecutionSuccess | ExecutionError | None = None
     if leaked:
         error_category = error_category or "cross_database_catalog"
-    elif response.status == "succeeded" and predicted:
+    elif predicted:
         predicted_outcome = await execute(predicted)
         if isinstance(predicted_outcome, ExecutionError):
-            error_category = predicted_outcome.category
+            if response.status == "succeeded":
+                error_category = predicted_outcome.category
         else:
             gold_outcome = await execute(case.gold_sql)
             if isinstance(gold_outcome, ExecutionError):
@@ -225,6 +226,8 @@ async def score_prediction(
             if same:
                 ex = 1
                 error_category = None
+            elif response.status != "succeeded":
+                error_category = error_category or response.error.category if response.error else None
     primary, diagnosis, symptoms = classify_external_case(
         case,
         predicted_sql=predicted,

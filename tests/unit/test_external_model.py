@@ -87,6 +87,47 @@ async def test_scoring_executes_gold_only_after_the_prediction() -> None:
     assert trace.leaked_tables == ()
 
 
+async def test_scoring_matches_ex_when_sql_runs_despite_failed_workflow_status() -> None:
+    case = _case("bird_0001", "california_schools")
+
+    async def execute(sql: str) -> ExecutionSuccess:
+        return ExecutionSuccess(
+            columns=(("total", "integer"),),
+            rows=((1,),),
+            row_count=1,
+            truncated=False,
+            execution_time_ms=1,
+        )
+
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req",
+            status="failed",
+            sql="SELECT 1 AS total",
+            columns=[],
+            rows=[],
+            attempts=2,
+            error=ApiError(category="no_progress", message="熔断", retryable=False),
+            schema_context=SchemaContextView(
+                seed_tables=["schools"],
+                expanded_tables=[],
+                token_count=8,
+                truncated=False,
+            ),
+        ),
+        generated_sql="SELECT 1 AS total",
+        prompt="generic",
+    )
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute,
+        catalog_tables=("schools",),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
 async def test_scoring_flags_a_seed_from_another_database_without_executing() -> None:
     case = _case("bird_0001", "california_schools")
     calls: list[str] = []
