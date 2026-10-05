@@ -346,6 +346,15 @@ def check_answer_shape(
                     "avg_duration 用 AVG(duration) 原精度，中间 CTE 不要 ROUND",
                 )
             )
+        if re.search(r"avg_loan_amount|avg\s*\(\s*amount\s*\)", sql, re.IGNORECASE) and (
+            not re.search(r"round\s*\(\s*[^)]*avg_loan_amount", sql, re.IGNORECASE)
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "最终 SELECT 对 avg_loan_amount 用 ROUND(..., 2)，avg_duration 保持 CTE 原精度",
+                )
+            )
         if re.search(
             r"round\s*\(\s*100(?:\.0)?\s*\*\s*sum\s*\(\s*running",
             sql,
