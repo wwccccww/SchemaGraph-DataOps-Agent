@@ -495,6 +495,24 @@ def _join_hints(
             "California schools：schools 与 frpm/satscores 用 CDSCode 与 satscores.cds 连接，"
             "不要对 schools 与 frpm 做无键笛卡尔积。"
         )
+    if "frpm" in visible and re.search(
+        r"NSLP|Provision Status|free meal rate|FRPM|Enrollment \(K-12\)",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "餐食/NSLP/Enrollment 过滤或度量在 frpm（如 `NSLP Provision Status`、`County Name`），"
+            "schools 上的 Magnet/GSserved 过滤仍需 JOIN frpm ON CDSCode。"
+        )
+    if "satscores" in visible and re.search(
+        r"performance level|SAT performance",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "SAT performance level：用 AvgScrRead+AvgScrMath+AvgScrWrite 总和做 CASE，"
+            "不要对三科平均后再与 1200/1500 等总分阈值比较。"
+        )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
             hints.append(

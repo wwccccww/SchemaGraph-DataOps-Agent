@@ -167,6 +167,17 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_california_nslp_hint_requires_frpm_join() -> None:
+    question = (
+        "Of the schools that offers a magnet program serving K-8, "
+        "how many offers Multiple Provision Types? List cities and school counts."
+    )
+    documents = [_doc(name) for name in ("schools", "frpm", "satscores")]
+    shape = extract_generic_shape(question, documents)
+    text = format_generic_shape(shape)
+    assert "NSLP" in text or "frpm" in text
+
+
 def test_lexical_seeds_include_item_for_promo_product_question() -> None:
     question = "购买过直邮促销商品的顾客数量"
     documents = [_doc(name) for name in ("customer", "item", "promotion", "store_sales")]

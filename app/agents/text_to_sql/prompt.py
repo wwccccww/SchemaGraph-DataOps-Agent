@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v9"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v10"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -20,7 +20,9 @@ _GENERIC_SHAPE = (
     "年份若既是过滤又是汇总轴，也要投影出来。度量要聚合，排序要求要写 ORDER BY。"
     "若问句列举多项属性或 characteristics，最终 SELECT 应逐条回答，并为每列写清晰的 AS 别名。"
     "charter school、grades served、SAT performance level 等语义优先从 schools/satscores 等实体表取字段，"
-    "performance level 用 CASE 归类，不要只输出原始分数。"
+    "SAT performance level 用 AvgScrRead+AvgScrMath+AvgScrWrite 总和（不要除以 3）做 CASE 分档，不要只输出原始分列。"
+    "California schools：县名/学区/学校名与 free meal、NSLP、Enrollment 等优先用 frpm 带空格列名；"
+    "Magnet、GSserved、Charter 等在 schools；问句同时涉及 magnet/grade span 与 NSLP/Provision 时必须 JOIN frpm 与 schools。"
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"
     "窗口函数（RANK/DENSE_RANK/ROW_NUMBER）写在最终 SELECT 中，不要在同一层再对窗口列做 GROUP BY；"
     "可先 CTE 算基础列，再在外层 SELECT 窗口函数并 ORDER BY。"
