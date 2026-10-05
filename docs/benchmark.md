@@ -106,7 +106,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
 - 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
 - **Measured 基线（2026-10-05，DeepSeek Chat，本地快照）**：报告在 `reports/`（不入 Git）。
-  - **v9 + TPC-DS `core_tables` / 禁多余 promotion / 商品类别实体修复**（`self_healing`，180s）：TPC-DS **9/30（EX 0.30）**（`run_20261005T184732Z_bc26f6f_*`）；复跑 **8/30**（`run_20261005T190351Z_f9ff550_*`，同批 join 提示与窗口校验）。较 v8 **4/30**（`run_20261005T173315Z_*`）提升。
+  - **v9 + TPC-DS `core_tables` / `audit_tables_strict` / 多渠道 UNION 提示**（`self_healing`，180s）：TPC-DS 峰值 **9/30（EX 0.30）**（`run_20261005T184732Z_bc26f6f_*`）；`e04c99d` 全量 **8/30**（`run_20261005T191727Z_*`）。较 v8 **4/30**（`run_20261005T173315Z_*`）提升。
   - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。
   - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
   - 早期 v7 无 BIRD contract：**0/50** BIRD。
