@@ -207,6 +207,15 @@ def check_frozen_semantic_contract(
                 "窗口函数（RANK 等）与 GROUP BY 不要写在同一 SELECT 层；用 CTE 先算基础列，外层再 RANK/ORDER BY",
             )
         )
+    if "inventory_sold_items=subquery" in contract.filters and "store" in referenced:
+        audited = {name.lower() for name in core_tables} if core_tables else set()
+        if "store" not in audited:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "门店卖过过滤用 store_sales 子查询即可，不要 JOIN store 表",
+                )
+            )
     if "promotion_via_item_sk_subquery=true" in contract.filters:
         lowered = sql.lower()
         if re.search(r"\bjoin\s+promotion\b", lowered) or (
@@ -328,6 +337,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "promotion_channel=dmail":
             hints.append(
                 "直邮促销：promotion.p_channel_dmail='Y'，并用 ss_item_sk IN (SELECT p_item_sk FROM promotion ...) 或 ss_promo_sk 关联，不要仅用 item 与 promotion 的笛卡尔 JOIN"
+            )
+        if item == "inventory_sold_items=subquery":
+            hints.append(
+                "只保留门店卖过的商品：inventory.inv_item_sk IN (SELECT ss_item_sk FROM store_sales "
+                "JOIN date_dim ON … WHERE d_year=2001) 或等价 CTE；不必 JOIN store 维表。"
             )
         if item == "promotion_via_item_sk_subquery=true":
             hints.append(

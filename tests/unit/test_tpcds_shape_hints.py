@@ -21,6 +21,17 @@ def _doc(name: str) -> TableDocument:
     )
 
 
+def test_inventory_sold_through_store_does_not_require_store_entity() -> None:
+    question = "统计 2001 年各仓库所在州和商品类别的库存数量，只保留当年门店卖过的商品。"
+    documents = [
+        _doc(name)
+        for name in ("inventory", "item", "store_sales", "store", "warehouse", "date_dim")
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "store_sales" in shape.entities
+    assert "store" not in shape.entities
+
+
 def test_item_category_question_does_not_require_promotion() -> None:
     question = "统计 2001 年能关联到当前住址的顾客，在各州门店购买各商品类别的销售金额。"
     documents = [

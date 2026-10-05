@@ -637,6 +637,7 @@ cases:
         - "inventory_year"
       filters:
         - "calendar_year=2001"
+        - "inventory_sold_items=subquery"
         - "primary_fact=store_sales"
         - "core_tables=date_dim,inventory,item,store_sales,warehouse"
         - "audit_tables_strict=true"
@@ -1648,6 +1649,7 @@ cases:
         - "quantity_on_hand"
       filters:
         - "calendar_year=2001"
+        - "inventory_sold_items=subquery"
         - "primary_fact=store_sales"
         - "core_tables=date_dim,inventory,item,store_sales,warehouse"
         - "audit_tables_strict=true"

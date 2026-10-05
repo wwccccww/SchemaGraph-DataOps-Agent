@@ -113,6 +113,8 @@ def _filters_from_question(question: str) -> list[str]:
         filters.append("promotion_via_item_sk_subquery=true")
     if "退货" in question:
         filters.append("returns_present=true")
+    if "库存" in question and re.search(r"卖|售", question):
+        filters.append("inventory_sold_items=subquery")
     return filters
 
 

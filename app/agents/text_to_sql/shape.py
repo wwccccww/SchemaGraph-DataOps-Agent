@@ -61,7 +61,6 @@ _ENTITIES = (
     (re.compile(r"顾客|customer"), ("customer",)),
     (re.compile(r"商品类别|item category"), ("item",)),
     (re.compile(r"促销商品|直邮促销|直邮"), ("item", "promotion")),
-    (re.compile(r"商品类别|item category"), ("item",)),
     (re.compile(r"门店销售|门店退货|store sales|store returns"), ("store_sales", "store")),
     (re.compile(r"目录销售|目录退货|catalog sales"), ("catalog_sales", "catalog_page")),
     (re.compile(r"网站销售|网站退货|web sales"), ("web_sales", "web_site", "web_page")),
@@ -374,8 +373,16 @@ def _entities(
     visible: dict[str, TableDocument],
 ) -> tuple[str, ...]:
     names: list[str] = []
+    sold_through_store = (
+        "store_sales" in visible
+        and re.search(r"卖过|售出|销售过|门店卖", question) is not None
+    )
+    if sold_through_store:
+        names.append(visible["store_sales"].table_name)
     for pattern, tables in _ENTITIES:
         if pattern.search(question) is None:
+            continue
+        if sold_through_store and tables == ("store",):
             continue
         for table in tables:
             if table.lower() in visible and table not in names:
