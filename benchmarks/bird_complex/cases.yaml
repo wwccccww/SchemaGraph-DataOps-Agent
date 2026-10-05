@@ -2,7 +2,7 @@ contract_version: "1.0"
 cases:
   - id: bird_0000
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -82,7 +82,7 @@ cases:
       - "california_schools"
   - id: bird_0002
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -180,7 +180,7 @@ cases:
       - "california_schools"
   - id: bird_0003
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -281,7 +281,7 @@ cases:
       - "california_schools"
   - id: bird_0005
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -377,7 +377,7 @@ cases:
       - "california_schools"
   - id: bird_0006
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -467,7 +467,7 @@ cases:
       - "california_schools"
   - id: bird_0008
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -574,7 +574,7 @@ cases:
       - "california_schools"
   - id: bird_0010
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -688,7 +688,7 @@ cases:
       - "california_schools"
   - id: bird_0011
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -772,7 +772,7 @@ cases:
       - "california_schools"
   - id: bird_0012
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -844,7 +844,7 @@ cases:
       - "california_schools"
   - id: bird_0013
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -918,7 +918,7 @@ cases:
       - "california_schools"
   - id: bird_0018
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -947,7 +947,7 @@ cases:
               sc.OpenDate,
               CASE 
                   WHEN sc.OpenDate IS NULL THEN NULL
-                  ELSE (strftime('%Y', 'now') - strftime('%Y', sc.OpenDate)) 
+                  ELSE (strftime('%Y', '2026-10-01') - strftime('%Y', sc.OpenDate)) 
               END AS SchoolAge,
               ROW_NUMBER() OVER (PARTITION BY f.`County Name` ORDER BY s.NumTstTakr) AS CountyRank
           FROM frpm AS f
@@ -996,7 +996,7 @@ cases:
       - "california_schools"
   - id: bird_0019
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1090,7 +1090,7 @@ cases:
       - "california_schools"
   - id: bird_0020
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1171,7 +1171,7 @@ cases:
       - "california_schools"
   - id: bird_0021
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1261,7 +1261,7 @@ cases:
       - "california_schools"
   - id: bird_0028
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1284,7 +1284,7 @@ cases:
       - "california_schools"
   - id: bird_0031
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1388,7 +1388,7 @@ cases:
       - "california_schools"
   - id: bird_0032
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1479,7 +1479,7 @@ cases:
       - "california_schools"
   - id: bird_0036
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1506,7 +1506,7 @@ cases:
       - "california_schools"
   - id: bird_0045
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1595,7 +1595,7 @@ cases:
       - "california_schools"
   - id: bird_0055
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1730,7 +1730,7 @@ cases:
       - "california_schools"
   - id: bird_0060
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1821,7 +1821,7 @@ cases:
       - "california_schools"
   - id: bird_0061
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -1933,7 +1933,7 @@ cases:
       - "california_schools"
   - id: bird_0062
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2037,7 +2037,7 @@ cases:
       - "california_schools"
   - id: bird_0066
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2140,7 +2140,7 @@ cases:
       - "california_schools"
   - id: bird_0069
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2237,7 +2237,7 @@ cases:
       - "california_schools"
   - id: bird_0077
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2321,7 +2321,7 @@ cases:
       - "california_schools"
   - id: bird_0078
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2412,7 +2412,7 @@ cases:
       - "california_schools"
   - id: bird_0079
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2508,7 +2508,7 @@ cases:
       - "california_schools"
   - id: bird_0083
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2531,7 +2531,7 @@ cases:
       - "california_schools"
   - id: bird_0087
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: california_schools
     difficulty: complex
     dialect: sqlite
@@ -2553,7 +2553,7 @@ cases:
       - "california_schools"
   - id: bird_0092
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -2566,7 +2566,7 @@ cases:
               d.A3 AS region,
               d.A11 AS avg_salary,
               COUNT(DISTINCT c.client_id) AS female_clients,
-              AVG(CAST(strftime('%Y', 'now') - strftime('%Y', c.birth_date) AS INTEGER)) AS avg_age,
+              AVG(CAST(strftime('%Y', '2026-10-01') - strftime('%Y', c.birth_date) AS INTEGER)) AS avg_age,
               RANK() OVER (PARTITION BY d.A3 ORDER BY d.A11 DESC) AS salary_rank_in_region
           FROM 
               district d
@@ -2649,7 +2649,7 @@ cases:
       - "financial"
   - id: bird_0094
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -2684,7 +2684,7 @@ cases:
       - "financial"
   - id: bird_0096
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -2715,8 +2715,8 @@ cases:
               c.gender,
               c.birth_date,
               CASE
-                  WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) < 30 THEN 'Young'
-                  WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged'
+                  WHEN strftime('%Y', '2026-10-01') - strftime('%Y', c.birth_date) - (strftime('%m-%d', '2026-10-01') < strftime('%m-%d', c.birth_date)) < 30 THEN 'Young'
+                  WHEN strftime('%Y', '2026-10-01') - strftime('%Y', c.birth_date) - (strftime('%m-%d', '2026-10-01') < strftime('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged'
                   ELSE 'Senior'
               END AS age_group,
               d.A2 AS district_name,
@@ -2797,7 +2797,7 @@ cases:
       - "financial"
   - id: bird_0097
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -2909,7 +2909,7 @@ cases:
       - "financial"
   - id: bird_0100
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -2937,7 +2937,7 @@ cases:
               a.account_id,
               a.date AS account_open_date,
               STRFTIME('%Y', a.date) AS account_open_year,
-              CAST(STRFTIME('%Y', 'now') AS INTEGER) - CAST(fc.birth_year AS INTEGER) AS client_age_now,
+              CAST(strftime('%Y', '2026-10-01') AS INTEGER) - CAST(fc.birth_year AS INTEGER) AS client_age_now,
               CAST(STRFTIME('%Y', a.date) AS INTEGER) - CAST(fc.birth_year AS INTEGER) AS client_age_at_opening
           FROM 
               female_clients_from_sokolov fc
@@ -3005,7 +3005,7 @@ cases:
       - "financial"
   - id: bird_0103
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3104,7 +3104,7 @@ cases:
       - "financial"
   - id: bird_0104
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3206,7 +3206,7 @@ cases:
       - "financial"
   - id: bird_0105
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3310,7 +3310,7 @@ cases:
       - "financial"
   - id: bird_0106
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3336,8 +3336,8 @@ cases:
               T1.type as card_type,
               T5.gender,
               T5.birth_date,
-              (strftime('%Y', 'now') - strftime('%Y', T5.birth_date)) - 
-                  (strftime('%m-%d', 'now') < strftime('%m-%d', T5.birth_date)) as client_age
+              (strftime('%Y', '2026-10-01') - strftime('%Y', T5.birth_date)) - 
+                  (strftime('%m-%d', '2026-10-01') < strftime('%m-%d', T5.birth_date)) as client_age
           FROM card AS T1
           JOIN disp AS T2 ON T1.disp_id = T2.disp_id
           JOIN account AS T3 ON T2.account_id = T3.account_id
@@ -3424,7 +3424,7 @@ cases:
       - "financial"
   - id: bird_0111
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3539,7 +3539,7 @@ cases:
       - "financial"
   - id: bird_0112
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3641,7 +3641,7 @@ cases:
       - "financial"
   - id: bird_0113
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3752,7 +3752,7 @@ cases:
       - "financial"
   - id: bird_0115
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3816,7 +3816,7 @@ cases:
       - "financial"
   - id: bird_0116
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3839,7 +3839,7 @@ cases:
       - "financial"
   - id: bird_0117
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -3928,7 +3928,7 @@ cases:
       - "financial"
   - id: bird_0118
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -4023,7 +4023,7 @@ cases:
       - "financial"
   - id: bird_0119
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -4140,7 +4140,7 @@ cases:
       - "financial"
   - id: bird_0121
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -4190,8 +4190,8 @@ cases:
           d.A2 AS district_name,
           d.A3 AS region,
           c.gender,
-          strftime('%Y', 'now') - strftime('%Y', c.birth_date) - 
-              (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) AS client_age,
+          strftime('%Y', '2026-10-01') - strftime('%Y', c.birth_date) - 
+              (strftime('%m-%d', '2026-10-01') < strftime('%m-%d', c.birth_date)) AS client_age,
           COALESCE(ts.transaction_count, 0) AS transaction_count,
           COALESCE(ts.total_income, 0) AS total_income,
           COALESCE(ts.total_expense, 0) AS total_expense,
@@ -4247,7 +4247,7 @@ cases:
       - "financial"
   - id: bird_0122
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -4344,7 +4344,7 @@ cases:
       - "financial"
   - id: bird_0123
     source: bird
-    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9
+    source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
     database_id: financial
     difficulty: complex
     dialect: sqlite
@@ -4364,7 +4364,7 @@ cases:
           SELECT 
               c.client_id,
               c.gender,
-              CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER) AS age,
+              CAST(strftime('%Y', '2026-10-01') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER) AS age,
               d.account_id,
               d.type AS disposition_type
           FROM client c

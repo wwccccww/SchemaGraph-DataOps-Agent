@@ -14,6 +14,8 @@
 
 `dev_20251106.json` 保留原始 `question_id`、`db_id`、`question`、`evidence` 和 `SQL`。用例只取 `db_id`、问题和 Gold SQL。`evidence` 不是 `BenchmarkCase` 字段，也不能进入问数 Prompt。
 
+冻结用例会把 Gold SQL 里的 SQLite `strftime(..., 'now')` / `date('now')` 替换成锚点日 `2026-10-01`，来源版本后缀 `+anchor20261001`。问句文本仍与公开集一致。
+
 ## 数据库
 
 - 文件：`minidev_0703.zip`
@@ -35,5 +37,7 @@
 ```bash
 uv run python -m app.evaluation.external_data fetch-bird-questions --dest benchmarks/bird_complex/dev_20251106.json
 uv run python -m app.evaluation.external_data fetch-bird-databases --dest /tmp/minidev_0703.zip
-uv run python -m app.evaluation.external_data select-bird --database-root /path/to/dev_databases
+unzip -q /tmp/minidev_0703.zip -d /tmp/bird_dev
+uv run python -m app.evaluation.external_data verify-bird --database-root /tmp/bird_dev/minidev/MINIDEV/dev_databases
+uv run python -m app.evaluation.external_data select-bird --database-root /tmp/bird_dev/minidev/MINIDEV/dev_databases
 ```

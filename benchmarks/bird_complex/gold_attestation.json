@@ -1,8 +1,8 @@
 {
   "benchmark_source": "bird",
-  "benchmark_version": "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9",
-  "database_snapshot": null,
-  "status": "fingerprint_verified",
+  "benchmark_version": "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001",
+  "database_snapshot": "33662a882049ca523f49db9fba8d44554109dea09f55d5a0869f32a0d0fcc280",
+  "status": "gold_matched",
   "cases": {
     "bird_0000": {
       "gold_sql_digest": "sha256:08e828ea45b4de9158fc05c153243604d2566458aa58c9f3a39a26d17f0ca710",
@@ -20,9 +20,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:d5a2e5ce633795a00c4d3aded120c57a7adef6b69cd188d5b8766a8b4cd2a687",
+      "status": "gold_matched"
     },
     "bird_0002": {
       "gold_sql_digest": "sha256:c2badce252c1bc40d871515559991bb0db7eb468e998a7e5caef912f8c6f475c",
@@ -44,9 +44,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 5,
+      "result_digest": "sha256:0bd93cec35b73904b1f9645f8cee9df93a40ac349c07605db61e5f519afbc614",
+      "status": "gold_matched"
     },
     "bird_0003": {
       "gold_sql_digest": "sha256:5b494e73d1d60a92936904197a21b0e46ae0d6d60045eefc9db68ebf5bbcbf95",
@@ -68,9 +68,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:8eff14d84876edb69a51ccf0c7d11db4b09135d4930c5f86cdca22d43635aa84",
+      "status": "gold_matched"
     },
     "bird_0005": {
       "gold_sql_digest": "sha256:448d79eb8d7b6b678bb1374629dee7c9b648b4083f381d337c484ea0b952e3bc",
@@ -91,9 +91,9 @@
       ],
       "order_sensitive": true,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 4,
+      "result_digest": "sha256:64464087a4cc4bba21685c350ce7af40afdf04c76fc4998ee4a7a97fc1809d5f",
+      "status": "gold_matched"
     },
     "bird_0006": {
       "gold_sql_digest": "sha256:f0b639edf44dfd1a7e06530f671f67fc13154fe497f7d931174a32d27499a575",
@@ -116,9 +116,9 @@
       ],
       "order_sensitive": true,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 3,
+      "result_digest": "sha256:7e4469d2ef686b3e5c76c6786e3196af679204f7fbab6dd8bddc4a4a071da991",
+      "status": "gold_matched"
     },
     "bird_0008": {
       "gold_sql_digest": "sha256:b454f65c30b4ffdff34f50091bdb743f384d7743a235b9ef9a3297549e5a4bc2",
@@ -142,9 +142,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 10,
+      "result_digest": "sha256:8fe5ad60b1a1e702efcfc67b363daf17c80f271f10bf6934c9f95a29b34d67a3",
+      "status": "gold_matched"
     },
     "bird_0010": {
       "gold_sql_digest": "sha256:66b354ffec97d1152cab4e0b1deced514e0d647144583e1998154f2074071fc0",
@@ -167,9 +167,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:42880063aedd135c48997ec5b430a5cf48fad26c90cc559a78319072f1f273f4",
+      "status": "gold_matched"
     },
     "bird_0011": {
       "gold_sql_digest": "sha256:e741a28537041f5b73c0e639394e717dedfeff15c9a553ea4812be829b3f14ad",
@@ -189,9 +189,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 5015,
+      "result_digest": "sha256:b72ae97faccecaaf156531b31c27861428f57510c8823b0fa6f231f84bd74684",
+      "status": "gold_matched"
     },
     "bird_0012": {
       "gold_sql_digest": "sha256:7fdf963cacc60c8f5b75c148f3f8f4a03a4c45d59441dd2ecdca4cd8acd89608",
@@ -208,9 +208,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:e6ca52709fbcdc05e82010d1b79b3501c750c974e79896283797f490811c140f",
+      "status": "gold_matched"
     },
     "bird_0013": {
       "gold_sql_digest": "sha256:2e712a833192e6157a6e83e647496646d60b49131cb5da84510d1a2d4b9d9c8d",
@@ -227,12 +227,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 3,
+      "result_digest": "sha256:a2562284832d8561c49283f81d145707054eef98e2f50eac35ae4084cef9dd0d",
+      "status": "gold_matched"
     },
     "bird_0018": {
-      "gold_sql_digest": "sha256:20d3820cea5b46872a6ecabcefe378eef6fe254e195122fc5fbcfdf532db8ea2",
+      "gold_sql_digest": "sha256:7e63cdcd28c1115541a4441cb19b7e7cec294248a25ee35801aa32dd75b56c2f",
       "expected_columns": [
         "TotalSchools",
         "County Name",
@@ -246,10 +246,10 @@
         "SchoolsWith100To250Testers"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 1,
+      "result_digest": "sha256:3e5999dee3ae5e3b8529c90473156a3aad97dd196493e7539959bad994bc50d9",
+      "status": "gold_matched"
     },
     "bird_0019": {
       "gold_sql_digest": "sha256:94283b4b9230c65b17a92c6be3644cacae9b108284555315853596e9a50c8ac0",
@@ -269,9 +269,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:e1521c259d7a102caf776f7995e76a985d6a07b433fd0266e60ed58c614cc2f3",
+      "status": "gold_matched"
     },
     "bird_0020": {
       "gold_sql_digest": "sha256:3e083b1d680d37ad4042ae6a5a55a0baa70876024fcb8ada4ce2c12475e0508b",
@@ -289,9 +289,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:3a043b965bcfa5b03791bdde9bde17c70629ed5e90bce3f3be777a63159124e2",
+      "status": "gold_matched"
     },
     "bird_0021": {
       "gold_sql_digest": "sha256:bc0f523b79dfb701e67d5c848cbc9b4c3ff2ece89c2efc0552ae4c63653b8950",
@@ -309,9 +309,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:ae662e7e19f58bb942833d755cef4649116331bb88753f6477c55faa599c867c",
+      "status": "gold_matched"
     },
     "bird_0028": {
       "gold_sql_digest": "sha256:d7224ebb5a5fa9e293278a9c01c2170c4963879c1c6090d12ba63b11036e3811",
@@ -321,9 +321,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 57,
+      "result_digest": "sha256:8f7f272f0d49b3d810da35e481910d793592af6dc061506798157ba997825c06",
+      "status": "gold_matched"
     },
     "bird_0031": {
       "gold_sql_digest": "sha256:0a308d9e41d2ab23a8bfaf9bb928a2bdf3b9b39c43985ad388dc8de376651b20",
@@ -347,9 +347,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 2,
+      "result_digest": "sha256:75abdfa02ad9220083509195cb53aee79a9e1847b8e1241dc5ad3d606935faf2",
+      "status": "gold_matched"
     },
     "bird_0032": {
       "gold_sql_digest": "sha256:7884b49f174c3953909b4b1ef248b1ce1606981affacb513e377b6863f167aea",
@@ -373,9 +373,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 5,
+      "result_digest": "sha256:5d30c2d66baa9e978442f2ace5d8b08c694be8377a89c6cb00a08edf93f6fd9f",
+      "status": "gold_matched"
     },
     "bird_0036": {
       "gold_sql_digest": "sha256:cc5f8c8cb17503a25db7f640bb1ca69824e5cd6f798d96bcdf1923690e6df3ad",
@@ -389,9 +389,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:f2f564c02918aadc586b36263cd997cb34c207dfb477b7f245804291aacb51f9",
+      "status": "gold_matched"
     },
     "bird_0045": {
       "gold_sql_digest": "sha256:3565940bd8cbb56d054ef4e7bd299bd6d5781ebc6be65282d10e033320d63b37",
@@ -413,9 +413,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:06c9774d528c6caa849812a70a3b670cd838714e394ab1c4aff3e1aa3628c89a",
+      "status": "gold_matched"
     },
     "bird_0055": {
       "gold_sql_digest": "sha256:2e91ada429df189ee65a2d0f23d74f789da8b24e8f3c49d12484bbea42053a5b",
@@ -425,9 +425,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 6,
+      "result_digest": "sha256:55f7516037195c9c107f74eb05b2fc2bb124d4e1f56879664650e9ed0c41e7b4",
+      "status": "gold_matched"
     },
     "bird_0060": {
       "gold_sql_digest": "sha256:c81076169c95e527b782d158cefbacbee43f0f7ec3c19e1f61685ec32c7c3266",
@@ -450,9 +450,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 2,
+      "result_digest": "sha256:20f97bc1092785d1f6e5e74cb8b425dd8f2a036d4db7bcb0a9f312f83890de7d",
+      "status": "gold_matched"
     },
     "bird_0061": {
       "gold_sql_digest": "sha256:028daf5ccf443ba20bf042890cdf7333a11f23417623950c5311c0fd06bbe837",
@@ -477,9 +477,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 3,
+      "result_digest": "sha256:ec05bed2ecb555f6f2bafc98ddc1caa2ccc355f08eb5f025dbd94f0c58fec3db",
+      "status": "gold_matched"
     },
     "bird_0062": {
       "gold_sql_digest": "sha256:7270e87050e901a4586f4a20b059762519ab01807670f7db5c3308ba8c210177",
@@ -501,9 +501,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:3fb6b44c1c23af014c5976dde455cac7ce4b8b351402c69abf285e73a027a951",
+      "status": "gold_matched"
     },
     "bird_0066": {
       "gold_sql_digest": "sha256:186f69985523213cb9713a41b844c98718b3571c03c30082c8eccb8bdd296cb6",
@@ -528,9 +528,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 7,
+      "result_digest": "sha256:21b91919f4962fc0011905cd4e9fdca7596c6c66ed16b951bb7cb06a33a79892",
+      "status": "gold_matched"
     },
     "bird_0069": {
       "gold_sql_digest": "sha256:1aa95c0bb70da8c035f87abc715f14c25f99016fac01752698343228d3edba74",
@@ -550,9 +550,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 3,
+      "result_digest": "sha256:db9c9329595e617f4df483e3682f158cf5c6c0f6be3cfa6fde21c6fef11691e2",
+      "status": "gold_matched"
     },
     "bird_0077": {
       "gold_sql_digest": "sha256:68b5a125cceaeab226a2cc11547a8d796527baba70867c2f8d08fdc144b1e024",
@@ -573,9 +573,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 2,
+      "result_digest": "sha256:f05667edb9fc2e53ffd499d125fc3d1ec85067ee7474b2f53f0dbd17a3cdb194",
+      "status": "gold_matched"
     },
     "bird_0078": {
       "gold_sql_digest": "sha256:bdc00364a59fb48f5a499af87fe25a791e9164025380551a25fa9d6880d1edb5",
@@ -595,9 +595,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:04a221f897ccf1e0b0188305b44e4ba2c937687c2ff3f556d349a0d70e1450ff",
+      "status": "gold_matched"
     },
     "bird_0079": {
       "gold_sql_digest": "sha256:5030791c86b8aee93168a4ad4ab53f373bf3015f842bec4b2bec401f25f4e9a8",
@@ -615,9 +615,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:a47af3aedbe819d3ff9876a2edf93523e669495027695011d555e2f27c4fc9a9",
+      "status": "gold_matched"
     },
     "bird_0083": {
       "gold_sql_digest": "sha256:f9f32b3b7bfd17c73d10c19a8511449d00997217337d491c279dd121c94fe726",
@@ -627,9 +627,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:275157d3b63b5864c99e40ed4d6203883b47af7267f2913b1d5a912a217d0d05",
+      "status": "gold_matched"
     },
     "bird_0087": {
       "gold_sql_digest": "sha256:d89aa8074b842db42bc513fdb7c933bd970b962e022b5fed66132910b6d0c226",
@@ -639,12 +639,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:01e39a9bdc766c9e3e54804f1415dc42f4bd28be608e1dccade6491e18887097",
+      "status": "gold_matched"
     },
     "bird_0092": {
-      "gold_sql_digest": "sha256:dab78a8b501f7e0006a67edf1658bf3003fb39eac732c44c58b813e909aa146e",
+      "gold_sql_digest": "sha256:d40d05432d7b4b555254810f4c769c68557fcb007f053c6aaca1fc457802c7fa",
       "expected_columns": [
         "district_count",
         "total_female_clients",
@@ -659,10 +659,10 @@
         "regions_represented"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 1,
+      "result_digest": "sha256:374d90bb5f10a0db9e3377c2070712d528f30b70f91f18d1fe34ad7a4e48d6e7",
+      "status": "gold_matched"
     },
     "bird_0094": {
       "gold_sql_digest": "sha256:142e219b62b6f31703da49a88090fedd85675863c52a4b88037ede88863ac528",
@@ -672,12 +672,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:cac8275e20a86a1a1a97145bee3a10e047294aa96b7ce522bf7236068c923cee",
+      "status": "gold_matched"
     },
     "bird_0096": {
-      "gold_sql_digest": "sha256:63988c7f3d836f51318acab733902e3292e49f8384ef5895e8fe5ec48993d120",
+      "gold_sql_digest": "sha256:623a2e6e688dd9ffc6ac39002ce6742879e9b723188e8571c3372efbf4c72fe2",
       "expected_columns": [
         "total_weekly_owners",
         "gender",
@@ -692,10 +692,10 @@
         "percent_with_loans"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 30,
+      "result_digest": "sha256:9ed92c586dd265c71d9c1a3a228ed5acf27a4d895608b804cb84e26fe201bec0",
+      "status": "gold_matched"
     },
     "bird_0097": {
       "gold_sql_digest": "sha256:0c102e31f92237c472d09e9c6dee017ef544b359607d7471474dfc5d4c4ba44f",
@@ -721,12 +721,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 14,
+      "result_digest": "sha256:7fc04577030ae5ac9421e15fd08510ef57dee25ab4c786287f45701fa5d0891a",
+      "status": "gold_matched"
     },
     "bird_0100": {
-      "gold_sql_digest": "sha256:75e0ee728fb1eb434230fc6049e386e9c757f292b26a19ff2b97e7b37e1be911",
+      "gold_sql_digest": "sha256:779d62ff81f11a7d38f02fd7b9f3fa4b429e339b64b4938d05790351a2db00b4",
       "expected_columns": [
         "total_female_clients",
         "avg_age_at_account_opening",
@@ -737,10 +737,10 @@
         "latest_account_year"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 1,
+      "result_digest": "sha256:b4499810874cf244878d057c11667fe47f4bdd17787b8d1da1d40ad48d7372bb",
+      "status": "gold_matched"
     },
     "bird_0103": {
       "gold_sql_digest": "sha256:bd73e755e48ba53363fa18670efb733366956536eac4180fc298c73c368b3f2c",
@@ -762,9 +762,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:1ba9d77449e20e7c83335ad1d7243de1549ff2ad63a61363f3648640680af904",
+      "status": "gold_matched"
     },
     "bird_0104": {
       "gold_sql_digest": "sha256:60bb89e4f5bd6c1750325b5228e4239445fddb120fb54ef75259f910dbeb7c76",
@@ -786,9 +786,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:5f732db35b0acbba3cbcc7a2025fcb56467e6041cfecb24668de5b08e749ae49",
+      "status": "gold_matched"
     },
     "bird_0105": {
       "gold_sql_digest": "sha256:5f89c5cd0cf20219f5c1b5bf8eb29985898157c6b54a4421d33e2869108e5503",
@@ -811,12 +811,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:acd88f4adb15e5266cc7ed9f70ec263bbda949d3fdb071e744b875da9957224c",
+      "status": "gold_matched"
     },
     "bird_0106": {
-      "gold_sql_digest": "sha256:d8c1994ec31350a874cdadd4f4335ac6c13574fe0dadd7989c3c9d84ae77cc1a",
+      "gold_sql_digest": "sha256:e3e435f1bfc31c97fe7ec3fa8c5de931ed1a58b244c83666b1f62e5fdb41ecf5",
       "expected_columns": [
         "client_id",
         "card_id",
@@ -837,10 +837,10 @@
         "bank_to"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 1,
+      "result_digest": "sha256:270f580b8cf493415184e7b533caa01701f9a013ee260fb09daeaa417660f7b7",
+      "status": "gold_matched"
     },
     "bird_0111": {
       "gold_sql_digest": "sha256:29638b8126a3cbee41d9d9e2c3ea1b0b12fdd77b32f56d03744127be7279cb99",
@@ -862,9 +862,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:03543c0dbdd7dcb4e65c636f092b82bae85735624329741cbf9de84b6fb59229",
+      "status": "gold_matched"
     },
     "bird_0112": {
       "gold_sql_digest": "sha256:e07b75128e4cdf7eee712e0a3c44b45ccf99a11e9219016db94600fd82e42f7b",
@@ -886,9 +886,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:4d98de04d1423169c6a21a9dc28051013a6ce64f7d308e263ec210fdccb4f815",
+      "status": "gold_matched"
     },
     "bird_0113": {
       "gold_sql_digest": "sha256:5b82d342f27b47e2ce167c429113bdb46376ae1ec9a619758a9f62cf54c45fb9",
@@ -909,9 +909,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:e2f92f2f1d28a7723bbda37e22dfc7db4c3df5e9d7452c5a9c1fb765d5e20291",
+      "status": "gold_matched"
     },
     "bird_0115": {
       "gold_sql_digest": "sha256:c2c040f77b22c2e1782d7149a12807c61c85af033083c32853ebd02810609be9",
@@ -926,9 +926,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:7d63a342c2633b5ab4be1784dd978326914bb91d949423df8f3dc918c5a41eda",
+      "status": "gold_matched"
     },
     "bird_0116": {
       "gold_sql_digest": "sha256:783b0fb740f6c17e6750364051725e7b9f646c759130d4c827c7a4d87fc3a34e",
@@ -937,9 +937,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:2c3dc7908408f03bfead4e3763f15b615ed0cb16343536191fcc1097f2c2c560",
+      "status": "gold_matched"
     },
     "bird_0117": {
       "gold_sql_digest": "sha256:9b02bdf0b2ba7aa3d9ce0e8038cdd4998fc5a1a772a28be20af6d457c04d90f8",
@@ -957,9 +957,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 8,
+      "result_digest": "sha256:f7607dcd5f37e1b5d728a684e55942d92f5ddf07adec263c2003f89b844d146f",
+      "status": "gold_matched"
     },
     "bird_0118": {
       "gold_sql_digest": "sha256:37745e697140ce466c803e7d9c67d8a97d29f8c8d1d539421ba5169c3310ad9c",
@@ -976,9 +976,9 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 16,
+      "result_digest": "sha256:a6e8e888ea879007917d5a64ff3674b459646cbadf1c74ee312570a302babad5",
+      "status": "gold_matched"
     },
     "bird_0119": {
       "gold_sql_digest": "sha256:58972d04ee7c003676db5d136e36bf39e3b202c25ab7f2f01b31e0e6c018515c",
@@ -1003,12 +1003,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 21,
+      "result_digest": "sha256:bd5f4af83c302a5977074ea8f08a0d92c8078d3c84f57310185580985a2f60fc",
+      "status": "gold_matched"
     },
     "bird_0121": {
-      "gold_sql_digest": "sha256:e0f39aaa572b68b719d1a7b3f938b6575173a91af4b9ac03166ca3705e5afbe7",
+      "gold_sql_digest": "sha256:bee1ea2841e03721221f37c29cdcb26d267353471aab91cc88fbc27c2ed361f8",
       "expected_columns": [
         "account_id",
         "opening_date",
@@ -1028,10 +1028,10 @@
         "balance_rank"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 55,
+      "result_digest": "sha256:0d93dfa3bde3815f4ff1cc3649b1a99fa3c60f1ebb19abf094b4f74f123f1b80",
+      "status": "gold_matched"
     },
     "bird_0122": {
       "gold_sql_digest": "sha256:42d7783f4af75e4077c4771b43ffe58934291c3abe93d8be63e344c8960dc27e",
@@ -1054,12 +1054,12 @@
       ],
       "order_sensitive": false,
       "wall_clock_sensitive": false,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "row_count": 1,
+      "result_digest": "sha256:04a8d25545fb8d9cc5c089d5fe163262d4878899488f95801930ee58d24d49cd",
+      "status": "gold_matched"
     },
     "bird_0123": {
-      "gold_sql_digest": "sha256:ea4ad43d7d7d77739eeedf963e35a08041d13ac05d83a702239a872d28e50f4d",
+      "gold_sql_digest": "sha256:18a5d93e2619660194534ed688964b9d0830d5e6552e8230592357928a1306a2",
       "expected_columns": [
         "account_id",
         "district_name",
@@ -1075,10 +1075,10 @@
         "region_loan_rank"
       ],
       "order_sensitive": false,
-      "wall_clock_sensitive": true,
-      "row_count": null,
-      "result_digest": null,
-      "status": "fingerprint_verified"
+      "wall_clock_sensitive": false,
+      "row_count": 31,
+      "result_digest": "sha256:328743af8b031f690231ec6ee33ce43d2a68db86c40ed7c9994b3a94e8498718",
+      "status": "gold_matched"
     }
   }
 }

@@ -30,6 +30,7 @@ from app.evaluation.bird import (
     DATASET_COMMIT,
     EXCLUSIONS_PATH,
     QUESTIONS_SHA256,
+    adapt_bird_wall_clock,
     build_bird_cases,
     dump_bird_cases,
     load_bird_questions,
@@ -229,14 +230,20 @@ async def execute_tpcds_gold(
         database=database,
     )
     traces: list[GoldTrace] = []
+    transaction = connection.transaction(readonly=True)
+    await transaction.start()
     try:
-        await connection.execute(f"SET statement_timeout = {int(timeout_seconds * 1000)}")
+        await connection.execute(
+            "SELECT set_config('statement_timeout', $1, true)",
+            str(int(timeout_seconds * 1000)),
+        )
         for case in cases:
             if case.source != "tpcds-derived":
                 raise ValueError("tpcds gold execution only accepts tpcds-derived cases")
             LOGGER.info("executing %s", case.id)
             traces.append(await _one_tpcds(connection, case))
     finally:
+        await transaction.rollback()
         await connection.close()
     return traces
 
@@ -258,7 +265,7 @@ def select_bird_cases_with_adapter(
     )
     for row in ordered:
         question_id = int(str(row["question_id"]))
-        gold_sql = str(row["SQL"])
+        gold_sql = adapt_bird_wall_clock(str(row["SQL"]))
         if check_sqlite_read_only(gold_sql) is None:
             exclusions.append(question_id)
             continue

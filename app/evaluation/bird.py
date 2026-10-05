@@ -30,13 +30,19 @@ EXCLUSIONS_PATH = (
 CHECKSUMS_PATH = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "bird_complex" / "database_checksums.json"
 )
-BIRD_SOURCE_VERSION = "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9"
+BIRD_SOURCE_VERSION = (
+    "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001"
+)
 QUESTIONS_SHA256 = "ffd8018378ddb1a8794753e0a31cfc81862ff7318a5184c22f3dc4ce03a03feb"
 DATASET_COMMIT = "3c11fb193e5439b338e23677fa0aae11e8b85db9"
 DATABASE_ZIP_SHA256 = "aeb211c0e39010bbdae3838bb5e8bd27dc446ed77495b1709f85ccc9bf67f2be"
 DATABASE_DRIVE_ID = "13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG"
 BIRD_CASE_COUNT = 50
 ANCHOR = date(2026, 10, 1)
+_STRFTIME_NOW = re.compile(
+    r"strftime\s*\(\s*['\"](%[^'\"]+)['\"]\s*,\s*['\"]now['\"]\s*\)",
+    re.IGNORECASE,
+)
 _ORDER_REQUEST = re.compile(
     r"\b(?:sorted|sorting|ascending|descending|alphabetical)\b"
     r"|\border(?:ed)?\s+by\b"
@@ -126,12 +132,25 @@ def build_bird_cases(
     return cases
 
 
+def adapt_bird_wall_clock(gold_sql: str, anchor: date | None = None) -> str:
+    """把 SQLite 的 runtime now 换成固定锚点日，便于 Gold 摘要在评测中稳定。"""
+
+    anchor_literal = (anchor or ANCHOR).isoformat()
+
+    def _replace_strftime_now(match: re.Match[str]) -> str:
+        fmt = match.group(1)
+        return f"strftime('{fmt}', '{anchor_literal}')"
+
+    adapted = _STRFTIME_NOW.sub(_replace_strftime_now, gold_sql)
+    return re.sub(r"date\s*\(\s*'now'\s*\)", f"date('{anchor_literal}')", adapted, flags=re.IGNORECASE)
+
+
 def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:
     """把原始问题行变成用例。不复制 evidence。"""
 
     question_id = int(str(row["question_id"]))
     question = str(row["question"]).strip()
-    gold_sql = str(row["SQL"]).strip()
+    gold_sql = adapt_bird_wall_clock(str(row["SQL"]).strip())
     database_id = str(row["db_id"])
     tables = sorted(referenced_tables(gold_sql, dialect="sqlite"))
     return BenchmarkCase(

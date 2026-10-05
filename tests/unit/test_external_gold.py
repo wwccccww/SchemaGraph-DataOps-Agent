@@ -44,7 +44,7 @@ def test_smoke_ids_are_subset_of_frozen_cases() -> None:
     assert set(BIRD_GOLD_SMOKE_IDS) <= bird_ids
 
 
-def test_bird_wall_clock_cases_are_flagged_in_attestation() -> None:
+def test_bird_attestation_wall_clock_flags_match_adapted_gold() -> None:
     cases = load_bird_cases()
     document = load_attestation("bird")
     stored = document["cases"]
@@ -56,12 +56,9 @@ def test_bird_wall_clock_cases_are_flagged_in_attestation() -> None:
     }
     expected = {case.id for case in cases if wall_clock_sensitive(case.gold_sql)}
     assert flagged == expected
-    assert expected, "expected at least one wall-clock BIRD case to document the policy"
+    assert not expected, "adapted BIRD Gold SQL should not depend on runtime now"
 
 
-def test_full_model_eval_requires_gold_matched_attestation() -> None:
+def test_full_model_eval_accepts_gold_matched_attestation() -> None:
     cases = load_tpcds_cases()
-    document = load_attestation("tpcds-derived")
-    if document.get("status") != "gold_matched":
-        with pytest.raises(RuntimeError, match="gold_matched"):
-            ensure_gold_matched(cases, "tpcds-derived")
+    ensure_gold_matched(cases, "tpcds-derived")
