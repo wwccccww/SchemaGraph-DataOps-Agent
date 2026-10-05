@@ -7,7 +7,7 @@ import re
 import pytest
 from app.db.ecommerce_schema import ecommerce_sql
 from app.db.tables import FOREIGN_KEYS, JUNCTION_TABLES, TABLE_SPECS
-from app.graph.expand import expand_schema, render_schema_context
+from app.graph.expand import attach_neighbor_tables, expand_schema, render_schema_context
 from app.schemas.catalog import ColumnDocument, SchemaEdge, TableDocument
 
 
@@ -233,6 +233,29 @@ def test_low_confidence_inferred_edge_is_rejected() -> None:
     assert all(item.constraint_name != edge.constraint_name for item in result.edges)
 
 
+def test_rendered_context_quotes_identifiers_that_need_delimiters() -> None:
+    document = TableDocument(
+        database_id="california_schools",
+        schema_name="main",
+        table_name="frpm",
+        table_comment=None,
+        columns=[
+            ColumnDocument(
+                name="Percent (%) Eligible FRPM (K-12)",
+                data_type="REAL",
+                nullable=True,
+                comment=None,
+            )
+        ],
+        is_junction=False,
+        content_hash="sha256:frpm",
+    )
+
+    context = render_schema_context([document])
+
+    assert 'column "Percent (%) Eligible FRPM (K-12)" REAL' in context
+
+
 def test_rendered_context_includes_only_edges_inside_the_selection() -> None:
     documents = _documents()
     selected = [item for item in documents if item.table_name in {"t_order", "t_user"}]
@@ -329,6 +352,60 @@ def test_question_aware_expansion_covers_custom_entities_and_junctions() -> None
 
     assert entity_recall / 132 == 1.0
     assert junction_hits == junction_total == 81
+
+
+def test_neighbor_attach_prefers_a_dimension_over_another_fact() -> None:
+    class Counter:
+        def count(self, text: str) -> int:
+            return 1
+
+    documents = [
+        _plain("web_sales", "ws_item_sk"),
+        _plain("item", "i_item_sk"),
+        _plain("store_sales", "ss_item_sk"),
+        _plain("customer_address", "ca_address_sk"),
+    ]
+    edges = [
+        _edge("web_sales", "ws_item_sk", "item", "i_item_sk"),
+        _edge("web_sales", "ws_bill_addr_sk", "customer_address", "ca_address_sk"),
+        _edge("store_sales", "ss_item_sk", "item", "i_item_sk"),
+    ]
+
+    chosen = attach_neighbor_tables(
+        documents,
+        edges,
+        ["web_sales"],
+        token_counter=Counter(),
+        question="统计网站销售金额",
+        max_total_tables=2,
+    )
+
+    assert chosen == ["web_sales", "item"]
+
+
+def _plain(name: str, column: str) -> TableDocument:
+    return TableDocument(
+        database_id="tpcds",
+        schema_name="public",
+        table_name=name,
+        table_comment=None,
+        columns=[ColumnDocument(name=column, data_type="integer", nullable=True, comment=None)],
+        is_junction=False,
+        content_hash=f"sha256:{name}",
+    )
+
+
+def _edge(source: str, source_column: str, target: str, target_column: str) -> SchemaEdge:
+    return SchemaEdge(
+        source_table=source,
+        source_columns=[source_column],
+        target_table=target,
+        target_columns=[target_column],
+        constraint_name=f"{source}_{source_column}",
+        weight=1.0,
+        inferred=True,
+        confidence=0.95,
+    )
 
 
 def test_direct_foreign_key_needs_no_expansion() -> None:

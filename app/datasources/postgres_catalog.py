@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from app.datasources.infer import infer_reference_edges
 from app.db.catalog import is_junction_comment, table_content_hash
 from app.schemas.catalog import ColumnDocument, SchemaEdge, TableDocument
 
@@ -208,4 +209,48 @@ async def load_public_catalog(
         ],
         present,
     )
+    edges.extend(
+        infer_reference_edges(
+            documents,
+            single_keys=await _single_keys(conn, schema_name, present),
+            existing=edges,
+        )
+    )
     return documents, edges
+
+
+async def _single_keys(
+    conn: AsyncConnection,
+    schema_name: str,
+    tables: set[str],
+) -> dict[str, set[str]]:
+    rows = (
+        await conn.execute(
+            text(
+                """
+                SELECT
+                    src.relname AS table_name,
+                    (
+                        SELECT array_agg(attr.attname ORDER BY key.ordinality)
+                        FROM unnest(con.conkey) WITH ORDINALITY AS key(attnum, ordinality)
+                        JOIN pg_attribute AS attr
+                          ON attr.attrelid = con.conrelid
+                         AND attr.attnum = key.attnum
+                    ) AS columns
+                FROM pg_constraint AS con
+                JOIN pg_class AS src ON src.oid = con.conrelid
+                JOIN pg_namespace AS namespace ON namespace.oid = src.relnamespace
+                WHERE con.contype IN ('p', 'u')
+                  AND namespace.nspname = :schema_name
+                """
+            ),
+            {"schema_name": schema_name},
+        )
+    ).all()
+    keys: dict[str, set[str]] = {table: set() for table in tables}
+    for row in rows:
+        table_name = str(row.table_name)
+        columns = tuple(str(column) for column in row.columns or ())
+        if table_name in keys and len(columns) == 1:
+            keys[table_name].add(columns[0])
+    return keys

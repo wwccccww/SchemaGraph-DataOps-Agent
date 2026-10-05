@@ -17,6 +17,13 @@ from app.schemas.benchmark import BenchmarkCase
 
 ExternalSource = Literal["tpcds-derived", "bird"]
 _CUSTOM_TARGETS = ("0.83", "0.968", "0.684", "0.742", "0.81", "0.72", "0.86")
+_DIALECT_ERRORS = frozenset({"syntax_error", "disallowed_function"})
+
+
+def _mean(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return sum(values) / len(values)
 
 
 @dataclass(frozen=True)
@@ -167,6 +174,9 @@ class ModelCaseTrace:
     leaked_tables: tuple[str, ...]
     ecommerce_rule_hits: tuple[str, ...]
     prediction: Mapping[str, object]
+    normalized_message: str | None = None
+    context_recall: float | None = None
+    sql_table_recall: float | None = None
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -175,9 +185,12 @@ class ModelCaseTrace:
             "primary_class": self.primary_class,
             "ex": self.ex,
             "error_category": self.error_category,
+            "normalized_message": self.normalized_message,
             "attempts": self.attempts,
             "seed_tables": list(self.seed_tables),
             "expanded_tables": list(self.expanded_tables),
+            "context_recall": self.context_recall,
+            "sql_table_recall": self.sql_table_recall,
             "leaked_tables": list(self.leaked_tables),
             "ecommerce_rule_hits": list(self.ecommerce_rule_hits),
             "prediction": dict(self.prediction),
@@ -202,6 +215,8 @@ def build_external_model_summary(
     if model.strip() == "" or prompt_version.strip() == "":
         raise ValueError("model reports need a model and prompt version")
     matched = sum(1 for trace in traces if trace.primary_class == "matched")
+    sql_errors = sum(1 for trace in traces if trace.primary_class == "sql_error")
+    dialect_errors = sum(1 for trace in traces if trace.error_category in _DIALECT_ERRORS)
     return {
         "git_commit": git_commit,
         "benchmark_source": source,
@@ -220,9 +235,17 @@ def build_external_model_summary(
         "model_execution": {
             "case_count": len(traces),
             "matched": matched,
-            "sql_error": sum(1 for trace in traces if trace.primary_class == "sql_error"),
+            "sql_error": sql_errors,
             "other_result_mismatch": sum(
                 1 for trace in traces if trace.primary_class == "other_result_mismatch"
+            ),
+            "executable_rate": (len(traces) - sql_errors) / len(traces),
+            "dialect_error_rate": dialect_errors / len(traces),
+            "context_recall": _mean(
+                [trace.context_recall for trace in traces if trace.context_recall is not None]
+            ),
+            "sql_table_recall": _mean(
+                [trace.sql_table_recall for trace in traces if trace.sql_table_recall is not None]
             ),
             "ecommerce_rule_cases": sum(1 for trace in traces if trace.ecommerce_rule_hits),
             "cross_database_leaks": sum(1 for trace in traces if trace.leaked_tables),

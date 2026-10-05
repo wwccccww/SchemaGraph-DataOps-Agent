@@ -5,7 +5,13 @@ from __future__ import annotations
 import re
 
 import sqlglot
-from app.agents.text_to_sql.semantic import HUGE_PLAN_ROWS, check_cte_outputs, check_semantics
+from app.agents.text_to_sql.semantic import (
+    HUGE_PLAN_ROWS,
+    check_catalog_sql,
+    check_cte_outputs,
+    check_semantics,
+)
+from app.agents.text_to_sql.shape import check_answer_shape
 from app.db.ecommerce_schema import ecommerce_sql
 from app.db.tables import FOREIGN_KEYS
 from app.evaluation.custom_cases import load_custom_cases
@@ -16,6 +22,93 @@ from sqlglot import exp
 _STRUCTURAL = (exp.And, exp.Or, exp.Not, exp.Exists, exp.Cast, exp.TryCast, exp.Case, exp.If)
 _LEVEL_QUESTION = "按等级编号升序查询全部会员等级的名称和折扣率"
 _LEVEL_SQL = "SELECT level_id, level_name, discount_rate FROM t_user_level ORDER BY level_id"
+
+
+def test_star_cte_does_not_claim_a_missing_output_column() -> None:
+    findings = check_cte_outputs(
+        """
+        WITH top_school AS (
+            SELECT * FROM frpm
+        )
+        SELECT top_school."School Name" FROM top_school
+        """,
+        dialect="sqlite",
+    )
+
+    assert findings == ()
+
+
+def test_catalog_check_names_real_columns_and_the_nearest_table() -> None:
+    documents = [
+        TableDocument(
+            database_id="california_schools",
+            schema_name="main",
+            table_name="satscores",
+            table_comment=None,
+            columns=[ColumnDocument(name="cds", data_type="TEXT", nullable=False)],
+            is_junction=False,
+            content_hash="sha256:satscores",
+        )
+    ]
+
+    missing_column = check_catalog_sql(
+        'SELECT satscores."NumGE1500" FROM satscores',
+        documents,
+        dialect="sqlite",
+    )
+    missing_table = check_catalog_sql(
+        "SELECT cds FROM sat_scores",
+        documents,
+        dialect="sqlite",
+    )
+    missing_join = check_catalog_sql(
+        "SELECT cds FROM satscores JOIN satscores AS other",
+        documents,
+        dialect="sqlite",
+    )
+
+    assert missing_column[0].category == "undefined_column"
+    assert "cds" in missing_column[0].message
+    assert missing_table[0].category == "undefined_table"
+    assert "satscores" in missing_table[0].message
+    assert missing_join[0].category == "cartesian_product"
+
+
+def test_answer_shape_uses_only_the_question() -> None:
+    documents = [
+        TableDocument(
+            database_id="tpcds",
+            schema_name="public",
+            table_name="store",
+            table_comment=None,
+            columns=[ColumnDocument(name="s_state", data_type="text", nullable=True)],
+            is_junction=False,
+            content_hash="sha256:store",
+        )
+    ]
+
+    findings = check_answer_shape(
+        "统计 2001 年各州门店的销售金额，按金额从高到低排序",
+        "SELECT s_store_name FROM store",
+        documents,
+        dialect="postgres",
+    )
+    categories = {item.message for item in findings}
+
+    assert any("2001" in message for message in categories)
+    assert any("聚合" in message for message in categories)
+    assert any("ORDER BY" in message for message in categories)
+    assert any("州" in message for message in categories)
+    assert (
+        check_answer_shape(
+            "统计 2001 年各州门店的销售金额，按金额从高到低排序",
+            "SELECT s_state, SUM(amount) AS sales_amount FROM store WHERE d_year = 2001 "
+            "GROUP BY s_state ORDER BY sales_amount DESC",
+            documents,
+            dialect="postgres",
+        )
+        == ()
+    )
 
 
 def test_projection_entity_join_grain_and_result_checks() -> None:

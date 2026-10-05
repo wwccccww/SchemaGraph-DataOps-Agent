@@ -61,7 +61,7 @@ from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
 from app.llm.gateway import DeepSeekGateway
 from app.llm.tokenizer import DeepSeekTokenCounter
-from app.sandbox.errors import ExecutionError
+from app.sandbox.errors import ExecutionError, normalize_message
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
 from app.schemas.catalog import SchemaEdge, TableDocument
@@ -200,6 +200,7 @@ async def score_prediction(
     error_category = None if response.error is None else response.error.category
     ex = 0
     primary = "sql_error"
+    predicted_outcome: ExecutionSuccess | ExecutionError | None = None
     if leaked:
         error_category = error_category or "cross_database_catalog"
     elif response.status == "succeeded" and predicted:
@@ -223,6 +224,10 @@ async def score_prediction(
             else:
                 primary = "other_result_mismatch"
                 error_category = None
+    shape = describe_sql(predicted, dialect=case.dialect)
+    message = None if response.error is None else response.error.message
+    if isinstance(predicted_outcome, ExecutionError):
+        message = predicted_outcome.normalized_message
     return ModelCaseTrace(
         case_id=case.id,
         database_id=case.database_id,
@@ -234,8 +239,18 @@ async def score_prediction(
         expanded_tables=expanded,
         leaked_tables=leaked,
         ecommerce_rule_hits=hits,
-        prediction=describe_sql(predicted, dialect=case.dialect).as_json(),
+        prediction=shape.as_json(),
+        normalized_message=None if message is None else normalize_message(message),
+        context_recall=_table_recall(case.required_tables, (*seeds, *expanded)),
+        sql_table_recall=_table_recall(case.required_tables, shape.referenced_tables),
     )
+
+
+def _table_recall(required: Sequence[str], found: Sequence[str]) -> float | None:
+    if not required:
+        return None
+    seen = {name.lower() for name in found}
+    return sum(1 for name in required if name.lower() in seen) / len(required)
 
 
 def render_model_diagnosis(
@@ -259,6 +274,10 @@ def render_model_diagnosis(
         f"- 执行准确率：{accuracy}",
         f"- 匹配：{counts.get('matched')}",
         f"- SQL 错误：{counts.get('sql_error')}",
+        f"- 可执行率：{counts.get('executable_rate')}",
+        f"- 方言错误率：{counts.get('dialect_error_rate')}",
+        f"- 上下文召回：{counts.get('context_recall')}",
+        f"- 引用表召回：{counts.get('sql_table_recall')}",
         f"- 结果不一致：{counts.get('other_result_mismatch')}",
         f"- 电商规则命中用例：{counts.get('ecommerce_rule_cases')}",
         f"- 串库用例：{counts.get('cross_database_leaks')}",
@@ -282,6 +301,9 @@ def render_model_diagnosis(
                 f"- 数据库：{case.get('database_id')}",
                 f"- 分类：{case.get('primary_class')}",
                 f"- 错误类别：{case.get('error_category')}",
+                f"- 脱敏错误：{case.get('normalized_message')}",
+                f"- 上下文召回：{case.get('context_recall')}",
+                f"- 引用表召回：{case.get('sql_table_recall')}",
                 f"- 种子表：{case.get('seed_tables')}",
                 f"- 引用表：{shape.get('referenced_tables')}",
                 f"- 投影：{shape.get('projections')}",

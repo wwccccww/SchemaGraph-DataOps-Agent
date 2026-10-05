@@ -7,6 +7,7 @@ import sqlite3
 from pathlib import Path
 from urllib.parse import quote
 
+from app.datasources.infer import infer_reference_edges
 from app.db.catalog import is_junction_comment, table_content_hash
 from app.schemas.catalog import ColumnDocument, SchemaEdge, TableDocument
 
@@ -41,6 +42,8 @@ def load_sqlite_catalog(
         edges: list[SchemaEdge] = []
         for name in names:
             edges.extend(_foreign_keys(connection, name, present))
+        keys = {name: _single_keys(connection, name) for name in names}
+        edges.extend(infer_reference_edges(documents, single_keys=keys, existing=edges))
         return documents, edges
     finally:
         connection.close()
@@ -101,6 +104,26 @@ def _foreign_keys(
             )
         )
     return edges
+
+
+def _single_keys(connection: sqlite3.Connection, table_name: str) -> set[str]:
+    keys = {
+        str(info["name"])
+        for info in connection.execute(f"PRAGMA table_info({_quote(table_name)})")
+        if int(info["pk"]) > 0
+    }
+    if len(keys) != 1:
+        keys = set()
+    for index in connection.execute(f"PRAGMA index_list({_quote(table_name)})"):
+        if not int(index["unique"]):
+            continue
+        columns = [
+            str(item["name"])
+            for item in connection.execute(f"PRAGMA index_info({_quote(str(index['name']))})")
+        ]
+        if len(columns) == 1:
+            keys.add(columns[0])
+    return keys
 
 
 def _quote(identifier: str) -> str:

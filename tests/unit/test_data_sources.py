@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from app.datasources.infer import infer_reference_edges
 from app.datasources.postgres_catalog import (
     ColumnCatalogRow,
     ForeignKeyCatalogRow,
@@ -74,7 +75,9 @@ def test_lexical_seed_names_the_table_and_skips_junctions() -> None:
 
     seeds = lexical_schema_seeds("count the schools", documents)
 
-    assert [seed.table_name for seed in seeds] == ["schools"]
+    assert next(seed.table_name for seed in seeds) == "schools"
+    assert "bridge" not in {seed.table_name for seed in seeds}
+    assert "students" in {seed.table_name for seed in seeds}
     assert {seed.database_id for seed in seeds} == {"california_schools"}
     assert {seed.embedding_model for seed in seeds} == {"lexical"}
 
@@ -154,6 +157,71 @@ def test_chinese_fallback_prefers_retail_table_names() -> None:
     ]
 
 
+def test_channel_concept_keeps_only_the_named_sales_fact() -> None:
+    names = [f"filler_{index:02d}" for index in range(12)]
+    names.extend(["store_sales", "catalog_sales", "web_sales", "web_page"])
+    documents = [_table(name, database_id="tpcds") for name in names]
+
+    seeds = {seed.table_name for seed in lexical_schema_seeds("统计网站销售金额", documents)}
+
+    assert {"web_sales", "web_page"} <= seeds
+    assert "store_sales" not in seeds
+    assert "catalog_sales" not in seeds
+
+
+def test_sat_concept_keeps_the_score_table_with_schools() -> None:
+    documents = [
+        _table("schools", database_id="california_schools"),
+        _table("satscores", database_id="california_schools"),
+        _table("frpm", database_id="california_schools"),
+    ]
+
+    seeds = lexical_schema_seeds("For charter schools, show the SAT average", documents)
+
+    assert [seed.table_name for seed in seeds][:2] == ["schools", "satscores"]
+
+
+def test_inferred_surrogate_and_alias_keys_are_high_confidence() -> None:
+    sales = _table("store_sales", database_id="tpcds", column="ss_item_sk")
+    item = _table("item", database_id="tpcds", column="i_item_sk")
+    schools = _table("schools", database_id="california_schools", column="CDSCode")
+    scores = _table("satscores", database_id="california_schools", column="cds")
+
+    tpcds_edges = infer_reference_edges([sales, item], single_keys={}, existing=())
+    school_edges = infer_reference_edges(
+        [schools, scores],
+        single_keys={"schools": {"CDSCode"}, "satscores": set()},
+        existing=(),
+    )
+
+    assert tpcds_edges[0].source_table == "store_sales"
+    assert tpcds_edges[0].target_columns == ["i_item_sk"]
+    assert tpcds_edges[0].inferred is True
+    assert tpcds_edges[0].confidence >= 0.8
+    assert school_edges[0].source_table == "satscores"
+    assert school_edges[0].target_table == "schools"
+    assert school_edges[0].target_columns == ["CDSCode"]
+
+
+def test_sqlite_catalog_infers_a_key_alias_without_a_declared_foreign_key(tmp_path: Path) -> None:
+    database = tmp_path / "demo.sqlite"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE schools (CDSCode TEXT PRIMARY KEY, School TEXT)")
+    connection.execute("CREATE TABLE satscores (cds TEXT PRIMARY KEY, AvgScrMath INTEGER)")
+    connection.commit()
+    connection.close()
+
+    _documents, edges = load_sqlite_catalog(database, "california_schools")
+
+    assert any(
+        edge.inferred
+        and edge.source_table == "satscores"
+        and edge.target_table == "schools"
+        and edge.target_columns == ["CDSCode"]
+        for edge in edges
+    )
+
+
 def test_gate_turns_parser_recursion_into_syntax_error(monkeypatch: pytest.MonkeyPatch) -> None:
     def explode(*_args: object, **_kwargs: object) -> list[object]:
         raise RecursionError("boom")
@@ -164,6 +232,20 @@ def test_gate_turns_parser_recursion_into_syntax_error(monkeypatch: pytest.Monke
     assert decision.error is not None
     assert decision.error.category == "syntax_error"
     assert decision.sql == ""
+
+
+def test_sqlite_gate_allows_read_only_date_functions_and_postgres_rejects_them() -> None:
+    accepted = check_read_only_sql(
+        "SELECT julianday(day), strftime('%Y', day), group_concat(name) FROM trans",
+        dialect="sqlite",
+    )
+    rejected = check_read_only_sql("SELECT julianday(day) FROM trans", dialect="postgres")
+
+    assert accepted.error is None
+    assert "julianday" in accepted.sql.lower()
+    assert rejected.error is not None
+    assert rejected.error.category == "disallowed_function"
+    assert "可改用" in rejected.error.normalized_message
 
 
 def test_sqlite_gate_renders_sqlite_and_rejects_an_unknown_dialect() -> None:
@@ -208,6 +290,7 @@ def _table(
     *,
     database_id: str,
     junction: bool = False,
+    column: str = "id",
 ) -> TableDocument:
     comment = "[Junction Table]" if junction else None
     return TableDocument(
@@ -215,7 +298,7 @@ def _table(
         schema_name="main",
         table_name=name,
         table_comment=comment,
-        columns=[ColumnDocument(name="id", data_type="TEXT", nullable=False, comment=None)],
+        columns=[ColumnDocument(name=column, data_type="TEXT", nullable=False, comment=None)],
         is_junction=junction,
         content_hash=f"sha256:{name}",
     )

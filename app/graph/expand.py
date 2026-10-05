@@ -26,6 +26,7 @@ DEFAULT_MAX_PATH_EDGES = 4
 DEFAULT_MAX_TOTAL_TABLES = 12
 DEFAULT_MAX_SCHEMA_TOKENS = 3500
 DEFAULT_LOW_CONFIDENCE = 0.8
+_PLAIN_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 class TokenCounter(Protocol):
@@ -52,9 +53,9 @@ def render_schema_context(
 
     blocks: list[str] = []
     for document in sorted(documents, key=lambda item: item.table_name):
-        lines = [f"table {document.table_name} {document.table_comment or ''}"]
+        lines = [f"table {_quote_identifier(document.table_name)} {document.table_comment or ''}"]
         lines.extend(
-            f"column {column.name} {column.data_type} {column.comment or ''}"
+            f"column {_quote_identifier(column.name)} {column.data_type} {column.comment or ''}"
             for column in document.columns
         )
         blocks.append("\n".join(lines))
@@ -62,6 +63,109 @@ def render_schema_context(
     if join_lines:
         blocks.append("外键：\n" + "\n".join(join_lines))
     return "\n".join(blocks)
+
+
+def attach_neighbor_tables(
+    documents: Sequence[TableDocument],
+    edges: Sequence[SchemaEdge],
+    selected: Sequence[str],
+    *,
+    token_counter: TokenCounter,
+    question: str | None = None,
+    max_total_tables: int = DEFAULT_MAX_TOTAL_TABLES,
+    max_schema_tokens: int = DEFAULT_MAX_SCHEMA_TOKENS,
+) -> list[str]:
+    """在预算内补上已选表的高置信邻表。优先补事实表直接指向的维表。"""
+
+    by_name = {document.table_name: document for document in documents}
+    chosen = [name for name in selected if name in by_name]
+    while len(chosen) < max_total_tables:
+        candidates = _neighbors(edges, chosen)
+        if not candidates:
+            break
+        support = _support_counts(edges, chosen)
+        ranked = sorted(
+            candidates,
+            key=lambda name: _neighbor_rank(name, support, question),
+        )
+        added = False
+        for name in ranked:
+            trial = [*chosen, name]
+            context = render_schema_context(
+                [by_name[item] for item in trial if item in by_name],
+                edges,
+            )
+            if token_counter.count(context) > max_schema_tokens:
+                continue
+            chosen.append(name)
+            added = True
+            break
+        if not added:
+            break
+    return chosen
+
+
+_DEFERRED_NEIGHBORS = (
+    ("address", ("地址", "住址", "address")),
+    ("demographic", ("教育", "婚姻", "性别", "信用", "受抚养", "潜力", "demographic")),
+    ("income", ("收入", "income")),
+)
+
+
+def _neighbor_rank(
+    name: str,
+    support: Mapping[str, int],
+    question: str | None,
+) -> tuple[int, int, int, str]:
+    # 渠道事实表已经由种子决定。邻接补全先补维表，避免其他渠道占满名额。
+    fact = 1 if name.lower().rsplit("_", 1)[-1] in {"sales", "returns"} else 0
+    return (fact, _deferred_neighbor(name, question), -support.get(name, 0), name)
+
+
+def _deferred_neighbor(name: str, question: str | None) -> int:
+    lowered = name.lower()
+    text = question or ""
+    for fragment, keywords in _DEFERRED_NEIGHBORS:
+        if fragment not in lowered:
+            continue
+        if any(keyword.lower() in text.lower() for keyword in keywords):
+            return 0
+        return 1
+    return 0
+
+
+def _support_counts(edges: Sequence[SchemaEdge], selected: Sequence[str]) -> dict[str, int]:
+    chosen = set(selected)
+    facts = {name for name in chosen if name.lower().rsplit("_", 1)[-1] in {"sales", "returns"}}
+    origins = facts or chosen
+    sources: dict[str, set[str]] = {}
+    for edge in edges:
+        if edge.confidence < DEFAULT_LOW_CONFIDENCE:
+            continue
+        if edge.source_table in origins and edge.target_table not in chosen:
+            sources.setdefault(edge.target_table, set()).add(edge.source_table)
+        elif edge.target_table in origins and edge.source_table not in chosen:
+            sources.setdefault(edge.source_table, set()).add(edge.target_table)
+    return {name: len(origin) for name, origin in sources.items()}
+
+
+def _neighbors(edges: Sequence[SchemaEdge], selected: Sequence[str]) -> set[str]:
+    chosen = set(selected)
+    found: set[str] = set()
+    for edge in edges:
+        if edge.confidence < DEFAULT_LOW_CONFIDENCE:
+            continue
+        if edge.source_table in chosen and edge.target_table not in chosen:
+            found.add(edge.target_table)
+        if edge.target_table in chosen and edge.source_table not in chosen:
+            found.add(edge.source_table)
+    return found
+
+
+def _quote_identifier(name: str) -> str:
+    if _PLAIN_IDENTIFIER.fullmatch(name):
+        return name
+    return '"' + name.replace('"', '""') + '"'
 
 
 def _join_lines(documents: Sequence[TableDocument], edges: Sequence[SchemaEdge]) -> list[str]:

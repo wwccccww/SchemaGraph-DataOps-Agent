@@ -206,6 +206,10 @@ def test_model_report_records_accuracy_and_diagnosis(tmp_path: Path) -> None:
     )
     diagnosis = write_model_diagnosis(directory)
 
+    execution = summary["model_execution"]
+    assert isinstance(execution, dict)
+    assert execution["executable_rate"] == 1.0
+    assert execution["dialect_error_rate"] == 0.0
     assert summary["measured"] == {"execution_accuracy": 0.5}
     assert summary["model"] == "deepseek-chat"
     assert summary["official_tpcds_result"] is False

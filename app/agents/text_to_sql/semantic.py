@@ -6,6 +6,7 @@ required_tables 或难度。复核通过就结束；失败时由自愈组把发�
 
 from __future__ import annotations
 
+import difflib
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -892,7 +893,7 @@ def check_cte_outputs(sql: str, *, dialect: str = "postgres") -> tuple[SemanticF
             target = alias_map.get(qualifier.lower())
             if target is None or target not in outputs:
                 continue
-            if column.name.lower() in outputs[target]:
+            if "*" in outputs[target] or column.name.lower() in outputs[target]:
                 continue
             key = (target, column.name.lower())
             if key in seen:
@@ -916,6 +917,9 @@ def _cte_outputs(expression: exp.Expression) -> dict[str, set[str]]:
             continue
         select = body if isinstance(body, exp.Select) else body.find(exp.Select)
         if not isinstance(select, exp.Select):
+            continue
+        if any(isinstance(projection, exp.Star) for projection in select.expressions):
+            outputs[alias.lower()] = {"*"}
             continue
         names = {
             projection.alias_or_name.lower()
@@ -979,3 +983,117 @@ def _check_results(
                 f"执行计划估计约 {plan_rows:.0f} 行，超过 {HUGE_PLAN_ROWS} 行",
             )
         )
+
+
+def check_catalog_sql(
+    sql: str,
+    documents: Sequence[TableDocument],
+    *,
+    dialect: str = "postgres",
+) -> tuple[SemanticFinding, ...]:
+    """用当前库目录检查表、列和 JOIN。CTE 名称不算物理表。"""
+
+    try:
+        parsed = sqlglot.parse_one(sql, read=dialect)
+    except (SqlglotError, RecursionError):
+        return ()
+    if not isinstance(parsed, exp.Expression):
+        return ()
+    catalog = {document.table_name.lower(): document for document in documents}
+    cte_names = set(_cte_outputs(parsed))
+    findings: list[SemanticFinding] = []
+    seen_tables: set[str] = set()
+    for table in parsed.find_all(exp.Table):
+        name = table.name.lower()
+        if not name or name in cte_names or name in seen_tables or name in catalog:
+            continue
+        seen_tables.add(name)
+        nearest = _nearest_table(name, catalog)
+        hint = f"，最接近的表是 {nearest}" if nearest else ""
+        findings.append(SemanticFinding("undefined_table", f"表 {table.name} 不在当前库{hint}"))
+    seen_columns: set[tuple[str, str]] = set()
+    for select in parsed.find_all(exp.Select):
+        aliases = _scope_aliases(select)
+        for column in _columns_owned_by(select):
+            source = _physical_source(column, aliases, catalog, cte_names)
+            if source is None:
+                continue
+            document = catalog[source]
+            known = {item.name.lower() for item in document.columns}
+            if column.name.lower() in known:
+                continue
+            key = (source, column.name.lower())
+            if key in seen_columns:
+                continue
+            seen_columns.add(key)
+            sample = _column_sample(document)
+            findings.append(
+                SemanticFinding(
+                    "undefined_column",
+                    f"表 {document.table_name} 没有列 {column.name}。可用列包括 {sample}",
+                )
+            )
+        findings.extend(_joins_without_condition(select))
+    return tuple(findings)
+
+
+def _nearest_table(name: str, catalog: Mapping[str, TableDocument]) -> str | None:
+    matches = difflib.get_close_matches(name, list(catalog), n=1, cutoff=0.6)
+    if not matches:
+        return None
+    return catalog[matches[0]].table_name
+
+
+def _physical_source(
+    column: exp.Column,
+    aliases: Mapping[str, str],
+    catalog: Mapping[str, TableDocument],
+    cte_names: set[str],
+) -> str | None:
+    if column.table:
+        source = aliases.get(column.table.lower())
+    else:
+        physical = [
+            target
+            for target in dict.fromkeys(aliases.values())
+            if target in catalog and target not in cte_names
+        ]
+        source = physical[0] if len(physical) == 1 else None
+    if source is None or source in cte_names or source not in catalog:
+        return None
+    return source
+
+
+def _column_sample(document: TableDocument) -> str:
+    names = [column.name for column in document.columns[:8]]
+    shown = ", ".join(names)
+    if len(document.columns) > len(names):
+        return shown + " 等"
+    return shown
+
+
+def _joins_without_condition(select: exp.Select) -> tuple[SemanticFinding, ...]:
+    joins = select.args.get("joins")
+    if not isinstance(joins, list):
+        return ()
+    findings: list[SemanticFinding] = []
+    for join in joins:
+        if not isinstance(join, exp.Join):
+            continue
+        kind = join.args.get("kind")
+        if isinstance(kind, str) and kind.upper() == "CROSS":
+            continue
+        condition = join.args.get("on")
+        if isinstance(condition, exp.Expression) and not _is_true(condition):
+            continue
+        if join.args.get("using") is not None:
+            continue
+        target = join.this
+        label = target.name if isinstance(target, exp.Table) and target.name else "JOIN"
+        findings.append(
+            SemanticFinding(
+                "cartesian_product",
+                f"{label} 的 JOIN 没有连接条件。先过滤并聚合，再连接维表",
+            )
+        )
+    return tuple(findings)

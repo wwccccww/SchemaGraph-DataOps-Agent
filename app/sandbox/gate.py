@@ -47,7 +47,9 @@ _FORBIDDEN = (
 _SURFACE_FUNCTION_NAMES: dict[type[exp.Expression], str] = {
     exp.TimestampTrunc: "date_trunc",
     exp.TimeToStr: "to_char",
+    exp.TsOrDsToTimestamp: "strftime",
 }
+_SQLITE_FUNCTIONS = frozenset({"group_concat", "ifnull", "iif", "julianday", "strftime"})
 _ALLOWED_FUNCTIONS = frozenset(
     {
         "abs",
@@ -224,7 +226,7 @@ def check_read_only_sql(sql: str, *, dialect: str = "postgres") -> GateDecision:
         if isinstance(node, exp.Select) and (node.args.get("into") or node.args.get("locks")):
             return GateDecision(sql="", error=_reject("not_read_only", "只允许只读 SELECT"))
         if isinstance(node, exp.Func) and not isinstance(node, _STRUCTURAL):
-            rejected = _reject_function(node)
+            rejected = _reject_function(node, dialect)
             if rejected is not None:
                 return GateDecision(sql="", error=rejected)
     recursive = _recursive_cte_error(expression)
@@ -242,14 +244,39 @@ def _function_name(node: exp.Func) -> str:
     return node.sql_name().lower()
 
 
-def _reject_function(node: exp.Func) -> ExecutionError | None:
+def _reject_function(node: exp.Func, dialect: str) -> ExecutionError | None:
     name = _function_name(node)
     schema = _schema_name(node)
+    if dialect == "sqlite" and name in _SQLITE_FUNCTIONS and schema is None:
+        return None
     if schema not in {None, "pg_catalog"} or name not in _ALLOWED_FUNCTIONS:
         if _IDENTIFIER.fullmatch(name) is None:
             return _reject("disallowed_function", "函数不在允许列表中")
-        return _reject("disallowed_function", f"函数不在允许列表中: {name}")
+        return _reject("disallowed_function", _function_message(name, dialect))
     return None
+
+
+def _function_message(name: str, dialect: str) -> str:
+    substitutes = {
+        "postgres": {
+            "group_concat": "string_agg",
+            "julianday": "日期相减或 EXTRACT",
+            "strftime": "to_char",
+            "ifnull": "COALESCE",
+            "iif": "CASE",
+        },
+        "sqlite": {
+            "string_agg": "group_concat",
+            "to_char": "strftime",
+            "date_part": "strftime",
+            "extract": "strftime",
+        },
+    }
+    other = "sqlite" if dialect == "postgres" else "postgres"
+    replacement = substitutes.get(dialect, {}).get(name)
+    if replacement is None:
+        return f"函数不在允许列表中: {name}"
+    return f"函数不在允许列表中: {name}。{dialect} 可改用 {replacement}，不要使用 {other} 函数"
 
 
 def _recursive_cte_error(expression: exp.Expression) -> ExecutionError | None:

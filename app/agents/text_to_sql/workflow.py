@@ -21,11 +21,18 @@ from app.agents.text_to_sql.prompt import (
     render_repair_prompt,
     system_prompt_for,
 )
-from app.agents.text_to_sql.semantic import SemanticFinding, check_cte_outputs, check_semantics
+from app.agents.text_to_sql.semantic import (
+    SemanticFinding,
+    check_catalog_sql,
+    check_cte_outputs,
+    check_semantics,
+)
+from app.agents.text_to_sql.shape import check_answer_shape
 from app.datasources.registry import resolve_data_source
 from app.graph.expand import (
     DEFAULT_MAX_TOTAL_TABLES,
     TokenCounter,
+    attach_neighbor_tables,
     expand_schema,
     render_schema_context,
 )
@@ -154,7 +161,7 @@ def build_graph(services: ServiceBundle) -> Any:
     builder.add_node("expand_schema_graph", cast(Any, _expand_schema_graph(bound)))
     builder.add_node("build_prompt", cast(Any, _build_prompt))
     builder.add_node("generate_sql", cast(Any, _generate_sql(bound)))
-    builder.add_node("validate_sql", cast(Any, _validate_sql))
+    builder.add_node("validate_sql", cast(Any, _validate_sql(bound)))
     builder.add_node("execute_sql", cast(Any, _execute_sql(bound)))
     builder.add_node("repair_sql", cast(Any, _repair_sql(bound)))
     builder.add_node("finish", cast(Any, _finish))
@@ -407,20 +414,26 @@ def _expand_schema_graph(
             documents,
             edges,
             state["seed_tables"],
-            question=state["question"],
+            question=state["question"] if state["profile"] == "ecommerce" else None,
             token_counter=services.token_counter,
         )
         if not result.connected and state["profile"] != "ecommerce":
-            names = list(result.seed_tables)[:DEFAULT_MAX_TOTAL_TABLES]
+            names = _with_neighbors(
+                documents,
+                edges,
+                list(result.seed_tables)[:DEFAULT_MAX_TOTAL_TABLES],
+                services.token_counter,
+                state["question"],
+            )
             selected = [by_name[name] for name in names if name in by_name]
             context = _visible_schema(state, render_schema_context(selected, edges))
             return {
                 "status": "running",
-                "seed_tables": names,
-                "expanded_tables": [],
+                "seed_tables": [name for name in names if name in result.seed_tables],
+                "expanded_tables": [name for name in names if name not in result.seed_tables],
                 "schema_context": context,
                 "schema_token_count": services.token_counter.count(context),
-                "truncated": len(result.seed_tables) > DEFAULT_MAX_TOTAL_TABLES,
+                "truncated": len(names) >= DEFAULT_MAX_TOTAL_TABLES,
                 "join_paths": _join_paths(edges, names),
             }
         if not result.connected:
@@ -435,17 +448,25 @@ def _expand_schema_graph(
                 "schema_token_count": result.context_tokens,
                 "truncated": result.context_truncated,
             }
-        selected = [
-            by_name[name]
-            for name in (*result.seed_tables, *result.expanded_tables)
-            if name in by_name
+        base_names = [
+            name for name in (*result.seed_tables, *result.expanded_tables) if name in by_name
         ]
+        if state["profile"] != "ecommerce":
+            base_names = _with_neighbors(
+                documents,
+                edges,
+                base_names,
+                services.token_counter,
+                state["question"],
+            )
+        selected = [by_name[name] for name in base_names if name in by_name]
         context = _visible_schema(state, render_schema_context(selected, result.edges))
         selected_names = [document.table_name for document in selected]
+        expanded_names = [name for name in selected_names if name not in result.seed_tables]
         return {
             "status": "running",
             "seed_tables": list(result.seed_tables),
-            "expanded_tables": list(result.expanded_tables),
+            "expanded_tables": expanded_names,
             "schema_context": context,
             "schema_token_count": services.token_counter.count(context),
             "truncated": result.context_truncated,
@@ -484,27 +505,46 @@ def _generate_sql(
     return generate_sql
 
 
-async def _validate_sql(state: TextToSqlState) -> dict[str, object]:
-    decision = check_read_only_sql(state["generated_sql"] or "", dialect=state["dialect"])
-    if decision.error is not None:
-        return _fail_or_restore(state, decision.error)
-    findings = list(check_cte_outputs(decision.sql, dialect=state["dialect"]))
-    if (
-        state["profile"] == "ecommerce"
-        and state["variant"] == "self_healing"
-        and state["attempt"] > 1
-    ):
-        findings.extend(
-            check_contract(
-                question=state["question"],
-                sql=decision.sql,
-                anchor_date=state["anchor_date"],
+def _validate_sql(
+    services: ServiceBundle,
+) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
+    async def validate_sql(state: TextToSqlState) -> dict[str, object]:
+        decision = check_read_only_sql(state["generated_sql"] or "", dialect=state["dialect"])
+        if decision.error is not None:
+            return _fail_or_restore(state, _hinted(state, decision.error))
+        findings = list(check_cte_outputs(decision.sql, dialect=state["dialect"]))
+        if state["profile"] != "ecommerce":
+            documents, _edges = await services.load_catalog()
+            if _catalog_mismatch(documents, state["database_id"]):
+                return _fail_or_restore(state, _catalog_error())
+            findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
+            if state["variant"] == "self_healing":
+                findings.extend(
+                    check_answer_shape(
+                        state["question"],
+                        decision.sql,
+                        _selected_documents(documents, state),
+                        dialect=state["dialect"],
+                    )
+                )
+        if (
+            state["profile"] == "ecommerce"
+            and state["variant"] == "self_healing"
+            and state["attempt"] > 1
+        ):
+            findings.extend(
+                check_contract(
+                    question=state["question"],
+                    sql=decision.sql,
+                    anchor_date=state["anchor_date"],
+                )
             )
-        )
-    findings = _actionable_findings(findings)
-    if findings:
-        return _fail_or_restore(state, _review_error(findings))
-    return {"status": "validated", "generated_sql": decision.sql}
+        findings = _actionable_findings(findings)
+        if findings:
+            return _fail_or_restore(state, _review_error(findings))
+        return {"status": "validated", "generated_sql": decision.sql}
+
+    return validate_sql
 
 
 def _execute_sql(
@@ -514,7 +554,7 @@ def _execute_sql(
         sql = state["generated_sql"] or ""
         outcome = await services.execute(sql, max_rows=state["max_rows"])
         if isinstance(outcome, ExecutionError):
-            return _fail_or_restore(state, outcome)
+            return _fail_or_restore(state, _hinted(state, outcome))
         success = {
             "status": "succeeded",
             "columns": [name for name, _database_type in outcome.columns],
@@ -532,6 +572,15 @@ def _execute_sql(
         plan_rows = None
         if services.estimate_plan_rows is not None:
             plan_rows = await services.estimate_plan_rows(sql)
+        if state["profile"] != "ecommerce":
+            findings_shape = check_answer_shape(
+                state["question"],
+                sql,
+                _selected_documents(documents, state),
+                dialect=state["dialect"],
+            )
+        else:
+            findings_shape = ()
         findings = list(
             check_semantics(
                 question=state["question"],
@@ -547,6 +596,7 @@ def _execute_sql(
                 dialect=state["dialect"],
             )
         )
+        findings.extend(findings_shape)
         if state["profile"] == "ecommerce":
             findings.extend(
                 check_contract(
@@ -737,6 +787,22 @@ def _zero_shot_schema(state: TextToSqlState) -> str:
     )
 
 
+def _with_neighbors(
+    documents: Sequence[TableDocument],
+    edges: Sequence[SchemaEdge],
+    names: Sequence[str],
+    token_counter: TokenCounter,
+    question: str,
+) -> list[str]:
+    return attach_neighbor_tables(
+        documents,
+        edges,
+        names,
+        token_counter=token_counter,
+        question=question,
+    )
+
+
 def _visible_schema(state: TextToSqlState, context: str) -> str:
     if state["profile"] == "ecommerce":
         return context
@@ -830,6 +896,39 @@ def _actionable_findings(findings: Sequence[SemanticFinding]) -> list[SemanticFi
 
     warnings = {"join_unverified"}
     return [item for item in findings if item.category not in warnings]
+
+
+def _selected_documents(
+    documents: Sequence[TableDocument],
+    state: TextToSqlState,
+) -> tuple[TableDocument, ...]:
+    selected = {name.lower() for name in (*state["seed_tables"], *state["expanded_tables"])}
+    return tuple(document for document in documents if document.table_name.lower() in selected)
+
+
+def _hinted(state: TextToSqlState, error: ExecutionError) -> ExecutionError:
+    if state["profile"] == "ecommerce":
+        return error
+    extra = _generic_error_hint(error.category, error.normalized_message)
+    if extra is None:
+        return error
+    return make_error(
+        category=error.category,
+        message=f"{error.normalized_message} {extra}",
+        exception_type=error.exception_type,
+        sqlstate=error.sqlstate,
+        retryable=error.retryable,
+    )
+
+
+def _generic_error_hint(category: str, message: str) -> str | None:
+    if category == "query_canceled":
+        return "先按连接键聚合，再连接维表，避免笛卡尔积。"
+    if category == "undefined_column" and "可用列" not in message:
+        return "列名必须与当前库可用表一致；包含空格、括号或百分号时使用双引号。"
+    if category == "undefined_table" and "最接近" not in message:
+        return "改用当前库中的表名。"
+    return None
 
 
 def _review_error(findings: Sequence[SemanticFinding]) -> ExecutionError:
