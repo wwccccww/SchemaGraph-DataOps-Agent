@@ -11,6 +11,42 @@ from app.agents.text_to_sql.frozen_contract import (
 from app.schemas.benchmark import SemanticContract, TimeWindow
 
 
+def test_format_includes_projection_order_hint_when_grouped() -> None:
+    contract = SemanticContract(
+        projections=["a", "b", "total"],
+        group_keys=["a", "b"],
+        filters=["order_sensitive=true"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    text = format_frozen_semantic_contract(contract)
+    assert "投影列顺序" in text
+    assert "ORDER BY" in text
+
+
+def test_order_sensitive_checks_alias_order() -> None:
+    contract = SemanticContract(
+        projections=["School Name", "Enrollment"],
+        group_keys=["School Name"],
+        filters=["order_sensitive=true"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    wrong = (
+        'SELECT s."Enrollment" AS "Enrollment", s."School Name" AS "School Name" '
+        'FROM schools AS s ORDER BY 2'
+    )
+    findings = check_frozen_semantic_contract(contract, wrong, dialect="sqlite")
+    assert any("顺序" in item.message for item in findings)
+    ok = (
+        'SELECT s."School Name" AS "School Name", s."Enrollment" AS "Enrollment" '
+        'FROM schools AS s ORDER BY 1'
+    )
+    assert check_frozen_semantic_contract(contract, ok, dialect="sqlite") == ()
+
+
 def test_format_includes_projections_and_item_hint() -> None:
     contract = SemanticContract(
         projections=["income_lower", "item_category", "sales_amount"],

@@ -42,6 +42,10 @@ def format_frozen_semantic_contract(contract: SemanticContract) -> str:
     ]
     if contract.group_keys:
         lines.append(f"GROUP BY 键：{'、'.join(contract.group_keys)}")
+        lines.append(
+            "投影列顺序建议与 GROUP BY 键一致"
+            + ("，并写 ORDER BY。" if "order_sensitive=true" in contract.filters else "。")
+        )
     if contract.filters:
         lines.append(f"过滤语义：{'；'.join(contract.filters)}")
     for name in contract.projections:
@@ -95,6 +99,17 @@ def check_frozen_semantic_contract(
                 f"冻结契约要求输出列 {shown}{suffix}，请用 AS 别名逐列投影（SQLite 含空格时用双引号）",
             )
         )
+    elif "order_sensitive=true" in contract.filters and described.projections:
+        alias_order = [name.lower() for name in described.projections]
+        expected = [name.lower() for name in contract.projections]
+        if alias_order != expected:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"输出列顺序应为 {'、'.join(contract.projections)}，"
+                    f"当前为 {'、'.join(described.projections)}",
+                )
+            )
     for name in contract.projections:
         column = _PROJECTION_COLUMNS.get(name)
         if column is None:
