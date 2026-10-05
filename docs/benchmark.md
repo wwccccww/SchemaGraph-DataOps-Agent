@@ -106,7 +106,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
 - 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
 - **Measured 基线（2026-10-05，DeepSeek Chat，本地快照）**：报告在 `reports/`（不入 Git）。
-  - **v9 + TPC-DS 冻结 repair（audit / UNION / 直邮 IN 子查询 / CTE 粒度）**（`self_healing`，180s）：TPC-DS **9/30（EX 0.30）** 复现（`run_20261005T193010Z_1d55618_*`），新增 **`tpcds_complex_002`** 命中；较 v8 **4/30** 提升。3/3 冒烟见 `run_20261005T192615Z_*`。
+  - **v9 + TPC-DS 冻结 repair（audit / UNION / 直邮 IN / 库存卖过子查询）**（`self_healing`，180s）：TPC-DS 当前最佳 **10/30（EX 0.333）**（`run_20261005T193700Z_e4360d4_*`，含 `002`+`009`）；上一档 **9/30**（`1d55618` / `bc26f6f`）。较 v8 **4/30** 提升。
   - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。`4d1608f` 再修正 alias GROUP BY 误报 **join_semantics**（**5×** vs 12×，EX 2/50 为方差，见 `run_20261005T192405Z_*`）。
   - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
   - 早期 v7 无 BIRD contract：**0/50** BIRD。
