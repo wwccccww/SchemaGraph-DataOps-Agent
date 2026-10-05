@@ -18,6 +18,7 @@ import yaml
 from app.evaluation.case_yaml import dump_benchmark_cases, projection_names
 from app.evaluation.custom_cases import referenced_tables
 from app.sandbox.sqlite import check_sqlite_read_only
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.schemas.benchmark import BenchmarkCase
 
 QUESTIONS_PATH = (
@@ -153,7 +154,7 @@ def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:
     gold_sql = adapt_bird_wall_clock(str(row["SQL"]).strip())
     database_id = str(row["db_id"])
     tables = sorted(referenced_tables(gold_sql, dialect="sqlite"))
-    return BenchmarkCase(
+    case = BenchmarkCase(
         id=f"bird_{question_id:04d}",
         source="bird",
         source_version=BIRD_SOURCE_VERSION,
@@ -169,7 +170,9 @@ def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:
         expected_columns=projection_names(gold_sql, dialect="sqlite"),
         anchor_date=ANCHOR,
         tags=["bird", "challenging", database_id],
+        semantic_contract=None,
     )
+    return case.model_copy(update={"semantic_contract": bird_contract_for(case)})
 
 
 def dump_bird_cases(cases: list[BenchmarkCase]) -> str:

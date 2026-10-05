@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v7"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v8"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -21,6 +21,7 @@ _GENERIC_SHAPE = (
     "若问句列举多项属性或 characteristics，最终 SELECT 应逐条回答，并为每列写清晰的 AS 别名。"
     "charter school、grades served、SAT performance level 等语义优先从 schools/satscores 等实体表取字段，"
     "performance level 用 CASE 归类，不要只输出原始分数。"
+    "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"
 )
 _POSTGRES_JOIN = (
     " 事实表与维表优先用 *_sk 连接键；先按业务键聚合再 JOIN，避免无关桥表造成笛卡尔积。"

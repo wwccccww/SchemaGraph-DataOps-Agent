@@ -22,6 +22,7 @@ from app.evaluation.tpcds import (
     build_tpcds_cases,
     load_tpcds_cases,
 )
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
 from app.evaluation.tpcds_oracle import structural_oracle_passed
 
@@ -82,6 +83,9 @@ def test_bird_cases_match_the_builder_and_keep_original_questions() -> None:
         assert case.gold_sql == adapt_bird_wall_clock(str(original["SQL"]).strip())
         assert case.required_junctions == []
         assert case.order_sensitive is question_requests_order(case.question)
+        assert case.semantic_contract is not None
+        assert case.semantic_contract == bird_contract_for(case)
+        assert case.semantic_contract.projections == case.expected_columns
         assert "evidence" not in case.model_dump()
         seen.add(case.database_id)
     assert seen

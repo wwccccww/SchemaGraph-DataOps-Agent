@@ -29,7 +29,10 @@ _PROJECTION_TABLES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("reason", ("reason",)),
     ("promo", ("promotion",)),
 )
-_ALIAS = re.compile(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
+_ALIAS = re.compile(
+    r'\bAS\s+(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))',
+    re.IGNORECASE,
+)
 
 
 def format_frozen_semantic_contract(contract: SemanticContract) -> str:
@@ -92,11 +95,19 @@ def check_frozen_semantic_contract(
         if column is None:
             continue
         base = column.split(".")[-1].lower()
-        if base not in sql.lower():
+        lowered = sql.lower()
+        if base not in lowered and name.lower() not in lowered:
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
                     f"列 {name} 应使用 {column}，不要用其它 surrogate 列代替",
+                )
+            )
+        if name == "item_category" and "i_category_id" in lowered and "i_category" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "item_category 应使用 item.i_category，不要用 i_category_id",
                 )
             )
     primary = _primary_fact(contract.filters)
@@ -107,6 +118,14 @@ def check_frozen_semantic_contract(
                 f"冻结契约要求主事实表 {primary} 出现在 SQL 中",
             )
         )
+    for table in _core_tables(contract.filters):
+        if table.lower() not in referenced:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    f"冻结契约要求表 {table} 出现在 SQL 中",
+                )
+            )
     if contract.group_keys and described.aggregations:
         grouped = " ".join(described.group_by).lower()
         for key in contract.group_keys:
@@ -133,7 +152,12 @@ def _tables_for_projections(projections: Sequence[str]) -> tuple[str, ...]:
 
 
 def _select_aliases(sql: str) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(_ALIAS.findall(sql)))
+    names: list[str] = []
+    for quoted, plain in _ALIAS.findall(sql):
+        name = quoted or plain
+        if name:
+            names.append(name)
+    return tuple(dict.fromkeys(names))
 
 
 def _primary_fact(filters: Sequence[str]) -> str | None:
@@ -156,4 +180,16 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("primary_facts="):
             tables = item.split("=", 1)[1]
             hints.append(f"问句涉及多渠道，需覆盖事实表：{tables}")
+        if item.startswith("core_tables="):
+            tables = item.split("=", 1)[1]
+            hints.append(f"必须 JOIN 或 FROM 这些表：{tables}")
+        if item == "order_sensitive=true":
+            hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
     return tuple(hints)
+
+
+def _core_tables(filters: Sequence[str]) -> tuple[str, ...]:
+    for item in filters:
+        if item.startswith("core_tables="):
+            return tuple(part.strip() for part in item.split("=", 1)[1].split(",") if part.strip())
+    return ()

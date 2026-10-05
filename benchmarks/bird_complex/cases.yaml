@@ -80,6 +80,33 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "County"
+        - "School Name"
+        - "HighestFreeRate"
+        - "FreeMealCount"
+        - "TotalEnrollment"
+        - "IsCharterSchool"
+        - "GradesServed"
+        - "SATPerformance"
+        - "CountyAverageFreeRate"
+        - "DeviationFromCountyAverage"
+      group_keys:
+        - "County"
+        - "School Name"
+        - "HighestFreeRate"
+        - "FreeMealCount"
+        - "TotalEnrollment"
+        - "IsCharterSchool"
+        - "GradesServed"
+        - "SATPerformance"
+        - "CountyAverageFreeRate"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0002
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -178,6 +205,41 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "Zip"
+        - "City"
+        - "CharterSchoolName"
+        - "Charter Funding Type"
+        - "Enrollment"
+        - "PercentFRPM"
+        - "FRPMCategory"
+        - "YearOpened"
+        - "CurrentStatus"
+        - "SATTestTakers"
+        - "TotalSATScore"
+        - "PercentageAbove1500"
+        - "SATRanking"
+        - "EnrollmentRanking"
+      group_keys:
+        - "Zip"
+        - "City"
+        - "CharterSchoolName"
+        - "Charter Funding Type"
+        - "Enrollment"
+        - "PercentFRPM"
+        - "FRPMCategory"
+        - "YearOpened"
+        - "CurrentStatus"
+        - "SATTestTakers"
+        - "TotalSATScore"
+        - "PercentageAbove1500"
+        - "SATRanking"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0003
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -279,6 +341,41 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "UnabbreviatedMailingAddress"
+        - "Website"
+        - "Enrollment"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "TotalSATScore"
+        - "PerformanceCategory"
+        - "PercentHighScorers"
+        - "PerformanceClassification"
+        - "OpenDate"
+        - "SchoolStatus"
+      group_keys:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "UnabbreviatedMailingAddress"
+        - "Website"
+        - "Enrollment"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "TotalSATScore"
+        - "PerformanceCategory"
+        - "PercentHighScorers"
+        - "PerformanceClassification"
+        - "OpenDate"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0005
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -375,6 +472,40 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SchoolName"
+        - "City"
+        - "VirtualStatus"
+        - "SchoolType"
+        - "MathScore"
+        - "ReadingScore"
+        - "WritingScore"
+        - "TotalScore"
+        - "MathRank"
+        - "TotalScoreRank"
+        - "Enrollment"
+        - "PovertyLevel"
+        - "FRPMPercentage"
+      group_keys:
+        - "SchoolName"
+        - "City"
+        - "VirtualStatus"
+        - "SchoolType"
+        - "MathScore"
+        - "ReadingScore"
+        - "WritingScore"
+        - "TotalScore"
+        - "MathRank"
+        - "TotalScoreRank"
+        - "Enrollment"
+        - "PovertyLevel"
+      filters:
+        - "order_sensitive=true"
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0006
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -465,6 +596,44 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "School"
+        - "SchoolType"
+        - "EducationalOption"
+        - "TestTakers"
+        - "TotalAvgScore"
+        - "ReadingScore"
+        - "MathScore"
+        - "WritingScore"
+        - "PercentHighScorers"
+        - "Enrollment"
+        - "FreeReducedMealPercentage"
+        - "StateRank"
+        - "CountyRank"
+        - "PovertyLevel"
+        - "PerformanceCategory"
+      group_keys:
+        - "School"
+        - "SchoolType"
+        - "EducationalOption"
+        - "TestTakers"
+        - "TotalAvgScore"
+        - "ReadingScore"
+        - "MathScore"
+        - "WritingScore"
+        - "PercentHighScorers"
+        - "Enrollment"
+        - "FreeReducedMealPercentage"
+        - "StateRank"
+        - "CountyRank"
+        - "PovertyLevel"
+      filters:
+        - "order_sensitive=true"
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0008
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -572,6 +741,45 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "County"
+        - "District"
+        - "School"
+        - "school_type"
+        - "grade_level"
+        - "frpm_count"
+        - "enrollment"
+        - "percent_eligible_frpm"
+        - "num_sat_takers"
+        - "percent_taking_sat"
+        - "avg_reading"
+        - "avg_math"
+        - "avg_writing"
+        - "total_avg_score"
+        - "percent_scoring_over_1500"
+        - "frpm_rank"
+      group_keys:
+        - "County"
+        - "District"
+        - "School"
+        - "school_type"
+        - "grade_level"
+        - "enrollment"
+        - "percent_eligible_frpm"
+        - "num_sat_takers"
+        - "percent_taking_sat"
+        - "avg_reading"
+        - "avg_math"
+        - "avg_writing"
+        - "total_avg_score"
+        - "percent_scoring_over_1500"
+        - "frpm_rank"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0010
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -686,6 +894,43 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "GradeSpan"
+        - "ReadingScore"
+        - "MathScore"
+        - "WritingScore"
+        - "TotalSATScore"
+        - "ReadingRank"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "Enrollment"
+        - "PercentScoring1500Plus"
+        - "SchoolType"
+        - "PovertyLevel"
+      group_keys:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "GradeSpan"
+        - "ReadingScore"
+        - "MathScore"
+        - "WritingScore"
+        - "TotalSATScore"
+        - "ReadingRank"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "Enrollment"
+        - "PercentScoring1500Plus"
+        - "SchoolType"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0011
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -770,6 +1015,37 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "CDSCode"
+        - "School Name"
+        - "County Name"
+        - "TotalEnrollment"
+        - "FRPMPercentage"
+        - "FRPMCategory"
+        - "IsCharterSchool"
+        - "SATTestTakers"
+        - "TotalSATScore"
+        - "PercentageStudentsOver1500"
+        - "CountyEnrollmentRank"
+        - "CategorySATRank"
+      group_keys:
+        - "CDSCode"
+        - "School Name"
+        - "County Name"
+        - "TotalEnrollment"
+        - "FRPMPercentage"
+        - "FRPMCategory"
+        - "IsCharterSchool"
+        - "SATTestTakers"
+        - "TotalSATScore"
+        - "PercentageStudentsOver1500"
+        - "CountyEnrollmentRank"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0012
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -842,6 +1118,31 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "school_type"
+        - "excellence_rate"
+        - "eligible_free_rate"
+        - "county_rank"
+        - "avg_eligible_free_rate"
+        - "free_meal_category"
+      group_keys:
+        - "SchoolName"
+        - "County"
+        - "City"
+        - "school_type"
+        - "excellence_rate"
+        - "eligible_free_rate"
+        - "county_rank"
+        - "avg_eligible_free_rate"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0013
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -916,6 +1217,31 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SAT Excellence Rank"
+        - "School Name"
+        - "SAT Excellence Rate"
+        - "High Scorers/Test Takers"
+        - "Contact Number"
+        - "City"
+        - "Charter School"
+        - "Poverty Rate"
+        - "Poverty Category"
+      group_keys:
+        - "SAT Excellence Rank"
+        - "School Name"
+        - "SAT Excellence Rate"
+        - "High Scorers/Test Takers"
+        - "Contact Number"
+        - "City"
+        - "Charter School"
+        - "Poverty Rate"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0018
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -994,6 +1320,33 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "TotalSchools"
+        - "County Name"
+        - "AvgTestTakers"
+        - "AvgTotalScore"
+        - "AvgPercentScoring1500Plus"
+        - "AvgFRPMPercentage"
+        - "AvgSchoolAgeInYears"
+        - "SchoolsWithUnder50Testers"
+        - "SchoolsWith50To100Testers"
+        - "SchoolsWith100To250Testers"
+      group_keys:
+        - "TotalSchools"
+        - "County Name"
+        - "AvgTestTakers"
+        - "AvgTotalScore"
+        - "AvgPercentScoring1500Plus"
+        - "AvgFRPMPercentage"
+        - "AvgSchoolAgeInYears"
+        - "SchoolsWithUnder50Testers"
+        - "SchoolsWith50To100Testers"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0019
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1088,6 +1441,37 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "Top Math School"
+        - "Phone Number"
+        - "Website"
+        - "Math Score"
+        - "Reading Score"
+        - "Writing Score"
+        - "Total Score"
+        - "Is Charter School"
+        - "Enrollment"
+        - "% Free/Reduced Price Meals"
+        - "Total Schools in SAT Dataset"
+        - "Average Math Score Across All Schools"
+      group_keys:
+        - "Top Math School"
+        - "Phone Number"
+        - "Website"
+        - "Math Score"
+        - "Reading Score"
+        - "Writing Score"
+        - "Total Score"
+        - "Is Charter School"
+        - "Enrollment"
+        - "% Free/Reduced Price Meals"
+        - "Total Schools in SAT Dataset"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0020
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1169,6 +1553,33 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "TotalSchools"
+        - "AvgEnrollment"
+        - "CharterSchools"
+        - "NonCharterSchools"
+        - "AvgFRPMPercentage"
+        - "DistrictCount"
+        - "AvgSATScore"
+        - "MaxPercentAbove1500"
+        - "LargestSchool"
+        - "HighPovertySchools"
+      group_keys:
+        - "TotalSchools"
+        - "AvgEnrollment"
+        - "CharterSchools"
+        - "NonCharterSchools"
+        - "AvgFRPMPercentage"
+        - "DistrictCount"
+        - "AvgSATScore"
+        - "MaxPercentAbove1500"
+        - "LargestSchool"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0021
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1259,6 +1670,33 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "TotalSchools"
+        - "AvgFreeMeals"
+        - "AvgTotalFRPM"
+        - "AvgFreePercentage"
+        - "AvgFRPMPercentage"
+        - "CharterSchoolCount"
+        - "NonCharterSchoolCount"
+        - "AvgSATScore"
+        - "SchoolsWithoutSATData"
+        - "FreeMealCategoryBreakdown"
+      group_keys:
+        - "TotalSchools"
+        - "AvgFreeMeals"
+        - "AvgTotalFRPM"
+        - "AvgFreePercentage"
+        - "AvgFRPMPercentage"
+        - "CharterSchoolCount"
+        - "NonCharterSchoolCount"
+        - "AvgSATScore"
+        - "SchoolsWithoutSATData"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0028
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1282,6 +1720,17 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "School"
+        - "DOC"
+      group_keys:
+        - "School"
+      filters:
+        - "core_tables=frpm,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0031
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1386,6 +1835,45 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "EnrollmentRank"
+        - "School Name"
+        - "District Name"
+        - "County Name"
+        - "TotalEnrollment"
+        - "FreeMealCount"
+        - "EligibleFreeRate"
+        - "City"
+        - "SchoolType"
+        - "GradeSpan"
+        - "Website"
+        - "SATTestTakers"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+        - "PercentAbove1500SAT"
+      group_keys:
+        - "EnrollmentRank"
+        - "School Name"
+        - "District Name"
+        - "County Name"
+        - "TotalEnrollment"
+        - "FreeMealCount"
+        - "EligibleFreeRate"
+        - "City"
+        - "SchoolType"
+        - "GradeSpan"
+        - "Website"
+        - "SATTestTakers"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0032
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1477,6 +1965,45 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "FRPMRank"
+        - "School"
+        - "County"
+        - "District"
+        - "SOCType"
+        - "Enrollment"
+        - "FRPMCount"
+        - "EligibilityRate"
+        - "EligibilityCategory"
+        - "SATTestTakers"
+        - "AvgReading"
+        - "AvgMath"
+        - "AvgWriting"
+        - "TotalSATScore"
+        - "HighSATScorerRate"
+        - "SATParticipationRate"
+      group_keys:
+        - "FRPMRank"
+        - "School"
+        - "County"
+        - "District"
+        - "SOCType"
+        - "Enrollment"
+        - "FRPMCount"
+        - "EligibilityRate"
+        - "EligibilityCategory"
+        - "SATTestTakers"
+        - "AvgReading"
+        - "AvgMath"
+        - "AvgWriting"
+        - "TotalSATScore"
+        - "HighSATScorerRate"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0036
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1504,6 +2031,25 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "AdmFName1"
+        - "AdmLName1"
+        - "AdmFName2"
+        - "AdmLName2"
+        - "AdmFName3"
+        - "AdmLName3"
+      group_keys:
+        - "AdmFName1"
+        - "AdmLName1"
+        - "AdmFName2"
+        - "AdmLName2"
+        - "AdmFName3"
+      filters:
+        - "core_tables=satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0045
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1593,6 +2139,41 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "School"
+        - "AvgScrWrite"
+        - "AvgScrRead"
+        - "AvgScrMath"
+        - "TotalSATScore"
+        - "NumTstTakr"
+        - "Enrollment (K-12)"
+        - "FRPMPercentage"
+        - "WriteScoreRank"
+        - "TotalScoreRank"
+        - "DistrictAvgWriteScore"
+        - "ComparisonToDistrictAvg"
+        - "DifferenceFromDistrictAvg"
+        - "PercentageTakingSAT"
+      group_keys:
+        - "School"
+        - "AvgScrWrite"
+        - "AvgScrRead"
+        - "AvgScrMath"
+        - "TotalSATScore"
+        - "NumTstTakr"
+        - "Enrollment (K-12)"
+        - "FRPMPercentage"
+        - "WriteScoreRank"
+        - "TotalScoreRank"
+        - "DistrictAvgWriteScore"
+        - "ComparisonToDistrictAvg"
+        - "DifferenceFromDistrictAvg"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0055
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1728,6 +2309,17 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "Metric"
+        - "Ratio"
+      group_keys:
+        - "Metric"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0060
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1819,6 +2411,43 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "SchoolName"
+        - "Website"
+        - "CharterNumber"
+        - "FundingType"
+        - "TotalEnrollment"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "PovertyLevel"
+        - "EnrollmentRank"
+        - "SATTestTakers"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+        - "StudentsOver1500"
+        - "PercentOver1500"
+      group_keys:
+        - "SchoolName"
+        - "Website"
+        - "CharterNumber"
+        - "FundingType"
+        - "TotalEnrollment"
+        - "FRPMCount"
+        - "FRPMPercentage"
+        - "PovertyLevel"
+        - "EnrollmentRank"
+        - "SATTestTakers"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+        - "StudentsOver1500"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0061
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -1931,6 +2560,47 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "CDSCode"
+        - "School"
+        - "City"
+        - "EnrollmentK12"
+        - "FRPMCount"
+        - "FRPMPercent"
+        - "FRPMCategory"
+        - "SizeRank"
+        - "SATTestTakers"
+        - "SATReadingScore"
+        - "SATMathScore"
+        - "SATWritingScore"
+        - "SATTotalScore"
+        - "PercentOver1500"
+        - "SATPerformanceCategory"
+        - "TotalCharterSchools"
+        - "AvgCharterEnrollment"
+      group_keys:
+        - "CDSCode"
+        - "School"
+        - "City"
+        - "EnrollmentK12"
+        - "FRPMCount"
+        - "FRPMPercent"
+        - "FRPMCategory"
+        - "SizeRank"
+        - "SATTestTakers"
+        - "SATReadingScore"
+        - "SATMathScore"
+        - "SATWritingScore"
+        - "SATTotalScore"
+        - "PercentOver1500"
+        - "SATPerformanceCategory"
+        - "TotalCharterSchools"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0062
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2035,6 +2705,41 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "CDSCode"
+        - "School"
+        - "District"
+        - "County"
+        - "Enrollment"
+        - "FreeMealCount"
+        - "FreePercentage"
+        - "FreeCategory"
+        - "CountyRank"
+        - "TotalSchools"
+        - "LowFreeSchools"
+        - "CountyAvgFreePercent"
+        - "PctLowFreeInCounty"
+        - "LATotalLowFree"
+      group_keys:
+        - "CDSCode"
+        - "School"
+        - "District"
+        - "County"
+        - "Enrollment"
+        - "FreeMealCount"
+        - "FreePercentage"
+        - "FreeCategory"
+        - "CountyRank"
+        - "TotalSchools"
+        - "LowFreeSchools"
+        - "CountyAvgFreePercent"
+        - "PctLowFreeInCounty"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0066
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2138,6 +2843,47 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "School"
+        - "OpenDate"
+        - "OpenYear"
+        - "Enrollment"
+        - "FRPMCount"
+        - "FRPMPercent"
+        - "SchoolType"
+        - "AvgScrRead"
+        - "AvgScrMath"
+        - "AvgScrWrite"
+        - "TotalSATScore"
+        - "CountyTotalSchools"
+        - "CountyAvgEnrollment"
+        - "CountyAvgFRPMPercent"
+        - "FRPMStatus"
+        - "FRPMRank"
+        - "SATScoreRank"
+      group_keys:
+        - "School"
+        - "OpenDate"
+        - "OpenYear"
+        - "Enrollment"
+        - "FRPMCount"
+        - "FRPMPercent"
+        - "SchoolType"
+        - "AvgScrRead"
+        - "AvgScrMath"
+        - "AvgScrWrite"
+        - "TotalSATScore"
+        - "CountyTotalSchools"
+        - "CountyAvgEnrollment"
+        - "CountyAvgFRPMPercent"
+        - "FRPMStatus"
+        - "FRPMRank"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0069
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2235,6 +2981,37 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "NCESDist"
+        - "School"
+        - "SchoolType"
+        - "CurrentStatus"
+        - "OpeningDate"
+        - "Enrollment"
+        - "PovertyLevel"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+        - "AvgTotalScore"
+        - "EnrollmentRank"
+      group_keys:
+        - "NCESDist"
+        - "School"
+        - "SchoolType"
+        - "CurrentStatus"
+        - "OpeningDate"
+        - "Enrollment"
+        - "PovertyLevel"
+        - "AvgReadingScore"
+        - "AvgMathScore"
+        - "AvgWritingScore"
+        - "AvgTotalScore"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0077
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2319,6 +3096,39 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "School"
+        - "City"
+        - "Percent (%) Eligible FRPM (Ages 5-17)"
+        - "Poverty_Level"
+        - "Is_Charter"
+        - "Number of SAT Test Takers"
+        - "Avg Reading Score"
+        - "Avg Math Score"
+        - "Avg Writing Score"
+        - "Total SAT Score"
+        - "SAT Ranking"
+        - "FRPM Count"
+        - "Enrollment"
+      group_keys:
+        - "School"
+        - "City"
+        - "Percent (%) Eligible FRPM (Ages 5-17)"
+        - "Poverty_Level"
+        - "Is_Charter"
+        - "Number of SAT Test Takers"
+        - "Avg Reading Score"
+        - "Avg Math Score"
+        - "Avg Writing Score"
+        - "Total SAT Score"
+        - "SAT Ranking"
+        - "FRPM Count"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0078
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2410,6 +3220,37 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "most_common_grade_span"
+        - "school_count"
+        - "active_schools"
+        - "avg_enrollment"
+        - "total_enrollment"
+        - "avg_frpm_percentage"
+        - "high_poverty_schools"
+        - "medium_poverty_schools"
+        - "low_poverty_schools"
+        - "avg_reading_score"
+        - "avg_math_score"
+        - "avg_writing_score"
+      group_keys:
+        - "most_common_grade_span"
+        - "active_schools"
+        - "avg_enrollment"
+        - "total_enrollment"
+        - "avg_frpm_percentage"
+        - "high_poverty_schools"
+        - "medium_poverty_schools"
+        - "low_poverty_schools"
+        - "avg_reading_score"
+        - "avg_math_score"
+        - "avg_writing_score"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0079
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2506,6 +3347,33 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "County"
+        - "amount"
+        - "CharterSchools"
+        - "RegularSchools"
+        - "AverageEnrollment"
+        - "HighestEnrollment"
+        - "LowestEnrollment"
+        - "AvgFreeReducedMealPercentage"
+        - "AverageSATScore"
+        - "LargestVirtualSchool"
+      group_keys:
+        - "County"
+        - "amount"
+        - "CharterSchools"
+        - "RegularSchools"
+        - "AverageEnrollment"
+        - "HighestEnrollment"
+        - "LowestEnrollment"
+        - "AvgFreeReducedMealPercentage"
+        - "AverageSATScore"
+      filters:
+        - "core_tables=frpm,satscores,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0083
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2529,6 +3397,17 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "City"
+        - "COUNT(T2.CDSCode)"
+      group_keys:
+        - "City"
+      filters:
+        - "core_tables=frpm,schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0087
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2551,6 +3430,17 @@ cases:
       - "bird"
       - "challenging"
       - "california_schools"
+    semantic_contract:
+      projections:
+        - "AdmEmail1"
+        - "AdmEmail2"
+      group_keys:
+        - "AdmEmail1"
+      filters:
+        - "core_tables=schools"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0092
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2647,6 +3537,34 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "district_count"
+        - "total_female_clients"
+        - "average_female_salary"
+        - "average_female_age"
+        - "total_female_accounts"
+        - "total_female_loans"
+        - "average_female_loan_amount"
+        - "active_female_loans"
+        - "completed_female_loans"
+        - "defaulted_female_loans"
+        - "regions_represented"
+      group_keys:
+        - "total_female_clients"
+        - "average_female_salary"
+        - "average_female_age"
+        - "total_female_accounts"
+        - "total_female_loans"
+        - "active_female_loans"
+        - "completed_female_loans"
+        - "defaulted_female_loans"
+        - "regions_represented"
+      filters:
+        - "core_tables=account,client,disp,district,loan"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0094
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2682,6 +3600,17 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "account_id"
+        - "(SELECT MAX(A11) - MIN(A11) FROM district)"
+      group_keys:
+        - "account_id"
+      filters:
+        - "core_tables=account,client,disp,district"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0096
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2795,6 +3724,35 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "total_weekly_owners"
+        - "gender"
+        - "age_group"
+        - "region"
+        - "avg_cards_per_customer"
+        - "avg_loans_per_customer"
+        - "avg_loan_amount"
+        - "avg_transactions"
+        - "avg_net_balance"
+        - "customers_with_loans"
+        - "percent_with_loans"
+      group_keys:
+        - "total_weekly_owners"
+        - "gender"
+        - "age_group"
+        - "region"
+        - "avg_cards_per_customer"
+        - "avg_loans_per_customer"
+        - "avg_transactions"
+        - "avg_net_balance"
+        - "customers_with_loans"
+        - "percent_with_loans"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0097
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -2907,6 +3865,46 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "client_id"
+        - "gender"
+        - "birth_date"
+        - "district_name"
+        - "region"
+        - "loan_count"
+        - "avg_loan_amount"
+        - "active_loans"
+        - "completed_loans"
+        - "transaction_count"
+        - "total_income"
+        - "total_expense"
+        - "net_balance"
+        - "last_transaction_date"
+        - "card_count"
+        - "card_types"
+        - "client_category"
+        - "transaction_rank"
+      group_keys:
+        - "client_id"
+        - "gender"
+        - "birth_date"
+        - "district_name"
+        - "region"
+        - "active_loans"
+        - "completed_loans"
+        - "total_income"
+        - "total_expense"
+        - "net_balance"
+        - "last_transaction_date"
+        - "card_types"
+        - "client_category"
+        - "transaction_rank"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0100
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3003,6 +4001,27 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "total_female_clients"
+        - "avg_age_at_account_opening"
+        - "clients_with_loans"
+        - "clients_with_good_loans"
+        - "clients_with_debt"
+        - "earliest_account_year"
+        - "latest_account_year"
+      group_keys:
+        - "total_female_clients"
+        - "avg_age_at_account_opening"
+        - "clients_with_loans"
+        - "clients_with_good_loans"
+        - "clients_with_debt"
+        - "earliest_account_year"
+      filters:
+        - "core_tables=account,client,disp,district,loan"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0103
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3102,6 +4121,39 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "client_id"
+        - "gender"
+        - "birth_date"
+        - "card_type"
+        - "age_at_card_issue"
+        - "account_count"
+        - "loan_count"
+        - "active_loans"
+        - "avg_loan_amount"
+        - "district_name"
+        - "region"
+        - "avg_salary"
+        - "borrower_category"
+        - "age_rank_by_gender"
+      group_keys:
+        - "client_id"
+        - "gender"
+        - "birth_date"
+        - "card_type"
+        - "age_at_card_issue"
+        - "active_loans"
+        - "district_name"
+        - "region"
+        - "avg_salary"
+        - "borrower_category"
+        - "age_rank_by_gender"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0104
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3204,6 +4256,41 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "account_id"
+        - "account_opening_date"
+        - "transaction_date"
+        - "days_account_open_before_transaction"
+        - "amount"
+        - "balance"
+        - "district_name"
+        - "region"
+        - "client_id"
+        - "gender_full"
+        - "age_at_transaction"
+        - "total_transactions_to_date"
+        - "cards_issued"
+        - "has_loan_before_transaction"
+      group_keys:
+        - "account_id"
+        - "account_opening_date"
+        - "transaction_date"
+        - "days_account_open_before_transaction"
+        - "amount"
+        - "balance"
+        - "district_name"
+        - "region"
+        - "client_id"
+        - "gender_full"
+        - "age_at_transaction"
+        - "total_transactions_to_date"
+        - "cards_issued"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0105
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3308,6 +4395,43 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "district_id"
+        - "district_name"
+        - "region"
+        - "account_open_date"
+        - "days_account_open_before_loan"
+        - "avg_salary"
+        - "unemployment_rate_1995"
+        - "salary_rank"
+        - "unemployment_rank"
+        - "num_clients"
+        - "male_clients"
+        - "female_clients"
+        - "avg_client_age"
+        - "transactions_before_loan"
+        - "total_income_before_loan"
+      group_keys:
+        - "district_id"
+        - "district_name"
+        - "region"
+        - "account_open_date"
+        - "days_account_open_before_loan"
+        - "avg_salary"
+        - "unemployment_rate_1995"
+        - "salary_rank"
+        - "unemployment_rank"
+        - "num_clients"
+        - "male_clients"
+        - "female_clients"
+        - "avg_client_age"
+        - "transactions_before_loan"
+      filters:
+        - "core_tables=account,client,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0106
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3422,6 +4546,46 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "client_id"
+        - "card_id"
+        - "card_type"
+        - "gender"
+        - "client_age"
+        - "district_name"
+        - "region"
+        - "trans_id"
+        - "largest_transaction_amount"
+        - "transaction_type"
+        - "transaction_date"
+        - "balance_after_transaction"
+        - "transaction_category"
+        - "loan_status"
+        - "loan_amount"
+        - "order_id"
+        - "bank_to"
+      group_keys:
+        - "client_id"
+        - "card_id"
+        - "card_type"
+        - "gender"
+        - "client_age"
+        - "district_name"
+        - "region"
+        - "trans_id"
+        - "transaction_type"
+        - "transaction_date"
+        - "balance_after_transaction"
+        - "transaction_category"
+        - "loan_status"
+        - "order_id"
+        - "bank_to"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,order,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0111
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3537,6 +4701,41 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "total_accounts"
+        - "accounts_with_multiple_clients"
+        - "average_client_age"
+        - "total_male_clients"
+        - "total_female_clients"
+        - "total_transactions_in_1996"
+        - "total_deposits_in_1996"
+        - "total_loans"
+        - "avg_loan_amount"
+        - "accounts_with_loans"
+        - "percent_opened_q1"
+        - "percent_opened_q2"
+        - "percent_opened_q3"
+        - "percent_opened_q4"
+      group_keys:
+        - "total_accounts"
+        - "accounts_with_multiple_clients"
+        - "average_client_age"
+        - "total_male_clients"
+        - "total_female_clients"
+        - "total_transactions_in_1996"
+        - "total_deposits_in_1996"
+        - "total_loans"
+        - "accounts_with_loans"
+        - "percent_opened_q1"
+        - "percent_opened_q2"
+        - "percent_opened_q3"
+        - "percent_opened_q4"
+      filters:
+        - "core_tables=account,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0112
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3639,6 +4838,39 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "residence_district"
+        - "account_district"
+        - "district_comparison"
+        - "account_open_date"
+        - "transaction_count"
+        - "total_income"
+        - "total_expense"
+        - "max_balance"
+        - "loan_count"
+        - "card_count"
+        - "region"
+        - "urban_ratio"
+        - "avg_salary"
+        - "entrepreneurs_per_1000"
+      group_keys:
+        - "residence_district"
+        - "account_district"
+        - "district_comparison"
+        - "account_open_date"
+        - "total_income"
+        - "total_expense"
+        - "max_balance"
+        - "region"
+        - "urban_ratio"
+        - "avg_salary"
+        - "entrepreneurs_per_1000"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0113
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3750,6 +4982,38 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "birth_date"
+        - "age_at_loan"
+        - "district_name"
+        - "region"
+        - "transaction_count"
+        - "total_income"
+        - "total_expense"
+        - "expense_to_income_ratio"
+        - "max_balance"
+        - "min_balance"
+        - "card_count"
+        - "card_types"
+        - "previous_loans"
+      group_keys:
+        - "birth_date"
+        - "age_at_loan"
+        - "district_name"
+        - "region"
+        - "total_income"
+        - "total_expense"
+        - "expense_to_income_ratio"
+        - "max_balance"
+        - "min_balance"
+        - "card_types"
+        - "previous_loans"
+      filters:
+        - "core_tables=account,card,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0115
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3814,6 +5078,27 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "district_id"
+        - "district_name"
+        - "region"
+        - "inhabitants"
+        - "total_clients"
+        - "male_clients"
+        - "pct_male"
+      group_keys:
+        - "district_id"
+        - "district_name"
+        - "region"
+        - "inhabitants"
+        - "total_clients"
+        - "male_clients"
+      filters:
+        - "core_tables=client,district"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0116
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3837,6 +5122,16 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "CAST((SUM(IIF(T3.date = '1998-12-27', T3.balance, 0)) - SUM(IIF(T3.date = '1993-03-22', T3.balance, 0))) AS REAL) * 100 / SUM(IIF(T3.date = '1993-03-22', T3.balance, 0))"
+      group_keys:
+        - "CAST((SUM(IIF(T3.date = '1998-12-27', T3.balance, 0)) - SUM(IIF(T3.date = '1993-03-22', T3.balance, 0))) AS REAL) * 100 / SUM(IIF(T3.date = '1993-03-22', T3.balance, 0))"
+      filters:
+        - "core_tables=account,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0117
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -3926,6 +5221,32 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "region"
+        - "paid_amount_percentage"
+        - "successful_loans_percentage"
+        - "successful_loans"
+        - "total_loans"
+        - "paid_amount"
+        - "total_amount"
+        - "avg_interest_paid_successful"
+        - "avg_interest_paid_all"
+        - "overall_percentage"
+      group_keys:
+        - "region"
+        - "paid_amount_percentage"
+        - "successful_loans_percentage"
+        - "successful_loans"
+        - "total_loans"
+        - "avg_interest_paid_successful"
+        - "avg_interest_paid_all"
+        - "overall_percentage"
+      filters:
+        - "core_tables=account,client,disp,district,loan"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0118
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -4021,6 +5342,31 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "region"
+        - "loan_size_category"
+        - "total_loans"
+        - "running_ok_loans"
+        - "percentage_running_ok"
+        - "avg_loan_amount"
+        - "avg_duration"
+        - "overall_percentage"
+        - "diff_from_overall"
+      group_keys:
+        - "region"
+        - "loan_size_category"
+        - "total_loans"
+        - "running_ok_loans"
+        - "percentage_running_ok"
+        - "avg_duration"
+        - "overall_percentage"
+        - "diff_from_overall"
+      filters:
+        - "core_tables=account,district,loan"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0119
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -4138,6 +5484,44 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "account_id"
+        - "district_name"
+        - "district_region"
+        - "urbanization_category"
+        - "transaction_count"
+        - "net_cash_flow"
+        - "balance_volatility"
+        - "client_count"
+        - "owner_gender"
+        - "avg_client_age"
+        - "loan_count"
+        - "total_loan_amount"
+        - "avg_loan_duration_months"
+        - "running_loans"
+        - "finished_loans"
+        - "defaulted_loans"
+        - "risk_category"
+      group_keys:
+        - "account_id"
+        - "district_name"
+        - "district_region"
+        - "urbanization_category"
+        - "net_cash_flow"
+        - "balance_volatility"
+        - "owner_gender"
+        - "avg_client_age"
+        - "avg_loan_duration_months"
+        - "running_loans"
+        - "finished_loans"
+        - "defaulted_loans"
+        - "risk_category"
+      filters:
+        - "core_tables=account,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0121
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -4245,6 +5629,43 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "account_id"
+        - "opening_date"
+        - "district_name"
+        - "region"
+        - "gender"
+        - "client_age"
+        - "transaction_count"
+        - "total_income"
+        - "total_expense"
+        - "net_balance"
+        - "max_balance"
+        - "loan_count"
+        - "total_loan_amount"
+        - "loan_status"
+        - "customer_category"
+        - "balance_rank"
+      group_keys:
+        - "account_id"
+        - "opening_date"
+        - "district_name"
+        - "region"
+        - "gender"
+        - "client_age"
+        - "total_income"
+        - "total_expense"
+        - "net_balance"
+        - "max_balance"
+        - "loan_status"
+        - "customer_category"
+        - "balance_rank"
+      filters:
+        - "core_tables=account,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0122
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -4342,6 +5763,42 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "loan_id"
+        - "district_name"
+        - "region"
+        - "gender"
+        - "birth_date"
+        - "loan_amount"
+        - "loan_duration_months"
+        - "status_description"
+        - "district_avg_salary"
+        - "unemployment_rate_1995"
+        - "district_total_loans"
+        - "district_avg_loan_amount"
+        - "district_problematic_loans"
+        - "district_loan_rank"
+        - "total_transactions"
+      group_keys:
+        - "loan_id"
+        - "district_name"
+        - "region"
+        - "gender"
+        - "birth_date"
+        - "loan_duration_months"
+        - "status_description"
+        - "district_avg_salary"
+        - "unemployment_rate_1995"
+        - "district_total_loans"
+        - "district_problematic_loans"
+        - "district_loan_rank"
+        - "total_transactions"
+      filters:
+        - "core_tables=account,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null
   - id: bird_0123
     source: bird
     source_version: bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001
@@ -4435,3 +5892,31 @@ cases:
       - "bird"
       - "challenging"
       - "financial"
+    semantic_contract:
+      projections:
+        - "account_id"
+        - "district_name"
+        - "region_name"
+        - "max_loan_amount"
+        - "avg_loan_amount"
+        - "loan_count"
+        - "gender"
+        - "age"
+        - "income_category"
+        - "transaction_count"
+        - "savings_ratio"
+        - "region_loan_rank"
+      group_keys:
+        - "account_id"
+        - "district_name"
+        - "region_name"
+        - "gender"
+        - "age"
+        - "income_category"
+        - "savings_ratio"
+        - "region_loan_rank"
+      filters:
+        - "core_tables=account,client,disp,district,loan,trans"
+      category_scope: exact
+      time_window: null
+      dedup_key: null

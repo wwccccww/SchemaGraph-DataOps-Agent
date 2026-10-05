@@ -43,6 +43,19 @@ def test_primary_fact_filter_requires_store_sales() -> None:
     assert any("store_sales" in item.message for item in findings)
 
 
+def test_quoted_sqlite_aliases_are_detected() -> None:
+    contract = SemanticContract(
+        projections=["School Name"],
+        group_keys=["School Name"],
+        filters=[],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = 'SELECT s."School Name" AS "School Name" FROM schools AS s'
+    assert check_frozen_semantic_contract(contract, sql, dialect="sqlite") == ()
+
+
 def test_check_requires_item_when_item_category_projected() -> None:
     contract = SemanticContract(
         projections=["item_category", "sales_amount"],
