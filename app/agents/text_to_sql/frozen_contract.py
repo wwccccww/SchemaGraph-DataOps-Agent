@@ -382,6 +382,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "多渠道销售须分渠道 CTE（各事实表+date_dim 过滤年份）用 UNION ALL 合并，"
                 "再 JOIN item 按 channel/item_category/sales_year 汇总；不要单条 SQL 同时 JOIN 多个 *_sales。"
             )
+        if item == "returns_present=true":
+            hints.append(
+                "退货金额用事实表 cr_return_amount / wr_return_amt / sr_return_amt 等 *_return_amount 列，"
+                "不要用 *_return_amt_inc_tax 或其它含税列代替。"
+            )
     return tuple(hints)
 
 

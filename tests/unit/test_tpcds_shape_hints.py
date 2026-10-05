@@ -72,6 +72,63 @@ def test_promo_item_question_requires_item_entity_and_join_hint() -> None:
     assert any("促销商品" in line for line in shape.joins)
 
 
+def test_catalog_returns_question_does_not_require_catalog_sales() -> None:
+    question = (
+        "统计 2001 年各仓库所在州、退货原因和商品类别的目录退货金额，并关联呼叫中心。"
+    )
+    documents = [
+        _doc(name)
+        for name in (
+            "catalog_returns",
+            "call_center",
+            "warehouse",
+            "reason",
+            "item",
+            "date_dim",
+            "catalog_sales",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "catalog_returns" in shape.entities
+    assert "catalog_sales" not in shape.entities
+
+
+def test_web_returns_question_does_not_require_web_sales() -> None:
+    question = "统计 2001 年各网页类型、退货原因和商品类别的网站退货金额。"
+    documents = [
+        _doc(name)
+        for name in (
+            "web_returns",
+            "web_page",
+            "web_sales",
+            "web_site",
+            "reason",
+            "item",
+            "date_dim",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "web_returns" in shape.entities
+    assert "web_sales" not in shape.entities
+
+
+def test_multi_channel_sales_does_not_require_store_dimension() -> None:
+    question = "按销售渠道、商品类别和年份汇总 2001 年门店、目录和网站三条渠道的销售金额。"
+    documents = [
+        _doc(name)
+        for name in (
+            "store_sales",
+            "catalog_sales",
+            "web_sales",
+            "item",
+            "store",
+            "date_dim",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "store" not in shape.entities
+
+
 def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     question = "统计 2001 年各呼叫中心、配送方式和商品类别的目录销售金额。"
     documents = [

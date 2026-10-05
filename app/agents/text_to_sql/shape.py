@@ -62,9 +62,14 @@ _ENTITIES = (
     (re.compile(r"商品类别|item category"), ("item",)),
     (re.compile(r"促销商品|直邮促销|直邮"), ("item", "promotion")),
     (re.compile(r"门店销售|门店退货|store sales|store returns"), ("store_sales", "store")),
-    (re.compile(r"目录销售|目录退货|catalog sales"), ("catalog_sales", "catalog_page")),
-    (re.compile(r"网站销售|网站退货|web sales"), ("web_sales", "web_site", "web_page")),
-    (re.compile(r"门店|store"), ("store",)),
+    (re.compile(r"目录退货|catalog returns"), ("catalog_returns",)),
+    (re.compile(r"目录销售|catalog sales"), ("catalog_sales", "catalog_page")),
+    (re.compile(r"网站退货|web returns"), ("web_returns", "web_page")),
+    (re.compile(r"网站销售|web sales"), ("web_sales", "web_site", "web_page")),
+    (
+        re.compile(r"门店所在|同一门店|同店|门店州|各门店|store state"),
+        ("store",),
+    ),
     (re.compile(r"仓库|warehouse"), ("warehouse",)),
     (re.compile(r"促销|promotion"), ("promotion",)),
     (re.compile(r"呼叫中心|call center"), ("call_center",)),
@@ -80,7 +85,10 @@ _ENTITIES = (
 _MEASURE_COLUMNS = (
     (re.compile(r"销售金额|sales amount"), ("ext_sales_price", "sales_price")),
     (re.compile(r"净利润|net profit"), ("net_profit",)),
-    (re.compile(r"退货金额|return amount"), ("return_amt", "ext_return")),
+    (
+        re.compile(r"退货金额|return amount"),
+        ("return_amount", "cr_return_amount", "wr_return_amt", "return_amt"),
+    ),
     (re.compile(r"库存数量|在手库存|quantity on hand"), ("quantity_on_hand", "inv_quantity")),
 )
 
@@ -451,6 +459,16 @@ def _join_hints(
         )
     if re.search(r"收入|income", question, re.IGNORECASE) and "income_band" in visible:
         hints.append("收入分段用 income_band 连接 household_demographics，不要省略 income_band。")
+    if (
+        re.search(r"收入带|购买潜力|income|buy potential", question, re.IGNORECASE)
+        and "household_demographics" in visible
+        and "store_sales" in visible
+    ):
+        hints.append(
+            "收入带/购买潜力：store_sales JOIN customer，再 household_demographics "
+            "ON customer.c_current_hdemo_sk = hd_demo_sk，JOIN income_band；"
+            "不要用 ss_hdemo_sk 直连 household；问句未提门店州时不要 JOIN store。"
+        )
     if re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE) and "ship_mode" in visible:
         hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
     if re.search(r"网站|web site|web_site", question, re.IGNORECASE) and "web_site" in visible:
