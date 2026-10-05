@@ -27,11 +27,16 @@ from app.agents.text_to_sql.semantic import (
     check_cte_outputs,
     check_semantics,
 )
+from app.agents.text_to_sql.frozen_contract import (
+    check_frozen_semantic_contract,
+    format_frozen_semantic_contract,
+)
 from app.agents.text_to_sql.shape import (
     check_answer_shape,
     extract_generic_shape,
     format_generic_shape,
 )
+from app.schemas.benchmark import SemanticContract
 from app.datasources.registry import resolve_data_source
 from app.graph.expand import (
     DEFAULT_MAX_TOTAL_TABLES,
@@ -126,6 +131,7 @@ class TextToSqlState(TypedDict):
     contract_repairs: int
     repair_trace: list[dict[str, object]]
     join_paths: list[str]
+    frozen_contract: dict[str, object] | None
     initial_sql: str
     candidate_sql: str | None
     candidate_columns: list[str]
@@ -241,6 +247,7 @@ async def inspect_text_to_sql(
     variant: TextToSqlVariant = "self_healing",
     anchor_date: str = "2026-10-01",
     initial_sql: str | None = None,
+    frozen_contract: SemanticContract | None = None,
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -281,6 +288,11 @@ async def inspect_text_to_sql(
                     dialect=source.dialect,
                     profile=source.profile,
                     schema_name=source.schema_name,
+                    frozen_contract=(
+                        None
+                        if frozen_contract is None
+                        else frozen_contract.model_dump(mode="json")
+                    ),
                 )
             )
             return TextToSqlInspection(
@@ -313,6 +325,7 @@ def _initial_state(
     dialect: str,
     profile: str,
     schema_name: str,
+    frozen_contract: dict[str, object] | None,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -347,6 +360,7 @@ def _initial_state(
         "contract_repairs": 0,
         "repair_trace": [],
         "join_paths": [],
+        "frozen_contract": frozen_contract,
         "initial_sql": initial_sql,
         "candidate_sql": None,
         "candidate_columns": [],
@@ -528,6 +542,7 @@ def _validate_sql(
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
             findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
+            findings.extend(_frozen_contract_findings(state, decision.sql))
             if (
                 state["variant"] == "self_healing"
                 and state["profile"] != "ecommerce"
@@ -617,6 +632,7 @@ def _execute_sql(
             )
         )
         findings.extend(findings_shape)
+        findings.extend(_frozen_contract_findings(state, sql))
         if state["profile"] == "ecommerce":
             findings.extend(
                 check_contract(
@@ -751,6 +767,20 @@ def _record_error(state: TextToSqlState, error: ExecutionError) -> dict[str, obj
     }
 
 
+def _frozen_contract_findings(state: TextToSqlState, sql: str) -> list[SemanticFinding]:
+    payload = state.get("frozen_contract")
+    if payload is None or state["profile"] == "ecommerce":
+        return []
+    contract = SemanticContract.model_validate(payload)
+    return list(
+        check_frozen_semantic_contract(
+            contract,
+            sql,
+            dialect=state["dialect"],
+        )
+    )
+
+
 def _contract(state: TextToSqlState) -> AnswerContract | None:
     if state["profile"] != "ecommerce":
         return None
@@ -769,13 +799,18 @@ async def _output_shape(services: ServiceBundle, state: TextToSqlState) -> str |
     documents, edges = await services.load_catalog()
     if _catalog_mismatch(documents, state["database_id"]):
         return None
-    return format_generic_shape(
+    shape = format_generic_shape(
         extract_generic_shape(
             state["question"],
             _selected_documents(documents, state),
             edges,
         )
     )
+    payload = state.get("frozen_contract")
+    if not payload:
+        return shape
+    contract = SemanticContract.model_validate(payload)
+    return f"{shape}\n\n{format_frozen_semantic_contract(contract)}"
 
 
 def _catalog_rejection(request_id: str) -> TextToSqlInspection:

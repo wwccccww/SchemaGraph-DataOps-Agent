@@ -512,6 +512,7 @@ async def _run(
             execute=True,
             max_rows=_evaluation_max_rows(source),
             variant=variant,
+            frozen_contract=case.semantic_contract,
         )
 
     async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
