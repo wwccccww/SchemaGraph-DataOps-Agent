@@ -111,7 +111,8 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **v9 + TPC-DS 冻结 repair（audit / UNION / 直邮 IN / 库存卖过子查询）**（`self_healing`，180s）：TPC-DS 当前最佳 **10/30（EX 0.333）**（`run_20261005T193700Z_e4360d4_*`，含 `002`+`009`）；上一档 **9/30**（`1d55618` / `bc26f6f`）。较 v8 **4/30** 提升。
   - **`90bd539` 契约修正**：`promotion_channel=dmail` / `promotion_via_item_sk_subquery` 仅对问句含 **直邮** 生效（不再误伤「促销名称/目的」类用例，如 `tpcds_complex_011`）；`multi_channel_union` 时跳过对 per-channel `item_sk` CTE 的 sk-heavy 误报（`008` Gold 可通过复核）；Prompt 增加 `promo_name` / `call_center_state` / `page_type` 等列映射。
   - **同提交全量复跑**（`self_healing`，180s）：TPC-DS **11/30（EX 0.367）**（`run_20261005T194537Z_90bd539_*`），新增匹配 **`011`**（促销名称 JOIN）；`002` 本 run 未匹配（方差）。后续 shape 修正：目录/网站**退货**不再误要 `*_sales`/`store` 维表；退货金额列与收入带 JOIN 路径提示。
-  - **`907a5f9` 冻结复核 + shape**（`self_healing`，180s）：TPC-DS **17/30（EX 0.567）**（`run_20261005T195230Z_907a5f9_*`）。新增 **`005–008、013、028`** 等；`010` 仍因「门店销售」误要 `store` 维表在 repair 中摇摆（已在后续提交将「门店销售」仅绑定 `store_sales`）。
+  - **`907a5f9` 冻结复核 + shape**（`self_healing`，180s）：TPC-DS **17/30（EX 0.567）**（`run_20261005T195230Z_907a5f9_*`）。新增 **`005–008、013、028`** 等；`010` 仍因「门店销售」误要 `store` 维表在 repair 中摇摆（`aaad221` 将「门店销售」仅绑定 `store_sales`）。
+  - **`9b50e5d` 契约分派**（cross-channel / pivot / returns union + 销售实体收紧）（`self_healing`，180s）：TPC-DS **23/30（EX 0.767）**（`run_20261005T195921Z_9b50e5d_*`）。新增 **`010、015、019、025、026、029`** 等；未匹配 **`013、014、016、022、023、024、030`**（7 条）。
   - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。`4d1608f` 再修正 alias GROUP BY 误报 **join_semantics**（**5×** vs 12×，EX 2/50 为方差，见 `run_20261005T192405Z_*`）。
   - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
   - 早期 v7 无 BIRD contract：**0/50** BIRD。
