@@ -112,6 +112,25 @@ def test_web_returns_question_does_not_require_web_sales() -> None:
     assert "web_sales" not in shape.entities
 
 
+def test_store_sales_wording_does_not_require_store_table() -> None:
+    question = "统计 2001 年各收入带下界和购买潜力对应的门店销售金额。"
+    documents = [
+        _doc(name)
+        for name in (
+            "store_sales",
+            "customer",
+            "household_demographics",
+            "income_band",
+            "item",
+            "date_dim",
+            "store",
+        )
+    ]
+    shape = extract_generic_shape(question, documents)
+    assert "store_sales" in shape.entities
+    assert "store" not in shape.entities
+
+
 def test_multi_channel_sales_does_not_require_store_dimension() -> None:
     question = "按销售渠道、商品类别和年份汇总 2001 年门店、目录和网站三条渠道的销售金额。"
     documents = [
