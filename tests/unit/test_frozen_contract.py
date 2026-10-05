@@ -65,6 +65,43 @@ def test_format_includes_projections_and_item_hint() -> None:
     assert "item" in text
 
 
+def test_audit_strict_requires_all_core_tables() -> None:
+    contract = SemanticContract(
+        projections=["sales_amount"],
+        group_keys=[],
+        filters=[
+            "core_tables=web_sales,customer,customer_address,date_dim,item,web_site",
+            "audit_tables_strict=true",
+        ],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    bad = (
+        "SELECT SUM(ws_ext_sales_price) AS sales_amount FROM web_sales ws "
+        "JOIN date_dim d ON ws.ws_sold_date_sk = d.d_date_sk"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="postgres")
+    assert any("customer" in item.message for item in findings)
+
+
+def test_channel_pivot_rejects_web_sales_warehouse_join() -> None:
+    contract = SemanticContract(
+        projections=["catalog_sales_amount", "web_sales_amount"],
+        group_keys=["carrier", "item_category", "sales_year"],
+        filters=["channel_pivot_compare=true"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    bad = (
+        "WITH web_agg AS (SELECT SUM(ws_ext_sales_price) FROM web_sales ws "
+        "JOIN warehouse w ON ws.ws_warehouse_sk = w.w_warehouse_sk) SELECT 1"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="postgres")
+    assert any("web_sales" in item.message and "warehouse" in item.message for item in findings)
+
+
 def test_core_tables_reject_audited_extra_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],
@@ -74,7 +111,11 @@ def test_core_tables_reject_audited_extra_tables() -> None:
         time_window=None,
         dedup_key=None,
     )
-    ok = "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss"
+    ok = (
+        "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss "
+        "JOIN customer c ON ss.ss_customer_sk = c.c_customer_sk "
+        "JOIN date_dim d ON ss.ss_sold_date_sk = d.d_date_sk"
+    )
     assert check_frozen_semantic_contract(contract, ok, dialect="postgres") == ()
     bad = (
         "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss "

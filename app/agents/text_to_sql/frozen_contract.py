@@ -95,6 +95,16 @@ def check_frozen_semantic_contract(
                     f"只能使用冻结审计表（{'、'.join(core_tables)}），请移除：{'、'.join(extra)}",
                 )
             )
+        missing_core = sorted(
+            name for name in core_tables if name.lower() not in referenced
+        )
+        if missing_core:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    f"冻结审计表必须全部 JOIN/FROM：{'、'.join(missing_core)}",
+                )
+            )
     elif (
         core_tables
         and "promotion" not in core_tables
@@ -301,6 +311,15 @@ def check_frozen_semantic_contract(
                         "carrier 维度用 ship_mode.sm_carrier，不要 GROUP BY sm_ship_mode_sk",
                     )
                 )
+        for segment in re.split(r"\bunion\b|(?=\bwith\b)", lowered_sql):
+            if "web_sales" in segment and "warehouse" in segment and "catalog_sales" not in segment:
+                findings.append(
+                    SemanticFinding(
+                        "missing_entity",
+                        "渠道对比中 web_sales CTE 不要 JOIN warehouse（目录侧可按需 JOIN warehouse）",
+                    )
+                )
+                break
     demo_dims = {"marital_status", "education_status"} & {
         name.lower() for name in contract.projections
     }
