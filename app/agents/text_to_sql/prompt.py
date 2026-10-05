@@ -10,14 +10,14 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v3"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v4"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
 )
 _GENERIC_SHAPE = (
-    "问句中的维度和过滤值要出现在 SELECT 或 WHERE 中，"
-    "度量要聚合，排序要求要写 ORDER BY。"
+    "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
+    "年份若既是过滤又是汇总轴，也要投影出来。度量要聚合，排序要求要写 ORDER BY。"
 )
 SQLITE_SYSTEM_PROMPT = (
     "你是 SQLite 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
@@ -55,6 +55,7 @@ def render_generation_prompt(
     tools: Sequence[ToolHit],
     contract: AnswerContract | None = None,
     plan: str | None = None,
+    output_shape: str | None = None,
 ) -> str:
     """组装首轮上下文。Schema 文本由调用方保证不超过预算。"""
 
@@ -64,6 +65,7 @@ def render_generation_prompt(
         tools=tools,
         contract=contract,
         plan=plan,
+        output_shape=output_shape,
         repair=None,
     )
 
@@ -78,6 +80,7 @@ def render_repair_prompt(
     error_message: str,
     contract: AnswerContract | None = None,
     plan: str | None = None,
+    output_shape: str | None = None,
 ) -> str:
     """把结构化错误附到下一轮。不附带原始异常。"""
 
@@ -87,6 +90,7 @@ def render_repair_prompt(
         tools=tools,
         contract=contract,
         plan=plan,
+        output_shape=output_shape,
         repair=(previous_sql, error_category, error_message),
     )
 
@@ -98,6 +102,7 @@ def _render(
     tools: Sequence[ToolHit],
     contract: AnswerContract | None,
     plan: str | None,
+    output_shape: str | None,
     repair: tuple[str, str, str] | None,
 ) -> str:
     tool_lines = [
@@ -117,6 +122,8 @@ def _render(
         sections.append(format_answer_contract(contract))
     if plan:
         sections.append(plan)
+    if output_shape:
+        sections.append(output_shape)
     sections.extend(
         (
             f"可用表：\n{schema_context}",

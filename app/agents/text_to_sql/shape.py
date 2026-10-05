@@ -1,16 +1,18 @@
-"""从问句本身提取通用答案形状。不读取 Gold 列。"""
+"""从问句和当前库目录提取通用输出形状。不读取 Gold 列。"""
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
 from app.agents.text_to_sql.semantic import SemanticFinding
-from app.schemas.catalog import TableDocument
+from app.evaluation.sql_shape import describe_sql
+from app.schemas.catalog import SchemaEdge, TableDocument
 
 _YEAR = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
 _ORDER = re.compile(
@@ -20,23 +22,142 @@ _ORDER = re.compile(
     re.IGNORECASE,
 )
 _MEASURE = re.compile(
-    r"汇总|金额|数量|净利润|次数|多少|\bhow many\b|\bnumber of\b|\baverage\b|\btotal\b",
+    r"汇总|金额|数量|净利润|次数|多少|比例|百分比"
+    r"|\bhow many\b|\bnumber of\b|\baverage\b|\btotal\b"
+    r"|\bpercentage\b|\brate\b",
     re.IGNORECASE,
 )
 _AGGREGATE = re.compile(r"\b(?:sum|count|avg|min|max)\s*\(", re.IGNORECASE)
-_DIMENSIONS = (
-    ("类别", "category"),
-    ("教育", "education"),
-    ("收入", "income"),
-    ("性别", "gender"),
-    ("促销", "promo"),
-    ("班次", "hour"),
-    ("承运", "carrier"),
-    ("婚姻", "marital"),
-    ("原因", "reason"),
-    ("州", "state"),
-    ("仓库", "warehouse"),
+_GROUP_AXIS = re.compile(
+    r"各|按[^。]{0,16}汇总|按[^。]{0,16}统计"
+    r"|\bgroup(?:ed|ing)?\s+(?:them\s+)?by\b"
+    r"|\bfor each\b|\bsegmented by\b",
+    re.IGNORECASE,
 )
+_DIMENSIONS = (
+    (("商品类别", "类别", "item category", "category"), ("category",), ("item",)),
+    (("教育", "education"), ("education",), ("customer_demographics",)),
+    (("信用", "credit"), ("credit",), ("customer_demographics",)),
+    (("收入", "income"), ("income",), ("income_band", "household_demographics")),
+    (("性别", "gender"), ("gender",), ("customer_demographics",)),
+    (("婚姻", "marital"), ("marital",), ("customer_demographics",)),
+    (("促销", "promo"), ("promo",), ("promotion",)),
+    (("班次", "shift"), ("hour", "shift"), ("time_dim",)),
+    (("承运", "配送方式", "carrier", "ship mode"), ("carrier", "ship"), ("ship_mode",)),
+    (("原因", "reason"), ("reason",), ("reason",)),
+    (("仓库", "warehouse"), ("warehouse",), ("warehouse",)),
+    (("渠道", "channel"), ("channel",), ()),
+    (("网页", "web page", "page type"), ("page",), ("web_page",)),
+    (("网站", "web site"), ("web",), ("web_site",)),
+    (("呼叫中心", "call center"), ("call", "center"), ("call_center",)),
+    (("出生年份", "birth year"), ("birth",), ("customer",)),
+    (("购买潜力", "buy potential"), ("potential", "buy"), ("household_demographics",)),
+    (("受抚养", "dependent"), ("dep_count", "dependent"), ("household_demographics",)),
+    (("州",), ("state",), ()),
+    (("县", "county"), ("county",), ("schools", "frpm")),
+)
+_ENTITIES = (
+    (re.compile(r"当前住址|current address|customer address"), ("customer_address",)),
+    (re.compile(r"顾客|customer"), ("customer",)),
+    (re.compile(r"商品类别|item category"), ("item",)),
+    (re.compile(r"门店销售|门店退货|store sales|store returns"), ("store_sales", "store")),
+    (re.compile(r"目录销售|目录退货|catalog sales"), ("catalog_sales", "catalog_page")),
+    (re.compile(r"网站销售|网站退货|web sales"), ("web_sales", "web_site", "web_page")),
+    (re.compile(r"门店|store"), ("store",)),
+    (re.compile(r"仓库|warehouse"), ("warehouse",)),
+    (re.compile(r"促销|promotion"), ("promotion",)),
+    (re.compile(r"\bschools?\b", re.IGNORECASE), ("schools",)),
+    (re.compile(r"\bSAT\b|\bsatscores\b"), ("satscores",)),
+    (re.compile(r"FRPM|free meal|free or reduced", re.IGNORECASE), ("frpm",)),
+)
+_MEASURE_COLUMNS = (
+    (re.compile(r"销售金额|sales amount"), ("ext_sales_price", "sales_price")),
+    (re.compile(r"净利润|net profit"), ("net_profit",)),
+    (re.compile(r"退货金额|return amount"), ("return_amt", "ext_return")),
+    (re.compile(r"库存数量|在手库存|quantity on hand"), ("quantity_on_hand", "inv_quantity")),
+)
+
+
+@dataclass(frozen=True)
+class GenericDimension:
+    """问句点名、必须回显到最终投影的维度。"""
+
+    label: str
+    tokens: tuple[str, ...]
+    columns: tuple[str, ...]
+    must_group: bool
+
+
+@dataclass(frozen=True)
+class GenericShape:
+    """通用问数的输出轴、过滤、实体和口径。不使用电商契约字段。"""
+
+    years: tuple[str, ...]
+    echo_years: bool
+    dimensions: tuple[GenericDimension, ...]
+    measures: tuple[str, ...]
+    measure_columns: tuple[str, ...]
+    entities: tuple[str, ...]
+    formulas: tuple[str, ...]
+    formula_columns: tuple[str, ...]
+    joins: tuple[str, ...]
+    order_required: bool
+
+
+def extract_generic_shape(
+    question: str,
+    documents: Sequence[TableDocument] = (),
+    edges: Sequence[SchemaEdge] = (),
+) -> GenericShape:
+    """只读问句和当前可见目录。Gold required_tables 不进入这里。"""
+
+    visible = {document.table_name.lower(): document for document in documents}
+    years = tuple(dict.fromkeys(_YEAR.findall(question)))
+    grouping = _GROUP_AXIS.search(question) is not None
+    measured = _MEASURE.search(question) is not None
+    dimensions = _dimensions(question, documents, grouping=grouping and measured)
+    entities = _entities(question, visible)
+    formulas, formula_columns = _formulas(question, documents)
+    joins = _join_hints(question, documents, edges)
+    return GenericShape(
+        years=years,
+        echo_years=bool(years and grouping and measured),
+        dimensions=dimensions,
+        measures=_measures(question),
+        measure_columns=_measure_columns(question, documents),
+        entities=entities,
+        formulas=formulas,
+        formula_columns=formula_columns,
+        joins=joins,
+        order_required=_ORDER.search(question) is not None,
+    )
+
+
+def format_generic_shape(shape: GenericShape) -> str:
+    """放在可用表之前。不用电商答案契约的标题。"""
+
+    lines = ["输出形状："]
+    if shape.dimensions:
+        shown = "、".join(_dimension_line(item) for item in shape.dimensions)
+        lines.append(f"最终 SELECT 必须包含维度：{shown}")
+        lines.append("这些维度在有聚合时必须进入 GROUP BY，不能只写在 WHERE。")
+    if shape.echo_years:
+        years = "、".join(shape.years)
+        lines.append(f"年份 {years} 要同时出现在过滤和最终投影中，例如 d_year。")
+    elif shape.years:
+        lines.append(f"过滤年份：{'、'.join(shape.years)}")
+    if shape.measures:
+        lines.append(f"度量：{'、'.join(shape.measures)}")
+    if shape.measure_columns:
+        lines.append(f"度量列优先使用：{'、'.join(shape.measure_columns)}")
+    if shape.entities:
+        lines.append("必需实体表必须出现在 FROM 或 JOIN：" + "、".join(shape.entities))
+    lines.extend(f"口径：{item}" for item in (*shape.formulas, *shape.joins))
+    if shape.order_required:
+        lines.append("问句要求排序时写 ORDER BY。")
+    if len(lines) == 1:
+        lines.append("问句中的维度要出现在最终投影，过滤值出现在 WHERE，度量要聚合。")
+    return "\n".join(lines)
 
 
 def check_answer_shape(
@@ -45,36 +166,18 @@ def check_answer_shape(
     documents: Sequence[TableDocument],
     *,
     dialect: str = "postgres",
+    edges: Sequence[SchemaEdge] = (),
 ) -> tuple[SemanticFinding, ...]:
-    """维度、度量、年份和排序必须能在 SQL 里找到。对不上列时不猜。"""
+    """维度必须在投影里。对不上列时不猜。"""
 
-    findings: list[SemanticFinding] = []
-    for year in dict.fromkeys(_YEAR.findall(question)):
-        if year not in sql:
-            findings.append(
-                SemanticFinding("projection_mismatch", f"问句中的年份 {year} 没有出现在 SQL 中")
-            )
-    if _MEASURE.search(question) and _AGGREGATE.search(sql) is None:
-        findings.append(SemanticFinding("projection_mismatch", "问句要求度量，SQL 中没有聚合函数"))
-    if _ORDER.search(question) and not _has_order(sql, dialect):
-        findings.append(SemanticFinding("projection_mismatch", "问句要求排序，SQL 中没有 ORDER BY"))
+    findings = list(
+        check_generic_shape(
+            extract_generic_shape(question, documents, edges),
+            sql,
+            dialect=dialect,
+        )
+    )
     lowered = sql.lower()
-    for fragment, token in _DIMENSIONS:
-        if fragment not in question:
-            continue
-        columns = [
-            column.name
-            for document in documents
-            for column in document.columns
-            if token in column.name.lower()
-        ]
-        if columns and token not in lowered:
-            findings.append(
-                SemanticFinding(
-                    "projection_mismatch",
-                    f"问句中的维度“{fragment}”应出现在投影或过滤中，例如列 {columns[0]}",
-                )
-            )
     for document in documents:
         for column in document.columns:
             if not _mentioned_column(column.name, question):
@@ -87,6 +190,268 @@ def check_answer_shape(
                     )
                 )
     return tuple(findings)
+
+
+def check_generic_shape(
+    shape: GenericShape,
+    sql: str,
+    *,
+    dialect: str = "postgres",
+) -> tuple[SemanticFinding, ...]:
+    """用已经抽出的形状核对 SQL。"""
+
+    described = describe_sql(sql, dialect=dialect)
+    findings: list[SemanticFinding] = []
+    projected = _projected_text(described.projections, described.group_by)
+    lowered = sql.lower()
+    for year in shape.years:
+        if year not in sql:
+            findings.append(
+                SemanticFinding("projection_mismatch", f"问句中的年份 {year} 没有出现在 SQL 中")
+            )
+        elif shape.echo_years and not _year_projected(year, described.projections):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"年份 {year} 不能只写在 WHERE，必须出现在最终 SELECT 或分组中",
+                )
+            )
+    if shape.measures and _AGGREGATE.search(sql) is None:
+        findings.append(SemanticFinding("projection_mismatch", "问句要求度量，SQL 中没有聚合函数"))
+    if shape.order_required and not _has_order(sql, dialect):
+        findings.append(SemanticFinding("projection_mismatch", "问句要求排序，SQL 中没有 ORDER BY"))
+    for dimension in shape.dimensions:
+        if not any(token in projected for token in dimension.tokens):
+            example = dimension.columns[0] if dimension.columns else dimension.tokens[0]
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"维度“{dimension.label}”必须出现在最终 SELECT 中，例如列 {example}",
+                )
+            )
+        elif dimension.must_group and described.aggregations and not described.group_by:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"维度“{dimension.label}”有聚合时必须进入 GROUP BY",
+                )
+            )
+    referenced = {name.lower() for name in described.referenced_tables}
+    for entity in shape.entities:
+        if entity.lower() not in referenced:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    f"问句要求的实体表 {entity} 必须出现在 FROM 或 JOIN 中，不能只用空值判断替代",
+                )
+            )
+    if shape.measure_columns and not any(name.lower() in lowered for name in shape.measure_columns):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                f"度量应使用目录中的列 {shape.measure_columns[0]}",
+            )
+        )
+    if shape.formula_columns and not _formula_used(shape.formula_columns, sql):
+        findings.append(SemanticFinding("projection_mismatch", f"口径：{shape.formulas[0]}"))
+    return tuple(findings)
+
+
+def generic_coverage(
+    shape: GenericShape,
+    sql: str,
+    *,
+    dialect: str = "postgres",
+) -> dict[str, float | None]:
+    """分层覆盖率。不是执行准确率，也不读取 Gold。"""
+
+    described = describe_sql(sql, dialect=dialect)
+    projected = _projected_text(described.projections, described.group_by)
+    referenced = {name.lower() for name in described.referenced_tables}
+    dimension_hits = 0
+    for dimension in shape.dimensions:
+        if any(token in projected for token in dimension.tokens):
+            dimension_hits += 1
+    entity_hits = sum(1 for entity in shape.entities if entity.lower() in referenced)
+    measure_ok = 1.0 if (not shape.measures or _AGGREGATE.search(sql)) else 0.0
+    return {
+        "dimension_coverage": _ratio(dimension_hits, len(shape.dimensions)),
+        "entity_coverage": _ratio(entity_hits, len(shape.entities)),
+        "measure_coverage": None if not shape.measures else measure_ok,
+    }
+
+
+def _dimensions(
+    question: str,
+    documents: Sequence[TableDocument],
+    *,
+    grouping: bool,
+) -> tuple[GenericDimension, ...]:
+    found: list[GenericDimension] = []
+    for labels, tokens, tables in _DIMENSIONS:
+        label = next((item for item in labels if _contains(question, item)), None)
+        if label is None or not _dimension_requested(question, label):
+            continue
+        columns = _columns_for_tokens(documents, tokens, tables)
+        found.append(
+            GenericDimension(
+                label=label,
+                tokens=tokens,
+                columns=columns,
+                must_group=grouping,
+            )
+        )
+    return tuple(found)
+
+
+def _entities(
+    question: str,
+    visible: dict[str, TableDocument],
+) -> tuple[str, ...]:
+    names: list[str] = []
+    for pattern, tables in _ENTITIES:
+        if pattern.search(question) is None:
+            continue
+        for table in tables:
+            if table.lower() in visible and table not in names:
+                names.append(visible[table.lower()].table_name)
+    return tuple(names)
+
+
+def _measures(question: str) -> tuple[str, ...]:
+    if _MEASURE.search(question) is None:
+        return ()
+    return ("问句中的度量需要聚合",)
+
+
+def _measure_columns(question: str, documents: Sequence[TableDocument]) -> tuple[str, ...]:
+    names: list[str] = []
+    for pattern, tokens in _MEASURE_COLUMNS:
+        if pattern.search(question) is None:
+            continue
+        for document in documents:
+            for column in document.columns:
+                lowered = column.name.lower()
+                if any(token in lowered for token in tokens):
+                    names.append(column.name)
+    return tuple(dict.fromkeys(names))
+
+
+def _formulas(
+    question: str,
+    documents: Sequence[TableDocument],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if re.search(r"rate|比例|百分比|percentage", question, re.IGNORECASE) is None:
+        return (), ()
+    count = _first_column(documents, ("free meal count", "frpm count"))
+    enrollment = _first_column(documents, ("enrollment (k-12)", "enrollment"))
+    if count is None or enrollment is None:
+        return (), ()
+    text = f"免费餐比例用 {count} * 1.0 / {enrollment}，不要直接用现成百分比列代替"
+    return (text,), (count, enrollment)
+
+
+def _join_hints(
+    question: str,
+    documents: Sequence[TableDocument],
+    edges: Sequence[SchemaEdge],
+) -> tuple[str, ...]:
+    if re.search(r"当前住址|current address", question, re.IGNORECASE) is None:
+        return ()
+    visible = {document.table_name.lower() for document in documents}
+    if "customer_address" not in visible:
+        return ()
+    for edge in edges:
+        tables = {edge.source_table.lower(), edge.target_table.lower()}
+        if tables != {"customer", "customer_address"}:
+            continue
+        left = f"{edge.source_table}.{edge.source_columns[0]}"
+        right = f"{edge.target_table}.{edge.target_columns[0]}"
+        return (f"当前住址用 {left} = {right} 连接，不要只用 IS NOT NULL",)
+    return ("当前住址必须连接 customer_address，不要只用 IS NOT NULL",)
+
+
+def _dimension_line(dimension: GenericDimension) -> str:
+    if dimension.columns:
+        return f"{dimension.label}（列如 {dimension.columns[0]}）"
+    return dimension.label
+
+
+def _columns_for_tokens(
+    documents: Sequence[TableDocument],
+    tokens: Sequence[str],
+    tables: Sequence[str],
+) -> tuple[str, ...]:
+    preferred = {name.lower() for name in tables}
+    names: list[str] = []
+    for document in documents:
+        if preferred and document.table_name.lower() not in preferred:
+            continue
+        for column in document.columns:
+            lowered = column.name.lower()
+            if any(token in lowered for token in tokens):
+                names.append(column.name)
+    if names or not preferred:
+        return tuple(dict.fromkeys(names))
+    return _columns_for_tokens(documents, tokens, ())
+
+
+def _first_column(documents: Sequence[TableDocument], needles: Sequence[str]) -> str | None:
+    for document in documents:
+        for column in document.columns:
+            lowered = column.name.lower()
+            if any(needle in lowered for needle in needles):
+                return column.name
+    return None
+
+
+def _contains(question: str, fragment: str) -> bool:
+    if re.fullmatch(r"[A-Za-z][A-Za-z0-9 ]+", fragment):
+        return re.search(rf"\b{re.escape(fragment)}\b", question, re.IGNORECASE) is not None
+    return fragment in question
+
+
+def _dimension_requested(question: str, label: str) -> bool:
+    if label == "州":
+        return "州" in question
+    if any(prefix + label in question for prefix in ("各", "同一", "每个", "所在")):
+        return True
+    if re.search(rf"按[^。]{{0,16}}{re.escape(label)}", question) is not None:
+        return True
+    if re.fullmatch(r"[A-Za-z][A-Za-z0-9 ]+", label):
+        return (
+            re.search(
+                rf"\b(?:by|per|each|across)\s+{re.escape(label)}\b",
+                question,
+                re.IGNORECASE,
+            )
+            is not None
+        )
+    return False
+
+
+def _projected_text(projections: Sequence[str], group_by: Sequence[str]) -> str:
+    return " ".join((*projections, *group_by)).lower()
+
+
+def _year_projected(year: str, projections: Sequence[str]) -> bool:
+    blob = " ".join(projections).lower()
+    if year in blob:
+        return True
+    return any("year" in name.lower() for name in projections)
+
+
+def _formula_used(columns: Sequence[str], sql: str) -> bool:
+    lowered = sql.lower()
+    if "/" not in sql:
+        return False
+    return all(name.lower() in lowered for name in columns)
+
+
+def _ratio(hits: int, total: int) -> float | None:
+    if total == 0:
+        return None
+    return hits / total
 
 
 def _has_order(sql: str, dialect: str) -> bool:

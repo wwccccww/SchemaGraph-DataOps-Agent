@@ -27,7 +27,11 @@ from app.agents.text_to_sql.semantic import (
     check_cte_outputs,
     check_semantics,
 )
-from app.agents.text_to_sql.shape import check_answer_shape
+from app.agents.text_to_sql.shape import (
+    check_answer_shape,
+    extract_generic_shape,
+    format_generic_shape,
+)
 from app.datasources.registry import resolve_data_source
 from app.graph.expand import (
     DEFAULT_MAX_TOTAL_TABLES,
@@ -159,7 +163,7 @@ def build_graph(services: ServiceBundle) -> Any:
     builder.add_node("route_tools", cast(Any, _route_tools(bound)))
     builder.add_node("retrieve_schema", cast(Any, _retrieve_schema(bound)))
     builder.add_node("expand_schema_graph", cast(Any, _expand_schema_graph(bound)))
-    builder.add_node("build_prompt", cast(Any, _build_prompt))
+    builder.add_node("build_prompt", cast(Any, _build_prompt(bound)))
     builder.add_node("generate_sql", cast(Any, _generate_sql(bound)))
     builder.add_node("validate_sql", cast(Any, _validate_sql(bound)))
     builder.add_node("execute_sql", cast(Any, _execute_sql(bound)))
@@ -476,17 +480,23 @@ def _expand_schema_graph(
     return expand_schema_graph
 
 
-async def _build_prompt(state: TextToSqlState) -> dict[str, object]:
-    contract = _contract(state)
-    return {
-        "prompt": render_generation_prompt(
-            question=state["question"],
-            schema_context=state["schema_context"],
-            tools=_tools(state),
-            contract=contract,
-            plan=_plan(contract, state),
-        )
-    }
+def _build_prompt(
+    services: ServiceBundle,
+) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
+    async def build_prompt(state: TextToSqlState) -> dict[str, object]:
+        contract = _contract(state)
+        return {
+            "prompt": render_generation_prompt(
+                question=state["question"],
+                schema_context=state["schema_context"],
+                tools=_tools(state),
+                contract=contract,
+                plan=_plan(contract, state),
+                output_shape=await _output_shape(services, state),
+            )
+        }
+
+    return build_prompt
 
 
 def _generate_sql(
@@ -518,13 +528,14 @@ def _validate_sql(
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
             findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
-            if state["variant"] == "self_healing":
+            if state["variant"] == "self_healing" and state["attempt"] > 1:
                 findings.extend(
                     check_answer_shape(
                         state["question"],
                         decision.sql,
                         _selected_documents(documents, state),
                         dialect=state["dialect"],
+                        edges=_edges,
                     )
                 )
         if (
@@ -578,6 +589,7 @@ def _execute_sql(
                 sql,
                 _selected_documents(documents, state),
                 dialect=state["dialect"],
+                edges=edges,
             )
         else:
             findings_shape = ()
@@ -618,13 +630,12 @@ def _execute_sql(
                     },
                 ]
             return success
-        score = _execution_score(len(findings))
-        if _should_keep_candidate(state, score):
-            return _fail_or_restore(state, _review_error(findings))
-        recorded = _record_error(state, _review_error(findings))
-        if score > state["candidate_score"]:
-            recorded.update(_candidate_update(state, outcome, score))
-        return {**success, **recorded}
+        return _fail_or_restore(
+            state,
+            _review_error(findings),
+            outcome=outcome,
+            score=_execution_score(len(findings)),
+        )
 
     return execute_sql
 
@@ -643,6 +654,7 @@ def _repair_sql(
             error_message=state["error_message"] or "",
             contract=contract,
             plan=_plan(contract, state),
+            output_shape=await _output_shape(services, state),
         )
         content = await services.model.complete(
             _messages(state, prompt),
@@ -741,6 +753,21 @@ def _plan(contract: AnswerContract | None, state: TextToSqlState) -> str | None:
     if contract is None:
         return None
     return format_query_plan(contract, state["join_paths"])
+
+
+async def _output_shape(services: ServiceBundle, state: TextToSqlState) -> str | None:
+    if state["profile"] == "ecommerce":
+        return None
+    documents, edges = await services.load_catalog()
+    if _catalog_mismatch(documents, state["database_id"]):
+        return None
+    return format_generic_shape(
+        extract_generic_shape(
+            state["question"],
+            _selected_documents(documents, state),
+            edges,
+        )
+    )
 
 
 def _catalog_rejection(request_id: str) -> TextToSqlInspection:
@@ -852,16 +879,28 @@ def _candidate_update(
     }
 
 
-def _fail_or_restore(state: TextToSqlState, error: ExecutionError) -> dict[str, object]:
+def _fail_or_restore(
+    state: TextToSqlState,
+    error: ExecutionError,
+    *,
+    outcome: ExecutionSuccess | None = None,
+    score: int = 0,
+) -> dict[str, object]:
     recorded = _record_error(state, error)
-    if not _should_keep_candidate(state, 0):
-        return recorded
-    trace = recorded["repair_trace"]
-    if not isinstance(trace, list):
-        return recorded
-    category = recorded.get("error_category")
-    symptom = category if isinstance(category, str) else ""
-    return _restore_candidate(state, trace, symptom)
+    saved: dict[str, object] = {}
+    if outcome is not None and score > state["candidate_score"]:
+        saved = _candidate_update(state, outcome, score)
+    merged = {**state, **saved}
+    candidate_sql = merged.get("candidate_sql") or state["candidate_sql"]
+    tripped = bool(recorded.get("circuit_breaker_triggered"))
+    keep = _should_keep_candidate(state, 0 if tripped else score)
+    if candidate_sql and (tripped or keep):
+        return _restore_candidate(
+            cast(TextToSqlState, merged),
+            recorded["repair_trace"] if isinstance(recorded["repair_trace"], list) else None,
+            str(recorded.get("error_category") or ""),
+        )
+    return {**recorded, **saved}
 
 
 def _restore_candidate(

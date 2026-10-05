@@ -99,11 +99,12 @@ def test_answer_shape_uses_only_the_question() -> None:
     assert any("聚合" in message for message in categories)
     assert any("ORDER BY" in message for message in categories)
     assert any("州" in message for message in categories)
+    assert any("SELECT" in message for message in categories)
     assert (
         check_answer_shape(
             "统计 2001 年各州门店的销售金额，按金额从高到低排序",
-            "SELECT s_state, SUM(amount) AS sales_amount FROM store WHERE d_year = 2001 "
-            "GROUP BY s_state ORDER BY sales_amount DESC",
+            "SELECT s_state, d_year, SUM(amount) AS sales_amount FROM store "
+            "WHERE d_year = 2001 GROUP BY s_state, d_year ORDER BY sales_amount DESC",
             documents,
             dialect="postgres",
         )
@@ -706,3 +707,124 @@ def _edges() -> list[SchemaEdge]:
         )
         for item in FOREIGN_KEYS
     ]
+
+
+def test_generic_shape_requires_year_and_item_in_the_projection() -> None:
+    documents = [
+        TableDocument(
+            database_id="tpcds",
+            schema_name="public",
+            table_name="store",
+            table_comment=None,
+            columns=[ColumnDocument(name="s_state", data_type="text", nullable=True)],
+            is_junction=False,
+            content_hash="sha256:store",
+        ),
+        TableDocument(
+            database_id="tpcds",
+            schema_name="public",
+            table_name="item",
+            table_comment=None,
+            columns=[ColumnDocument(name="i_category", data_type="text", nullable=True)],
+            is_junction=False,
+            content_hash="sha256:item",
+        ),
+        TableDocument(
+            database_id="tpcds",
+            schema_name="public",
+            table_name="customer_address",
+            table_comment=None,
+            columns=[ColumnDocument(name="ca_address_sk", data_type="int", nullable=False)],
+            is_junction=False,
+            content_hash="sha256:customer_address",
+        ),
+        TableDocument(
+            database_id="tpcds",
+            schema_name="public",
+            table_name="store_sales",
+            table_comment=None,
+            columns=[
+                ColumnDocument(name="ss_ext_sales_price", data_type="numeric", nullable=True)
+            ],
+            is_junction=False,
+            content_hash="sha256:store_sales",
+        ),
+    ]
+    edges = [
+        SchemaEdge(
+            source_table="customer",
+            source_columns=["c_current_addr_sk"],
+            target_table="customer_address",
+            target_columns=["ca_address_sk"],
+            constraint_name="inferred_addr",
+            weight=1.0,
+            inferred=True,
+            confidence=0.95,
+        )
+    ]
+    question = "统计 2001 年能关联到当前住址的顾客，在各州门店购买各商品类别的销售金额。"
+    filtered = check_answer_shape(
+        question,
+        "SELECT s_state, SUM(ss_ext_sales_price) FROM store_sales "
+        "JOIN store ON true JOIN item ON true WHERE d_year = 2001 GROUP BY s_state",
+        documents,
+        dialect="postgres",
+        edges=edges,
+    )
+    messages = " ".join(item.message for item in filtered)
+    assert "SELECT" in messages
+    assert "item" in messages.lower() or "类别" in messages
+    assert any(item.category == "missing_entity" for item in filtered)
+
+    passing = check_answer_shape(
+        question,
+        "SELECT s.s_state, i.i_category, d.d_year, SUM(ss.ss_ext_sales_price) "
+        "FROM store_sales AS ss "
+        "JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk "
+        "JOIN store AS s ON ss.ss_store_sk = s.s_store_sk "
+        "JOIN item AS i ON ss.ss_item_sk = i.i_item_sk "
+        "JOIN customer AS c ON ss.ss_customer_sk = c.c_customer_sk "
+        "JOIN customer_address AS a ON c.c_current_addr_sk = a.ca_address_sk "
+        "WHERE d.d_year = 2001 GROUP BY s.s_state, i.i_category, d.d_year",
+        documents,
+        dialect="postgres",
+        edges=edges,
+    )
+    assert passing == ()
+
+
+def test_generic_shape_uses_count_over_enrollment_for_a_rate() -> None:
+    documents = [
+        TableDocument(
+            database_id="california_schools",
+            schema_name="main",
+            table_name="frpm",
+            table_comment=None,
+            columns=[
+                ColumnDocument(name="Free Meal Count (K-12)", data_type="real", nullable=True),
+                ColumnDocument(name="Enrollment (K-12)", data_type="real", nullable=True),
+                ColumnDocument(
+                    name="Percent (%) Eligible Free (K-12)",
+                    data_type="real",
+                    nullable=True,
+                ),
+            ],
+            is_junction=False,
+            content_hash="sha256:frpm",
+        )
+    ]
+    question = "What is the free meal rate for each school?"
+    percent = check_answer_shape(
+        question,
+        'SELECT "Percent (%) Eligible Free (K-12)" FROM frpm',
+        documents,
+        dialect="sqlite",
+    )
+    assert any("Enrollment" in item.message for item in percent)
+    ratio = check_answer_shape(
+        question,
+        'SELECT "Free Meal Count (K-12)" * 1.0 / "Enrollment (K-12)" FROM frpm',
+        documents,
+        dialect="sqlite",
+    )
+    assert ratio == ()

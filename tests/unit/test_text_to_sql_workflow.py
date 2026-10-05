@@ -480,7 +480,9 @@ async def test_registered_sqlite_database_uses_a_generic_prompt() -> None:
     assert response.error is None
     prompt = model.prompts[0]
     assert "SQLite 数据库 california_schools" in prompt
+    assert "输出形状" in prompt
     assert "答案契约" not in prompt
+    assert "查询计划：" not in prompt
     assert "护肤品" not in prompt
     assert ZERO_SHOT_SCHEMA not in prompt
 
@@ -628,3 +630,78 @@ async def test_generic_schema_graph_keeps_disconnected_seeds() -> None:
     assert model.prompts
     assert "schools" in model.prompts[0]
     assert "satscores" in model.prompts[0]
+    assert "输出形状" in model.prompts[0]
+    assert "答案契约" not in model.prompts[0]
+
+
+def _tpcds_bundle(model: ScriptedModel, executor: RecordingExecutor) -> ServiceBundle:
+    async def select_tools(_question: str) -> list[ToolHit]:
+        return []
+
+    async def select_seeds(_question: str) -> list[SchemaSeed]:
+        return [
+            SchemaSeed(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="store",
+                content_hash="sha256:store",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            )
+        ]
+
+    async def load_catalog() -> tuple[list[TableDocument], list[object]]:
+        return [
+            TableDocument(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="store",
+                table_comment=None,
+                columns=[
+                    ColumnDocument(
+                        name="s_state",
+                        data_type="text",
+                        nullable=True,
+                        comment=None,
+                    ),
+                    ColumnDocument(
+                        name="s_store_sk",
+                        data_type="int",
+                        nullable=False,
+                        comment=None,
+                    ),
+                ],
+                is_junction=False,
+                content_hash="sha256:store",
+            )
+        ], []
+
+    return ServiceBundle(
+        model=model,
+        select_tools=select_tools,
+        select_seeds=select_seeds,
+        load_catalog=load_catalog,
+        execute=executor,
+        token_counter=EstimatedTokenCounter(),
+        database_id="tpcds",
+    )
+
+
+async def test_generic_self_healing_keeps_the_executable_sql() -> None:
+    first = "SELECT s_state, SUM(1) AS amount FROM store WHERE s_store_sk = 2001 GROUP BY s_state"
+    model = ScriptedModel([first, "SELECT missing FROM nowhere"])
+    executor = RecordingExecutor()
+
+    response = await run_text_to_sql(
+        _tpcds_bundle(model, executor),
+        question="统计 2001 年各州门店的销售金额",
+        database_id="tpcds",
+    )
+
+    assert response.status == "succeeded"
+    assert response.sql == first
+    assert executor.calls == [first]
+    assert "输出形状" in model.prompts[0]
+    assert "答案契约" not in " ".join(model.prompts)
+    assert "required_tables" not in " ".join(model.prompts)

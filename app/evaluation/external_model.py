@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION
+from app.agents.text_to_sql.shape import extract_generic_shape, generic_coverage
 from app.agents.text_to_sql.workflow import (
     TEXT_TO_SQL_VARIANTS,
     ServiceBundle,
@@ -228,6 +229,11 @@ async def score_prediction(
     message = None if response.error is None else response.error.message
     if isinstance(predicted_outcome, ExecutionError):
         message = predicted_outcome.normalized_message
+    coverage = generic_coverage(
+        extract_generic_shape(case.question, _stub_documents(case.database_id, catalog_tables)),
+        predicted or "",
+        dialect=case.dialect,
+    )
     return ModelCaseTrace(
         case_id=case.id,
         database_id=case.database_id,
@@ -243,6 +249,9 @@ async def score_prediction(
         normalized_message=None if message is None else normalize_message(message),
         context_recall=_table_recall(case.required_tables, (*seeds, *expanded)),
         sql_table_recall=_table_recall(case.required_tables, shape.referenced_tables),
+        dimension_coverage=coverage["dimension_coverage"],
+        entity_coverage=coverage["entity_coverage"],
+        measure_coverage=coverage["measure_coverage"],
     )
 
 
@@ -251,6 +260,21 @@ def _table_recall(required: Sequence[str], found: Sequence[str]) -> float | None
         return None
     seen = {name.lower() for name in found}
     return sum(1 for name in required if name.lower() in seen) / len(required)
+
+
+def _stub_documents(database_id: str, names: Collection[str]) -> tuple[TableDocument, ...]:
+    return tuple(
+        TableDocument(
+            database_id=database_id,
+            schema_name="public",
+            table_name=name,
+            table_comment=None,
+            columns=[],
+            is_junction=False,
+            content_hash=f"sha256:{name}",
+        )
+        for name in names
+    )
 
 
 def render_model_diagnosis(
@@ -278,6 +302,9 @@ def render_model_diagnosis(
         f"- 方言错误率：{counts.get('dialect_error_rate')}",
         f"- 上下文召回：{counts.get('context_recall')}",
         f"- 引用表召回：{counts.get('sql_table_recall')}",
+        f"- 维度覆盖：{counts.get('dimension_coverage')}",
+        f"- 实体覆盖：{counts.get('entity_coverage')}",
+        f"- 度量覆盖：{counts.get('measure_coverage')}",
         f"- 结果不一致：{counts.get('other_result_mismatch')}",
         f"- 电商规则命中用例：{counts.get('ecommerce_rule_cases')}",
         f"- 串库用例：{counts.get('cross_database_leaks')}",
@@ -304,6 +331,9 @@ def render_model_diagnosis(
                 f"- 脱敏错误：{case.get('normalized_message')}",
                 f"- 上下文召回：{case.get('context_recall')}",
                 f"- 引用表召回：{case.get('sql_table_recall')}",
+                f"- 维度覆盖：{case.get('dimension_coverage')}",
+                f"- 实体覆盖：{case.get('entity_coverage')}",
+                f"- 度量覆盖：{case.get('measure_coverage')}",
                 f"- 种子表：{case.get('seed_tables')}",
                 f"- 引用表：{shape.get('referenced_tables')}",
                 f"- 投影：{shape.get('projections')}",

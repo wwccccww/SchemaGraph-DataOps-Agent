@@ -177,6 +177,9 @@ class ModelCaseTrace:
     normalized_message: str | None = None
     context_recall: float | None = None
     sql_table_recall: float | None = None
+    dimension_coverage: float | None = None
+    entity_coverage: float | None = None
+    measure_coverage: float | None = None
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -191,6 +194,9 @@ class ModelCaseTrace:
             "expanded_tables": list(self.expanded_tables),
             "context_recall": self.context_recall,
             "sql_table_recall": self.sql_table_recall,
+            "dimension_coverage": self.dimension_coverage,
+            "entity_coverage": self.entity_coverage,
+            "measure_coverage": self.measure_coverage,
             "leaked_tables": list(self.leaked_tables),
             "ecommerce_rule_hits": list(self.ecommerce_rule_hits),
             "prediction": dict(self.prediction),
@@ -246,6 +252,19 @@ def build_external_model_summary(
             ),
             "sql_table_recall": _mean(
                 [trace.sql_table_recall for trace in traces if trace.sql_table_recall is not None]
+            ),
+            "dimension_coverage": _mean(
+                [
+                    trace.dimension_coverage
+                    for trace in traces
+                    if trace.dimension_coverage is not None
+                ]
+            ),
+            "entity_coverage": _mean(
+                [trace.entity_coverage for trace in traces if trace.entity_coverage is not None]
+            ),
+            "measure_coverage": _mean(
+                [trace.measure_coverage for trace in traces if trace.measure_coverage is not None]
             ),
             "ecommerce_rule_cases": sum(1 for trace in traces if trace.ecommerce_rule_hits),
             "cross_database_leaks": sum(1 for trace in traces if trace.leaked_tables),
@@ -352,6 +371,9 @@ def _redacted_summary_copies_custom_targets(summary: Mapping[str, object]) -> bo
             "dialect_error_rate",
             "context_recall",
             "sql_table_recall",
+            "dimension_coverage",
+            "entity_coverage",
+            "measure_coverage",
         ):
             execution[key] = None
     encoded = json.dumps(cloned, ensure_ascii=False)
