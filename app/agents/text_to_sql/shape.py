@@ -629,6 +629,20 @@ def _join_hints(
             "贷款规模分档 CASE 标签用 Small / Medium / Large（按 amount 阈值），"
             "不要用 '<50K' 等字面区间字符串。"
         )
+    if {"loan", "account", "trans"} <= visible:
+        hints.append(
+            "Financial：loan.account_id → account → trans（trans.account_id = account.account_id）；"
+            "需 account 表时不要跳过。"
+        )
+    if "loan" in visible and re.search(
+        r"compare.*overall|overall average|performance compare",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "与 overall 对比：overall 汇总 CTE 按 loan_size_category 等并行维度 GROUP BY，"
+            "再 JOIN 对齐该键；不要单行 CROSS JOIN 全局百分比。"
+        )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
             hints.append(

@@ -167,6 +167,14 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_financial_loan_account_trans_hint() -> None:
+    question = "Balance change for loan client from trans on account"
+    documents = [_doc(name) for name in ("loan", "account", "trans")]
+    shape = extract_generic_shape(question, documents)
+    text = format_generic_shape(shape)
+    assert "account" in text and "trans" in text
+
+
 def test_financial_running_loan_uses_status_c_hint() -> None:
     question = "percentage of loans running with no issues in each region"
     documents = [_doc(name) for name in ("loan", "account", "district")]
