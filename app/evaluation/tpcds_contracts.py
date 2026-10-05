@@ -47,6 +47,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
     group_keys = [name for name in projections if name not in measures]
     filters = _filters_from_question(case.question)
     filters.extend(_fact_filters(case.required_tables, case.question))
+    if case.required_tables:
+        filters.append(f"core_tables={','.join(sorted(case.required_tables))}")
     return SemanticContract(
         projections=projections,
         group_keys=group_keys,

@@ -60,6 +60,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=customer,customer_address,date_dim,item,store,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -129,6 +130,7 @@ cases:
         - "calendar_year=2001"
         - "promotion_channel=dmail"
         - "primary_fact=store_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,promotion,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -216,6 +218,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
+        - "core_tables=date_dim,item,reason,store,store_returns,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -280,6 +283,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_page,catalog_sales,date_dim,item,ship_mode"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -350,6 +354,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_fact=catalog_returns"
+        - "core_tables=call_center,catalog_returns,date_dim,item,reason,warehouse"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -413,6 +418,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=web_sales"
+        - "core_tables=date_dim,item,ship_mode,web_page,web_sales,web_site"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -477,6 +483,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_fact=web_returns"
+        - "core_tables=customer,date_dim,item,reason,web_page,web_returns"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -554,6 +561,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=catalog_sales,store_sales,web_sales"
+        - "core_tables=catalog_sales,date_dim,item,store_sales,web_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -618,6 +626,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=date_dim,inventory,item,store_sales,warehouse"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -684,6 +693,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,household_demographics,income_band,item,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -748,6 +758,7 @@ cases:
         - "calendar_year=2001"
         - "promotion_channel=dmail"
         - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,item,promotion,store,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -811,6 +822,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,item,store,store_sales,time_dim"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -883,6 +895,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=web_sales"
+        - "core_tables=customer,customer_address,date_dim,item,web_sales,web_site"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -957,6 +970,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=catalog_sales"
+        - "core_tables=catalog_sales,customer,customer_demographics,date_dim,household_demographics,income_band,item"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1028,6 +1042,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=store_sales,web_sales"
+        - "core_tables=customer,customer_address,date_dim,item,store_sales,web_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1101,6 +1116,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_facts=catalog_returns,store_returns"
+        - "core_tables=catalog_returns,date_dim,item,reason,store_returns"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1170,6 +1186,7 @@ cases:
         - "calendar_year=2001"
         - "promotion_channel=dmail"
         - "primary_fact=web_sales"
+        - "core_tables=date_dim,item,promotion,ship_mode,warehouse,web_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1240,6 +1257,7 @@ cases:
         - "calendar_year=2001"
         - "promotion_channel=dmail"
         - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_page,catalog_sales,date_dim,item,promotion"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1310,6 +1328,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=customer,customer_address,date_dim,item,store,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1372,6 +1391,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=date_dim,item,store,store_sales,time_dim"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1438,6 +1458,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=catalog_sales"
+        - "core_tables=catalog_sales,customer,customer_demographics,date_dim,item,ship_mode"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1515,6 +1536,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=store_sales,web_sales"
+        - "core_tables=date_dim,item,store,store_sales,web_sales,web_site"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1595,6 +1617,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=date_dim,inventory,item,store_sales,warehouse"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1680,6 +1703,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_facts=catalog_sales,web_sales"
+        - "core_tables=catalog_sales,date_dim,item,ship_mode,warehouse,web_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1746,6 +1770,7 @@ cases:
         - "calendar_year=2001"
         - "promotion_channel=dmail"
         - "primary_fact=store_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,promotion,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1811,6 +1836,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_sales,customer,customer_address,date_dim,item"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1882,6 +1908,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=web_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,web_page,web_sales,web_site"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -1958,6 +1985,7 @@ cases:
       filters:
         - "calendar_year=2001"
         - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,household_demographics,income_band,item,store,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -2030,6 +2058,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_fact=store_returns"
+        - "core_tables=customer,customer_address,date_dim,item,reason,store,store_returns"
       category_scope: exact
       time_window:
         start: "2001-01-01"
@@ -2139,6 +2168,7 @@ cases:
         - "promotion_channel=dmail"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
+        - "core_tables=customer,customer_address,customer_demographics,date_dim,household_demographics,income_band,item,promotion,reason,store,store_returns,store_sales"
       category_scope: exact
       time_window:
         start: "2001-01-01"

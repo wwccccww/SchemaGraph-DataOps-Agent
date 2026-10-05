@@ -123,6 +123,23 @@ def test_quoted_sqlite_aliases_are_detected() -> None:
     assert check_frozen_semantic_contract(contract, sql, dialect="sqlite") == ()
 
 
+def test_spurious_promotion_join_is_flagged_when_not_in_core_tables() -> None:
+    contract = SemanticContract(
+        projections=["sales_amount"],
+        group_keys=[],
+        filters=["core_tables=store_sales,date_dim,item,store,customer", "primary_fact=store_sales"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT SUM(ss.ss_ext_sales_price) AS sales_amount FROM store_sales AS ss "
+        "JOIN promotion AS p ON ss.ss_promo_sk = p.p_promo_sk"
+    )
+    findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
+    assert any("promotion" in item.message for item in findings)
+
+
 def test_check_requires_item_when_item_category_projected() -> None:
     contract = SemanticContract(
         projections=["item_category", "sales_amount"],

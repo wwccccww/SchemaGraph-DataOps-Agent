@@ -97,7 +97,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
-- Generic Prompt 版本 `text-to-sql-generic-v8`：在 v7 基础上强调 SQLite 双引号别名、多属性/SAT/charter 口径；v7 增加 TPC-DS 促销商品/item、income_band、ship_mode、web_site 等 join 与实体表提示；词汇种子对「直邮/促销商品」优先 item+promotion。
+- Generic Prompt 版本 `text-to-sql-generic-v9`：在 v8 基础上增加窗口函数分层写法提示；v8 强调 SQLite 双引号别名、多属性/SAT/charter；v7 增加 TPC-DS 促销 join 与实体表提示。TPC-DS 冻结契约含 `core_tables=`（审计表清单，Prompt 提示）并在未涉及促销时禁止多余 `promotion` JOIN。
 - 外部模型评测会把 cases.yaml 中的 **`semantic_contract`**（与问句一并冻结，非 Gold SQL）注入输出形状，并在自愈阶段做投影/缺表复核。TPC-DS 契约含 `primary_fact=` / 促销口径；BIRD 含 `core_tables=`（审计表集合）与 `order_sensitive`。
 - 环境变量（外部模型评测最低要求）：
   - `DEEPSEEK_API_KEY`（必填）

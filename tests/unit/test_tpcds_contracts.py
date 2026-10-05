@@ -33,6 +33,7 @@ def _case(**overrides: object) -> BenchmarkCase:
 def test_single_fact_filter_from_required_tables() -> None:
     contract = contract_for(_case())
     assert "primary_fact=store_sales" in contract.filters
+    assert "core_tables=customer,date_dim,item,store,store_sales" in contract.filters
 
 
 def test_channel_question_picks_catalog_sales() -> None:
