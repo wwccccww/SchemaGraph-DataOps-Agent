@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v4"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v5"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -18,6 +18,9 @@ SYSTEM_PROMPT = (
 _GENERIC_SHAPE = (
     "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
     "年份若既是过滤又是汇总轴，也要投影出来。度量要聚合，排序要求要写 ORDER BY。"
+)
+_POSTGRES_JOIN = (
+    " 事实表与维表优先用 *_sk 连接键；先按业务键聚合再 JOIN，避免无关桥表造成笛卡尔积。"
 )
 SQLITE_SYSTEM_PROMPT = (
     "你是 SQLite 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
@@ -34,7 +37,7 @@ def system_prompt_for(*, dialect: str, profile: str) -> str:
         return SYSTEM_PROMPT
     if dialect == "sqlite":
         return f"{SQLITE_SYSTEM_PROMPT}{_GENERIC_SHAPE}"
-    return f"{SYSTEM_PROMPT}{_GENERIC_SHAPE}"
+    return f"{SYSTEM_PROMPT}{_GENERIC_SHAPE}{_POSTGRES_JOIN}"
 
 
 _FENCE = re.compile(r"```(?:sql|postgresql)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)

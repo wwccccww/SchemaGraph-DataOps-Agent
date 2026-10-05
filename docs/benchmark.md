@@ -91,6 +91,14 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `expected_columns` 生成，不反解析 Gold SQL）。发布前运行 `check-external-release`；通过表示两份 attestation 均为 `gold_matched` 且快照哈希已写入。
 
+### 2.6 外部模型评测（P2）
+
+- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。
+- 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
+- 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取。
+- 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
+- Generic Prompt 版本 `text-to-sql-generic-v5`：PostgreSQL 外部库增加 `*_sk` Join 约束；修复轮次对 `disallowed_function` 与串库给出方言提示。
+
 ## 3. 用例生命周期
 
 每条用例依次通过：

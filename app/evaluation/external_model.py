@@ -58,6 +58,7 @@ from app.evaluation.external_report import (
 )
 from app.evaluation.sql_shape import describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
+from app.evaluation.external_badcase import classify_external_case
 from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
 from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
@@ -202,6 +203,8 @@ async def score_prediction(
     error_category = None if response.error is None else response.error.category
     ex = 0
     primary = "sql_error"
+    diagnosis = "sql_error"
+    symptoms: tuple[tuple[str, str], ...] = ()
     predicted_outcome: ExecutionSuccess | ExecutionError | None = None
     if leaked:
         error_category = error_category or "cross_database_catalog"
@@ -221,11 +224,15 @@ async def score_prediction(
             )
             if same:
                 ex = 1
-                primary = "matched"
                 error_category = None
-            else:
-                primary = "other_result_mismatch"
-                error_category = None
+    primary, diagnosis, symptoms = classify_external_case(
+        case,
+        predicted_sql=predicted,
+        error_category=error_category,
+        ex=ex,
+        leaked_tables=leaked,
+        repair_trace=inspection.repair_trace,
+    )
     shape = describe_sql(predicted, dialect=case.dialect)
     message = None if response.error is None else response.error.message
     if isinstance(predicted_outcome, ExecutionError):
@@ -253,6 +260,8 @@ async def score_prediction(
         dimension_coverage=coverage["dimension_coverage"],
         entity_coverage=coverage["entity_coverage"],
         measure_coverage=coverage["measure_coverage"],
+        diagnosis_class=diagnosis,
+        symptoms=symptoms,
     )
 
 
@@ -328,6 +337,8 @@ def render_model_diagnosis(
                 "",
                 f"- 数据库：{case.get('database_id')}",
                 f"- 分类：{case.get('primary_class')}",
+                f"- 细分类：{case.get('diagnosis_class')}",
+                f"- 症状：{case.get('symptoms')}",
                 f"- 错误类别：{case.get('error_category')}",
                 f"- 脱敏错误：{case.get('normalized_message')}",
                 f"- 上下文召回：{case.get('context_recall')}",
@@ -389,6 +400,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--database-root", type=Path)
     parser.add_argument("--per-database", type=int)
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="run every frozen case; requires gold_matched attestation",
+    )
     parser.add_argument("--variant", default="schema_graph")
     parser.add_argument("--timeout", type=float, default=30)
     parser.add_argument("--report-root", type=Path)
@@ -402,6 +418,7 @@ def main(argv: list[str] | None = None) -> None:
             database_root=args.database_root,
             per_database=args.per_database,
             limit=args.limit,
+            full=args.full,
             variant=args.variant,
             timeout_seconds=args.timeout,
             report_root=args.report_root,
@@ -417,19 +434,26 @@ async def _run(
     database_root: Path | None,
     per_database: int | None,
     limit: int | None,
+    full: bool,
     variant: TextToSqlVariant,
     timeout_seconds: float,
     report_root: Path | None,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
-    cases = select_sample(
-        loaded,
-        per_database=per_database,
-        limit=limit,
-    )
-    if len(cases) == len(loaded):
+    if full:
+        if per_database is not None or limit is not None:
+            raise ValueError("--full cannot be combined with --limit or --per-database")
+        cases = list(loaded)
         ensure_gold_matched(loaded, source)
+    else:
+        cases = select_sample(
+            loaded,
+            per_database=per_database,
+            limit=limit,
+        )
+        if len(cases) == len(loaded):
+            ensure_gold_matched(loaded, source)
     settings = get_settings()
     if settings.deepseek_api_key is None:
         raise RuntimeError("DEEPSEEK_API_KEY is required")

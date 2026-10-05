@@ -180,9 +180,11 @@ class ModelCaseTrace:
     dimension_coverage: float | None = None
     entity_coverage: float | None = None
     measure_coverage: float | None = None
+    diagnosis_class: str | None = None
+    symptoms: tuple[tuple[str, str], ...] = ()
 
     def as_json(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "case_id": self.case_id,
             "database_id": self.database_id,
             "primary_class": self.primary_class,
@@ -201,6 +203,11 @@ class ModelCaseTrace:
             "ecommerce_rule_hits": list(self.ecommerce_rule_hits),
             "prediction": dict(self.prediction),
         }
+        if self.diagnosis_class is not None:
+            payload["diagnosis_class"] = self.diagnosis_class
+        if self.symptoms:
+            payload["symptoms"] = [[name, value] for name, value in self.symptoms]
+        return payload
 
 
 def build_external_model_summary(
@@ -268,9 +275,18 @@ def build_external_model_summary(
             ),
             "ecommerce_rule_cases": sum(1 for trace in traces if trace.ecommerce_rule_hits),
             "cross_database_leaks": sum(1 for trace in traces if trace.leaked_tables),
+            "diagnosis_histogram": _diagnosis_histogram(traces),
         },
         "case_files": [f"cases/{trace.case_id}.json" for trace in traces],
     }
+
+
+def _diagnosis_histogram(traces: Sequence[ModelCaseTrace]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for trace in traces:
+        label = trace.diagnosis_class or trace.primary_class
+        counts[label] = counts.get(label, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def write_external_model_report(

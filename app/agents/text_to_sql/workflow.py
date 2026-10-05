@@ -967,6 +967,10 @@ def _generic_error_hint(category: str, message: str) -> str | None:
         return "列名必须与当前库可用表一致；包含空格、括号或百分号时使用双引号。"
     if category == "undefined_table" and "最接近" not in message:
         return "改用当前库中的表名。"
+    if category == "disallowed_function":
+        return "只使用当前方言允许的只读函数；SQLite 用 strftime/julianday，PostgreSQL 用 date_trunc/extract。"
+    if category == "cross_database_catalog":
+        return "只引用当前数据库 catalog 中的表。"
     return None
 
 
