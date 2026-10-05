@@ -32,6 +32,8 @@ _MEASURE_NAMES = frozenset(
         "order_count",
         "customer_count",
         "inventory_qty",
+        "quantity_on_hand",
+        "quantity_sold",
     }
 )
 _YEAR_IN_QUESTION = re.compile(r"(\d{4})\s*年")

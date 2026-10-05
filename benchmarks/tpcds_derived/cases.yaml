@@ -1640,7 +1640,6 @@ cases:
         - "warehouse_state"
         - "item_category"
         - "inventory_year"
-        - "quantity_on_hand"
       filters:
         - "calendar_year=2001"
         - "inventory_sold_qty=join_sold_cte"

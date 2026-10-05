@@ -279,28 +279,32 @@ def check_frozen_semantic_contract(
                 )
     lowered_sql = sql.lower()
     if "sales_amount" in contract.projections and "store_sales" in referenced:
-        if re.search(r"sum\s*\(\s*[^)]*ss_sales_price", lowered_sql) and (
-            "ss_ext_sales_price" not in lowered_sql
+        if re.search(
+            r"sum\s*\(\s*[^)]*\bss_sales_price\b[^)]*\)\s*as\s*sales_amount",
+            lowered_sql,
+            re.IGNORECASE,
         ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
-                    "store_sales 销售金额用 ss_ext_sales_price，不要用 ss_sales_price",
+                    "store_sales 销售金额 SUM 必须用 ss_ext_sales_price AS sales_amount，"
+                    "不要用 ss_sales_price",
                 )
             )
     if "inventory_sold_qty=join_sold_cte" in contract.filters:
-        outer = next((scope for scope in described.scopes if scope.name == "outer"), None)
-        group_by = outer.group_by if outer is not None else described.group_by
-        gb = " ".join(group_by).lower()
-        if "quantity_on_hand" in gb and any(
-            "quantity_on_hand" in expr.lower() and "sum" in lowered_sql
-            for expr in group_by
-        ):
+        if re.search(r"group\s+by[^;]*quantity_on_hand", lowered_sql, re.IGNORECASE):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
-                    "库存销量外层 GROUP BY 只用 warehouse_state、item_category、inventory_year，"
+                    "外层 GROUP BY 只用 warehouse_state、item_category、inventory_year；"
                     "quantity_on_hand/quantity_sold 仅 SUM 聚合",
+                )
+            )
+        if "left join sold" in lowered_sql or "left join sold as" in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "stock JOIN sold 用 INNER JOIN（按 item_sk），不要 LEFT JOIN",
                 )
             )
     if (

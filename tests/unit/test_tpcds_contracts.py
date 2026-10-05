@@ -89,6 +89,24 @@ def test_returns_and_sales_question_adds_separate_cte_hint() -> None:
     assert "returns_vs_sales=separate_cte" in contract.filters
 
 
+def test_quantity_on_hand_is_measure_not_group_key() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年各仓库所在州和商品类别的在手库存，并汇总这些库存商品当年的门店销售数量。",
+            required_tables=["inventory", "warehouse", "item", "store_sales", "date_dim"],
+            expected_columns=[
+                "warehouse_state",
+                "item_category",
+                "inventory_year",
+                "quantity_on_hand",
+                "quantity_sold",
+            ],
+        )
+    )
+    assert "quantity_on_hand" not in contract.group_keys
+    assert "quantity_sold" not in contract.group_keys
+
+
 def test_inventory_qty_uses_join_cte_not_subquery() -> None:
     contract = contract_for(
         _case(
