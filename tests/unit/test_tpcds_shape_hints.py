@@ -167,6 +167,19 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_sat_performance_requires_left_join_satscores() -> None:
+    from app.agents.text_to_sql.shape import check_answer_shape
+
+    question = "SAT performance level for schools in Alameda"
+    documents = [_doc(name) for name in ("frpm", "schools", "satscores")]
+    sql = (
+        "SELECT s.School FROM schools s JOIN satscores sa ON sa.cds = s.CDSCode "
+        "WHERE s.County = 'Alameda'"
+    )
+    findings = check_answer_shape(question, sql, documents, dialect="sqlite")
+    assert any("LEFT JOIN" in item.message for item in findings)
+
+
 def test_multiple_provision_types_requires_frpm_filter() -> None:
     from app.agents.text_to_sql.shape import check_answer_shape
 

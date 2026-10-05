@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v11"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v12"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -18,7 +18,10 @@ SYSTEM_PROMPT = (
 _GENERIC_SHAPE_TAIL = (
     "若问句列举多项属性或 characteristics，最终 SELECT 应逐条回答，并为每列写清晰的 AS 别名。"
     "charter school、grades served、SAT performance level 等语义优先从 schools/satscores 等实体表取字段，"
-    "SAT performance level 用 AvgScrRead+AvgScrMath+AvgScrWrite 总和（不要除以 3）做 CASE 分档，不要只输出原始分列。"
+    "SAT performance level 用 AvgScrRead+AvgScrMath+AvgScrWrite 总和（不要除以 3）做 CASE；"
+    "标签用 No SAT Data、Below Average（<1200）、Average（1200–1500）、Above Average（>1500）；"
+    "satscores 用 LEFT JOIN 保留无 SAT 学校。free meal rate 分母需 Enrollment (K-12) > 0。"
+    "IsCharterSchool 用 schools.Charter：1→Yes、0→No、NULL→Unknown。"
     "California schools：县名/学区/学校名与 free meal、NSLP、Enrollment 等优先用 frpm 带空格列名；"
     "Magnet、GSserved、Charter 等在 schools；问句同时涉及 magnet/grade span 与 NSLP/Provision 时必须 JOIN frpm 与 schools。"
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"

@@ -221,6 +221,23 @@ def check_answer_shape(
                     "SAT performance level 应使用 CASE 归类，不要只投影原始 AvgScr 列",
                 )
             )
+        if re.search(r"\bjoin\s+satscores\b", sql, re.IGNORECASE) and not re.search(
+            r"left\s+join\s+satscores", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "SAT 指标应对 satscores 使用 LEFT JOIN（cds=CDSCode），不要 INNER JOIN 丢掉无 SAT 学校",
+                )
+            )
+        if re.search(r"'High'|'Medium'|'Low'", sql) and "below average" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SATPerformance 标签用 No SAT Data / Below Average / Average / Above Average，"
+                    "不要用 High/Medium/Low",
+                )
+            )
     if re.search(r"charter", question, re.IGNORECASE) and any(
         document.table_name.lower() == "schools" for document in documents
     ):
@@ -537,8 +554,16 @@ def _join_hints(
         re.IGNORECASE,
     ):
         hints.append(
-            "SAT performance level：用 AvgScrRead+AvgScrMath+AvgScrWrite 总和做 CASE，"
-            "不要对三科平均后再与 1200/1500 等总分阈值比较。"
+            "SAT performance level：satscores LEFT JOIN；Total=AvgScrRead+AvgScrMath+AvgScrWrite；"
+            "CASE 标签 No SAT Data / Below Average(<1200) / Average(1200–1500) / Above Average。"
+        )
+    if "frpm" in visible and re.search(
+        r"free meal rate|FRPM|Enrollment \(K-12\)",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "frpm 算餐食比例时在 WHERE 加 `Enrollment (K-12)` > 0，避免除零或无效行。"
         )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
