@@ -116,13 +116,30 @@ def check_frozen_semantic_contract(
                 )
             )
     primary = _primary_fact(contract.filters)
-    if primary is not None and primary.lower() not in referenced:
-        findings.append(
-            SemanticFinding(
-                "missing_entity",
-                f"冻结契约要求主事实表 {primary} 出现在 SQL 中",
+    if primary is not None:
+        wrong = _wrong_channel_facts(primary, referenced)
+        if primary.lower() in referenced:
+            if wrong:
+                findings.append(
+                    SemanticFinding(
+                        "missing_entity",
+                        f"问句渠道对应 {primary}，不要同时使用 {wrong} 等其它渠道事实表",
+                    )
+                )
+        elif wrong:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    f"问句渠道对应 {primary}，不要改用 {wrong} 等其它渠道事实表",
+                )
             )
-        )
+        else:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    f"冻结契约要求主事实表 {primary} 出现在 SQL 中",
+                )
+            )
     if contract.group_keys and described.aggregations:
         grouped = " ".join(described.group_by).lower()
         for key in contract.group_keys:
@@ -183,6 +200,18 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
     return tuple(hints)
+
+
+def _wrong_channel_facts(primary: str, referenced: set[str]) -> str | None:
+    if not primary.endswith("_sales") and not primary.endswith("_returns"):
+        return None
+    prefix = primary.split("_", 1)[0]
+    for name in referenced:
+        if name == primary.lower():
+            continue
+        if (name.endswith("_sales") or name.endswith("_returns")) and not name.startswith(prefix):
+            return name
+    return None
 
 
 def _core_tables(filters: Sequence[str]) -> tuple[str, ...]:

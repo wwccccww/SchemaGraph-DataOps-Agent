@@ -260,7 +260,22 @@ def _join_semantics(
         return True
     gold_groups = _symptom_value(symptoms, "gold_group_by")
     predicted_groups = _symptom_value(symptoms, "predicted_group_by")
-    return bool(gold_groups and predicted_groups and gold_groups != predicted_groups)
+    if not gold_groups or not predicted_groups or gold_groups == predicted_groups:
+        return False
+    if _group_by_equivalent(gold_groups, predicted_groups):
+        return False
+    return True
+
+
+def _group_by_equivalent(gold: str, predicted: str) -> bool:
+    """表别名不同但分组列相同时不算 Join 语义错误。"""
+
+    return _group_by_tokens(gold) == _group_by_tokens(predicted)
+
+
+def _group_by_tokens(text: str) -> frozenset[str]:
+    parts = re.findall(r"[A-Za-z_][A-Za-z0-9_.]*", text.lower())
+    return frozenset(part.split(".")[-1] for part in parts if part)
 
 
 def _projection_order(gold: PredictionShape, predicted: PredictionShape) -> str:

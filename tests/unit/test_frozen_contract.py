@@ -43,6 +43,23 @@ def test_core_tables_are_hints_not_hard_entity_checks() -> None:
     assert not any(item.category == "missing_entity" for item in findings)
 
 
+def test_wrong_channel_fact_table_is_flagged() -> None:
+    contract = SemanticContract(
+        projections=["net_profit"],
+        group_keys=[],
+        filters=["primary_fact=store_sales"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT SUM(cs_net_profit) AS net_profit FROM catalog_sales AS cs "
+        "JOIN date_dim AS d ON cs.cs_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001"
+    )
+    findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
+    assert any("store_sales" in item.message and "catalog_sales" in item.message for item in findings)
+
+
 def test_primary_fact_filter_requires_store_sales() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],
