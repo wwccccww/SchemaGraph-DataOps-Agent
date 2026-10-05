@@ -152,6 +152,7 @@ async def evaluate_predictions(
             raise ValueError("external model evaluation only runs generic databases")
         if case.dialect != source.dialect:
             raise ValueError("case dialect does not match the registered source")
+        LOGGER.info("start %s", case.id)
         inspection = await inspect_case(case)
 
         async def execute(
@@ -166,6 +167,7 @@ async def evaluate_predictions(
             catalog_tables=catalog_for(case.database_id),
         )
         traces.append(trace)
+        LOGGER.info("%s %s ex=%s", trace.case_id, trace.primary_class, trace.ex)
     return traces
 
 
@@ -246,8 +248,10 @@ def render_model_diagnosis(
     accuracy = measured.get("execution_accuracy") if isinstance(measured, dict) else None
     execution = summary.get("model_execution")
     counts = execution if isinstance(execution, dict) else {}
+    environment = summary.get("environment")
+    sample = not (isinstance(environment, dict) and environment.get("sample") is False)
     lines = [
-        "# 外部问数小样本诊断",
+        "# 外部问数小样本诊断" if sample else "# 外部问数诊断",
         "",
         f"- 来源：{summary.get('benchmark_source')}",
         f"- 模型：{summary.get('model')}",
@@ -364,8 +368,9 @@ async def _run(
     timeout_seconds: float,
     report_root: Path | None,
 ) -> int:
+    loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     cases = select_sample(
-        load_bird_cases() if source == "bird" else load_tpcds_cases(),
+        loaded,
         per_database=per_database,
         limit=limit,
     )
@@ -442,7 +447,7 @@ async def _run(
         prompt_version=GENERIC_PROMPT_VERSION,
         environment={
             "variant": variant,
-            "sample": True,
+            "sample": len(cases) < len(loaded),
             "per_database": per_database,
             "limit": limit,
             "lexical_seeds": True,
@@ -461,8 +466,6 @@ async def _run(
     diagnosis = write_model_diagnosis(directory)
     LOGGER.info("wrote %s", directory)
     LOGGER.info("wrote %s", diagnosis)
-    for trace in traces:
-        LOGGER.info("%s %s ex=%s", trace.case_id, trace.primary_class, trace.ex)
     if any(trace.leaked_tables or trace.ecommerce_rule_hits for trace in traces):
         return 2
     return 0
