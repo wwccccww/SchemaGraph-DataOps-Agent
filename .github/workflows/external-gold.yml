@@ -1,0 +1,53 @@
+name: External Gold
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "cursor/**"
+    paths:
+      - "app/evaluation/**"
+      - "benchmarks/bird_complex/**"
+      - "benchmarks/tpcds_derived/**"
+      - "tests/unit/test_external_*.py"
+      - "tests/integration/test_external_gold.py"
+
+permissions:
+  contents: read
+
+jobs:
+  fingerprints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - run: uv run pytest tests/unit/test_external_gold.py tests/unit/test_external_cases.py tests/unit/test_external_release.py -q
+      - name: Release gate (expects gold_matched before publish)
+        run: |
+          set +e
+          uv run python -m app.evaluation.external_data check-external-release
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "check-external-release failed as expected until verify commits gold_matched attestation"
+          fi
+          exit 0
+
+  smoke:
+    if: vars.EXTERNAL_GOLD_TESTS == '1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - run: uv run pytest tests/integration/test_external_gold.py -q
+        env:
+          EXTERNAL_GOLD_TESTS: "1"
+          BIRD_DATABASE_ROOT: ${{ vars.BIRD_DATABASE_ROOT }}

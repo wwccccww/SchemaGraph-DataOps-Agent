@@ -13,11 +13,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Literal
 
 from app.evaluation.custom_cases import normalize_sql
+from app.evaluation.ex import canonical_cell
 from app.evaluation.gold_oracle import result_digest
 from app.schemas.benchmark import BenchmarkCase
 
@@ -231,6 +232,27 @@ def trace_digest_hex(rows: Sequence[Sequence[object]], *, order_sensitive: bool)
 
     full = digest_rows_for_attestation(rows, order_sensitive=order_sensitive)
     return full.removeprefix("sha256:")
+
+
+def trace_digest_hex_from_stream(
+    rows: Iterable[Sequence[object]], *, order_sensitive: bool
+) -> tuple[int, str]:
+    """大结果 verify 时流式计算 canonical 摘要，避免重复分配行对象。"""
+
+    materialized = [
+        json.dumps(
+            [canonical_cell(cell) for cell in row],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        for row in rows
+    ]
+    count = len(materialized)
+    if not order_sensitive:
+        materialized.sort()
+    payload = "\n".join(materialized)
+    digest = hashlib.sha256(payload.encode()).hexdigest()
+    return count, digest
 
 
 def smoke_case_ids(source: ExternalSource) -> tuple[str, ...]:

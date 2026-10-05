@@ -21,6 +21,7 @@ from app.evaluation.tpcds import (
     build_tpcds_cases,
     load_tpcds_cases,
 )
+from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
 
 
 def test_tpcds_cases_match_the_builder_and_cover_required_shapes() -> None:
@@ -47,6 +48,10 @@ def test_tpcds_cases_match_the_builder_and_cover_required_shapes() -> None:
         assert "order by" not in normalize_sql(case.gold_sql)
         assert str(SALES_YEAR) in case.question
         assert any("\u4e00" <= char <= "\u9fff" for char in case.question)
+        assert case.semantic_contract is not None
+        contract = tpcds_contract_for(case)
+        assert case.semantic_contract == contract
+        assert case.semantic_contract.projections == case.expected_columns
         tags.update(case.tags)
         statements.add(normalize_sql(case.gold_sql))
     assert {"cte", "subquery", "aggregation", "join"} <= tags

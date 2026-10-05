@@ -124,6 +124,7 @@ uv run python -m app.evaluation.external_data freeze-external-gold --source tpcd
 uv run python -m app.evaluation.external_data freeze-external-gold --source bird
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
+uv run python -m app.evaluation.external_data check-external-release
 ```
 
 后两条命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。

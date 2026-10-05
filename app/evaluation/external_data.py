@@ -45,8 +45,10 @@ from app.evaluation.external_report import (
 from app.evaluation.external_gold import (
     build_fingerprint_document,
     merge_execution_into_attestation,
+    trace_digest_hex_from_stream,
     write_attestation,
 )
+from app.evaluation.external_release import evaluate_external_release, release_ready
 from app.evaluation.tpcds import (
     KIT_COMMIT,
     KIT_REPO,
@@ -311,9 +313,11 @@ def execute_bird_gold(
                     GoldTrace(case.id, "error", None, None, "column names diverged from the case")
                 )
                 continue
-            traces.append(
-                GoldTrace(case.id, "ok", len(result.rows), digest_rows(result.rows), None)
+            count, digest = trace_digest_hex_from_stream(
+                result.rows,
+                order_sensitive=case.order_sensitive,
             )
+            traces.append(GoldTrace(case.id, "ok", count, digest, None))
             continue
         traces.append(GoldTrace(case.id, "error", None, None, result.category))
     return traces
@@ -410,6 +414,7 @@ def main(argv: list[str] | None = None) -> None:
         choices=("bird", "tpcds-derived"),
         required=True,
     )
+    subcommands.add_parser("check-external-release")
     questions = subcommands.add_parser("fetch-bird-questions")
     questions.add_argument("--dest", type=Path, required=True)
     databases = subcommands.add_parser("fetch-bird-databases")
@@ -434,6 +439,8 @@ def main(argv: list[str] | None = None) -> None:
         asyncio.run(_verify_tpcds(args.timeout, args.report_root))
     elif args.command == "freeze-external-gold":
         _freeze_external_gold(args.source)
+    elif args.command == "check-external-release":
+        _check_external_release()
     elif args.command == "fetch-bird-questions":
         fetch_bird_questions(args.dest)
     elif args.command == "fetch-bird-databases":
@@ -544,6 +551,19 @@ async def _verify_tpcds(timeout_seconds: float, report_root: Path) -> None:
     )
 
 
+def _check_external_release() -> None:
+    findings = evaluate_external_release()
+    for item in findings:
+        LOGGER.log(
+            logging.ERROR if item.level == "error" else logging.WARNING,
+            "%s",
+            item.message,
+        )
+    if not release_ready():
+        raise SystemExit(1)
+    LOGGER.info("external release checks passed")
+
+
 def _freeze_external_gold(source: ExternalSource) -> None:
     """只写入 Gold SQL 指纹，不要求数据库。CI 与 PR 靠这一层拦截意外改动。"""
 
@@ -619,11 +639,15 @@ async def _one_tpcds(connection: asyncpg.Connection, case: BenchmarkCase) -> Gol
         actual = [attribute.name for attribute in prepared.get_attributes()]
         if actual != case.expected_columns:
             return GoldTrace(case.id, "error", None, None, "column names diverged from the case")
-        rows = await prepared.fetch()
+        rows: list[tuple[object, ...]] = []
+        async for record in prepared.cursor():
+            rows.append(tuple(record))
+        count, digest = trace_digest_hex_from_stream(rows, order_sensitive=case.order_sensitive)
     except asyncpg.PostgresError as exc:
         return GoldTrace(case.id, "error", None, None, exc.sqlstate or "database_error")
-    materialized = [tuple(row) for row in rows]
-    return GoldTrace(case.id, "ok", len(materialized), digest_rows(materialized), None)
+    if count == 0:
+        return GoldTrace(case.id, "error", None, None, "empty_result")
+    return GoldTrace(case.id, "ok", count, digest, None)
 
 
 def _sqlite_path(database_root: Path, database_id: str) -> Path:
