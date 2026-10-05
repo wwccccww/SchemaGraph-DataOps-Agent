@@ -18,6 +18,7 @@ from app.db.catalog import DATABASE_ID, SCHEMA_NAME, load_table_documents
 from app.db.engine import get_admin_engine
 from app.db.initialize import initialize_database_with_retry
 from app.mcp.definitions import TOOLS, TOOLS_BY_NAME
+from app.retrieval.dynamic import choose_schema_seeds
 from app.retrieval.embedder import EMBEDDING_DIMENSION, BgeM3Embedder, Embedder, vector_literal
 from app.retrieval.text import schema_document_text
 from app.schemas.catalog import TableDocument
@@ -272,6 +273,75 @@ async def search_schema_seeds(
         )
         for row in rows
     ]
+
+
+async def search_dynamic_schema_seeds(
+    conn: AsyncConnection,
+    question: str,
+    embedder: Embedder,
+    documents: Sequence[TableDocument],
+    *,
+    database_id: str = DATABASE_ID,
+    schema_name: str = SCHEMA_NAME,
+) -> list[SchemaSeed]:
+    """用表名和中文注释选择种子。没有命中时按向量分差截断，不固定补满 5 张。"""
+
+    if question.strip() == "":
+        raise ValueError("retrieval question must be non-empty")
+    _check_scope(database_id, schema_name)
+    query = _query_vector(question, embedder)
+    rows = (
+        await conn.execute(
+            text(
+                """
+                SELECT
+                    database_id,
+                    schema_name,
+                    table_name,
+                    is_junction,
+                    content_hash,
+                    embedding_model,
+                    embedding_version,
+                    1 - (embedding <=> CAST(:query AS vector)) AS score
+                FROM schema_embedding
+                WHERE database_id = :database_id
+                  AND schema_name = :schema_name
+                  AND embedding_model = :embedding_model
+                  AND embedding_version = :embedding_version
+                  AND is_junction = false
+                ORDER BY embedding <=> CAST(:query AS vector), table_name
+                """
+            ),
+            {
+                "query": query,
+                "database_id": database_id,
+                "schema_name": schema_name,
+                "embedding_model": embedder.model_name,
+                "embedding_version": embedder.model_version,
+            },
+        )
+    ).all()
+    if any(row.is_junction for row in rows):
+        raise RuntimeError("junction table leaked into seed candidates")
+    scores = {str(row.table_name): float(row.score) for row in rows}
+    by_name = {str(row.table_name): row for row in rows}
+    seeds: list[SchemaSeed] = []
+    for choice in choose_schema_seeds(question, documents, scores):
+        row = by_name.get(choice.table_name)
+        if row is None:
+            continue
+        seeds.append(
+            SchemaSeed(
+                database_id=str(row.database_id),
+                schema_name=str(row.schema_name),
+                table_name=choice.table_name,
+                content_hash=str(row.content_hash),
+                embedding_model=str(row.embedding_model),
+                embedding_version=str(row.embedding_version),
+                score=choice.score,
+            )
+        )
+    return seeds
 
 
 async def search_tools(conn: AsyncConnection, question: str, embedder: Embedder) -> list[ToolHit]:

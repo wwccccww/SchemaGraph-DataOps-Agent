@@ -20,6 +20,7 @@ from app.evaluation.ablation import (
     evaluate_case,
     junction_recall_for_case,
     percentile,
+    required_table_recall_for_case,
     write_ablation_report,
 )
 from app.graph.expand import EstimatedTokenCounter
@@ -174,6 +175,7 @@ def _result(case_id: str, variant: str, **overrides: object) -> CaseResult:
         "seed_tables": (),
         "expanded_tables": (),
         "junction_recall": None,
+        "required_table_recall": None,
         "schema_tokens": 10,
         "latency_ms": 1,
         "error_category": None,
@@ -336,6 +338,15 @@ def test_junction_recall_ignores_groups_without_expansion_and_leaks() -> None:
     assert junction_recall_for_case(case, "schema_graph", (), ("t_user_region_map",)) == (1.0, ())
 
 
+def test_required_table_recall_counts_seed_overlap_only() -> None:
+    case = _case()
+
+    assert required_table_recall_for_case(case, "zero_shot", ("t_user_level",)) is None
+    assert required_table_recall_for_case(case, "schema_rag", ("t_user_level",)) == 1.0
+    assert required_table_recall_for_case(case, "schema_graph", ("t_user",)) == 0.0
+    assert required_table_recall_for_case(case, "self_healing", ("t_user_level", "t_coupon")) == 1.0
+
+
 def test_percentile_uses_linear_interpolation() -> None:
     assert percentile([1, 2, 3, 4, 5], 0.95) == 4.8
     assert percentile([1, 2, 3, 4], 0.5) == 2.5
@@ -362,6 +373,7 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
             ex=1,
             difficulty="basic",
             junction_recall=1.0,
+            required_table_recall=1.0,
             schema_tokens=100,
         ),
         _result(
@@ -372,6 +384,7 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
             difficulty="medium",
             junction_recall=None,
             leaked_junctions=("t_order_coupon_rel",),
+            required_table_recall=0.0,
             schema_tokens=4000,
         ),
         _result("custom_basic_001", "self_healing", passed=True, ex=1, attempts=1),
@@ -404,6 +417,11 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
     assert recall["rate"] == 1.0
     assert recall["denominator"] == 1
     assert recall["excluded_leaks"] == ["custom_medium_001"]
+    table_recall = measured["required_table_recall"]
+    assert isinstance(table_recall, dict)
+    assert table_recall["variant"] == "schema_graph"
+    assert table_recall["rate"] == 0.5
+    assert table_recall["denominator"] == 2
     recovery = measured["recovery_at_3"]
     assert isinstance(recovery, dict)
     assert recovery["excluded_first_attempt"] == 1
@@ -506,6 +524,8 @@ async def test_scripted_runner_scores_without_putting_gold_in_the_prompt() -> No
     assert result.ex == 1
     assert result.passed is True
     assert result.junction_recall is None
+    assert result.required_table_recall is None
+    assert result.as_json()["required_table_recall"] is None
     assert result.prediction.sql == "SELECT 1"
     assert result.prediction.parse_error is None
     assert _GOLD not in model.prompts[0]

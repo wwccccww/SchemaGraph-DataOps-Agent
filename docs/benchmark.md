@@ -97,9 +97,9 @@ Text-to-SQL：132 + 30 + 50 = 212 条
 | 组 | Schema 输入 | 图扩展 | 错误反馈 |
 | --- | --- | --- | --- |
 | A Zero-Shot | 无检索上下文或约定的最小数据库说明 | 否 | 否 |
-| B Schema-RAG | Top-K 种子表 | 否 | 否 |
-| C Schema Graph | Top-K 种子表 | 是 | 否 |
-| D Self-Healing | Top-K 种子表 | 是 | 是 |
+| B Schema-RAG | 动态召回的种子表 | 否 | 否 |
+| C Schema Graph | 动态召回的种子表 | 是 | 否 |
+| D Self-Healing | 动态召回的种子表 | 是 | 是 |
 
 四组必须固定：
 

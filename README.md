@@ -12,7 +12,7 @@
 
 ### Schema Graph
 
-- BGE-M3 + pgvector 召回 Top-3～5 实体种子表；
+- 表名、中文表注释、列注释和品类取值命中的实体表直接成为种子；没有这类命中时，BGE-M3 按向量分差最多保留 5 张，不再固定补满 Top-5；
 - 在 Seed 阶段屏蔽 Junction Table；
 - NetworkX 先执行 1-Hop-per-Seed Junction 补全，即桥表距两个 Seed 各 1 hop；
 - 未连通种子使用深度不超过 4 的受限最短路径；

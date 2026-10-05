@@ -39,6 +39,7 @@ from app.schemas.catalog import TableDocument
 
 ABLATION_VARIANTS: tuple[TextToSqlVariant, ...] = TEXT_TO_SQL_VARIANTS
 GRAPH_VARIANTS = frozenset({"schema_graph", "self_healing"})
+RETRIEVAL_VARIANTS = frozenset({"schema_rag", "schema_graph", "self_healing"})
 EMBEDDING_MODEL = "BAAI/bge-m3"
 BENCHMARK_SOURCE = "custom"
 BENCHMARK_VERSION = "ecommerce-v1"
@@ -66,6 +67,7 @@ class CaseResult:
     seed_tables: tuple[str, ...]
     expanded_tables: tuple[str, ...]
     junction_recall: float | None
+    required_table_recall: float | None
     schema_tokens: int
     latency_ms: int
     error_category: str | None
@@ -83,6 +85,7 @@ class CaseResult:
             "seed_tables": list(self.seed_tables),
             "expanded_tables": list(self.expanded_tables),
             "junction_recall": self.junction_recall,
+            "required_table_recall": self.required_table_recall,
             "schema_tokens": self.schema_tokens,
             "latency_ms": self.latency_ms,
             "error_category": self.error_category,
@@ -91,6 +94,19 @@ class CaseResult:
             "leaked_junctions": list(self.leaked_junctions),
             "prediction": self.prediction.as_json(),
         }
+
+
+def required_table_recall_for_case(
+    case: BenchmarkCase,
+    variant: str,
+    seed_tables: Sequence[str],
+) -> float | None:
+    """种子覆盖了多少评测所需实体表。required_tables 不进入 Prompt。"""
+
+    if variant not in RETRIEVAL_VARIANTS or not case.required_tables:
+        return None
+    found = sum(1 for name in case.required_tables if name in seed_tables)
+    return found / len(case.required_tables)
 
 
 def junction_recall_for_case(
@@ -150,7 +166,7 @@ def build_summary(
 ) -> dict[str, object]:
     """汇总必须指向逐条文件。Target 来自常量，不从本次结果写入。"""
 
-    by_variant = {
+    by_variant: dict[str, list[CaseResult]] = {
         variant: [record for record in records if record.variant == variant]
         for variant in ABLATION_VARIANTS
     }
@@ -194,6 +210,7 @@ def build_summary(
                 "denominator": recall_denominator,
                 "excluded_leaks": leaks,
             },
+            "required_table_recall": _required_table_summary(by_variant),
             "schema_tokens": {
                 "baseline": baseline_tokens,
                 "enhanced_mean": _mean(enhanced),
@@ -267,6 +284,7 @@ async def evaluate_case(
     expanded = tuple(context.expanded_tables) if context is not None else ()
     tokens = context.token_count if context is not None else 0
     recall, leaked = junction_recall_for_case(case, variant, seeds, expanded)
+    table_recall = required_table_recall_for_case(case, variant, seeds)
     ex = 0
     if response.status == "succeeded" and response.sql is not None:
         ex = await _execution_accuracy(case, response.sql, execute)
@@ -279,6 +297,7 @@ async def evaluate_case(
         seed_tables=seeds,
         expanded_tables=expanded,
         junction_recall=recall,
+        required_table_recall=table_recall,
         schema_tokens=tokens,
         latency_ms=latency_ms,
         error_category=None if ex == 1 else error,
@@ -408,6 +427,26 @@ def _recovery(records: Sequence[CaseResult]) -> dict[str, object]:
         "excluded_first_attempt": len(first),
         "denominator": denominator,
     }
+
+
+def _required_table_summary(
+    by_variant: Mapping[str, list[CaseResult]],
+) -> dict[str, object]:
+    """三个检索组共用同一次种子选择，汇总只取最先有分数的那一组。"""
+
+    for variant in ("schema_rag", "schema_graph", "self_healing"):
+        scored = [
+            record.required_table_recall
+            for record in by_variant[variant]
+            if record.required_table_recall is not None
+        ]
+        if scored:
+            return {
+                "variant": variant,
+                "rate": sum(scored) / len(scored),
+                "denominator": len(scored),
+            }
+    return {"variant": "schema_rag", "rate": None, "denominator": 0}
 
 
 def _junction_average(records: Sequence[CaseResult]) -> tuple[float | None, int, list[str]]:

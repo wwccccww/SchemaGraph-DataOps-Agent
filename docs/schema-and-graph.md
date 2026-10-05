@@ -210,7 +210,7 @@ CREATE INDEX idx_product_merchant ON t_product(merchant_id);
 表名 + 表中文注释 + 列名 + 列中文注释
 ```
 
-Embedding 使用 `BAAI/bge-m3`，默认召回 Top-3～5。向量记录至少保存：
+Embedding 使用 `BAAI/bge-m3`。原始向量检索接口仍接受 Top-3～5。问数运行时的种子数量不固定为 5：表名、表注释核心词、列注释中的实体词，以及品类列的取值会直接选中实体表；问句里的“已支付、销售、销量”按列注释中的对应说法匹配。没有任何命中时，才按向量分差从高到低保留，最多 5 张。`required_tables` 只用于事后计算 Required Table Recall，不进入检索或生成 Prompt。向量记录至少保存：
 
 - `database_id`
 - `schema_name`

@@ -12,7 +12,7 @@ from app.graph.expand import TokenCounter
 from app.llm.gateway import ChatModel, DeepSeekGateway
 from app.llm.tokenizer import DeepSeekTokenCounter
 from app.retrieval.embedder import BgeM3Embedder, Embedder
-from app.retrieval.index import search_schema_seeds, search_tools
+from app.retrieval.index import search_dynamic_schema_seeds, search_tools
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess, execute_readonly
 from app.schemas.catalog import SchemaEdge, TableDocument
@@ -66,7 +66,8 @@ def build_services(
 
     async def select_seeds(question: str) -> Sequence[SchemaSeed]:
         async with get_sandbox_engine().connect() as conn:
-            return await search_schema_seeds(conn, question, embedder, top_k=5)
+            documents = await load_table_documents(conn)
+            return await search_dynamic_schema_seeds(conn, question, embedder, documents)
 
     async def load_catalog() -> tuple[Sequence[TableDocument], Sequence[SchemaEdge]]:
         async with get_sandbox_engine().connect() as conn:

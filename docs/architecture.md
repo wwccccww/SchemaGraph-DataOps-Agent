@@ -71,7 +71,7 @@ SchemaGraph-DataOps-Agent 面向两类彼此独立的任务：
 | 状态 | 输入 | 输出 |
 | --- | --- | --- |
 | `route_tools` | 自然语言问题 | Top-3 MCP 工具定义 |
-| `retrieve_schema` | 自然语言问题 | Top-3～5 实体种子表 |
+| `retrieve_schema` | 自然语言问题 | 注释命中的实体种子；无命中时向量最多 5 张 |
 | `expand_schema_graph` | 种子表集合 | 受约束的 Schema 子图 |
 | `build_prompt` | 问题、子图、工具结果 | 不超过预算的模型上下文 |
 | `generate_sql` | 模型上下文 | SQL 候选 |
