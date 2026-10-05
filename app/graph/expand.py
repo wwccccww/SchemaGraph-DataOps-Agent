@@ -42,8 +42,11 @@ class EstimatedTokenCounter:
         return max(1, len(text) // 4)
 
 
-def render_schema_context(documents: Sequence[TableDocument]) -> str:
-    """把已选表渲染成稳定的 Schema 文本，供 token 预算使用。"""
+def render_schema_context(
+    documents: Sequence[TableDocument],
+    edges: Sequence[SchemaEdge] = (),
+) -> str:
+    """把已选表和这些表之间的外键渲染成稳定 Schema 文本。"""
 
     blocks: list[str] = []
     for document in sorted(documents, key=lambda item: item.table_name):
@@ -53,7 +56,28 @@ def render_schema_context(documents: Sequence[TableDocument]) -> str:
             for column in document.columns
         )
         blocks.append("\n".join(lines))
+    join_lines = _join_lines(documents, edges)
+    if join_lines:
+        blocks.append("外键：\n" + "\n".join(join_lines))
     return "\n".join(blocks)
+
+
+def _join_lines(documents: Sequence[TableDocument], edges: Sequence[SchemaEdge]) -> list[str]:
+    selected = {document.table_name for document in documents}
+    visible = [
+        edge for edge in edges if edge.source_table in selected and edge.target_table in selected
+    ]
+    return [_join_line(edge) for edge in sorted(visible, key=lambda edge: edge.constraint_name)]
+
+
+def _join_line(edge: SchemaEdge) -> str:
+    if len(edge.source_columns) != len(edge.target_columns):
+        raise ValueError(f"edge {edge.constraint_name} has mismatched columns")
+    pairs = [
+        f"{edge.source_table}.{source} = {edge.target_table}.{target}"
+        for source, target in zip(edge.source_columns, edge.target_columns, strict=True)
+    ]
+    return "join " + " AND ".join(pairs)
 
 
 @dataclass
@@ -169,7 +193,7 @@ def _expand_once(
     full_graph = _undirected_graph(by_name, edges)
 
     def tokens_for(names: Sequence[str]) -> int:
-        return token_counter.count(render_schema_context([by_name[name] for name in names]))
+        return token_counter.count(render_schema_context([by_name[name] for name in names], usable))
 
     def fits(names: Sequence[str]) -> bool:
         unique_names = list(dict.fromkeys(names))

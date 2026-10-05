@@ -278,6 +278,8 @@ async def test_schema_graph_expands_without_repair() -> None:
     assert response.attempts == 1
     assert response.schema_context is not None
     assert "t_user_region_map" in response.schema_context.expanded_tables
+    assert "join t_user_region_map.id = t_user.id" in model.prompts[0]
+    assert "join t_user_region_map.id = t_region.id" in model.prompts[0]
 
 
 async def test_empty_schema_rag_seeds_fail_closed() -> None:

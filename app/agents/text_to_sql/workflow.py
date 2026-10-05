@@ -320,7 +320,7 @@ def _expand_schema_graph(
             return _fail("junction_seed_leak", "种子结果包含不可用的表", retryable=False)
         if state["variant"] == "schema_rag":
             selected = [by_name[name] for name in state["seed_tables"]]
-            context = render_schema_context(selected)
+            context = render_schema_context(selected, edges)
             return {
                 "status": "running",
                 "seed_tables": list(state["seed_tables"]),
@@ -352,7 +352,7 @@ def _expand_schema_graph(
             for name in (*result.seed_tables, *result.expanded_tables)
             if name in by_name
         ]
-        context = render_schema_context(selected)
+        context = render_schema_context(selected, result.edges)
         return {
             "status": "running",
             "seed_tables": list(result.seed_tables),

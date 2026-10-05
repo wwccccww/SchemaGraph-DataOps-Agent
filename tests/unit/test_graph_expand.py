@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from app.db.tables import FOREIGN_KEYS, JUNCTION_TABLES, TABLE_SPECS
-from app.graph.expand import expand_schema
+from app.graph.expand import expand_schema, render_schema_context
 from app.schemas.catalog import ColumnDocument, SchemaEdge, TableDocument
 
 
@@ -181,6 +181,16 @@ def test_low_confidence_inferred_edge_is_rejected() -> None:
     assert result.diagnostic is not None
     assert result.diagnostic.code == "low_confidence_only"
     assert all(item.constraint_name != edge.constraint_name for item in result.edges)
+
+
+def test_rendered_context_includes_only_edges_inside_the_selection() -> None:
+    documents = _documents()
+    selected = [item for item in documents if item.table_name in {"t_order", "t_user"}]
+    context = render_schema_context(selected, _edges())
+
+    assert "join t_order.user_id = t_user.user_id" in context
+    assert "t_order_detail" not in context
+    assert "外键：" in context
 
 
 def test_direct_foreign_key_needs_no_expansion() -> None:
