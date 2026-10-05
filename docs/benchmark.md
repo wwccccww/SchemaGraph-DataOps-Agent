@@ -7,6 +7,7 @@
 - 自建、TPC-DS 派生和 BIRD 三套结果独立报告；
 - Baseline 与 Enhanced 使用相同数据、模型和采样参数；
 - Gold SQL 只存在于评测侧，不能进入 Agent Prompt 或检索库；
+- Gold SQL 的可执行性不等于语义正确性；自建 Gold 必须有独立于主 Gold SQL 的结果校验；
 - Target 与 Measured 指标严格区分；
 - 失败、超时和熔断必须进入分母，不能只统计成功请求；
 - 数据版本、模型版本、Prompt 版本和代码提交必须写入报告。
@@ -81,16 +82,56 @@ Text-to-SQL：132 + 30 + 50 = 212 条
 
 每条用例依次通过：
 
-1. Schema 和 Gold SQL 静态校验；
-2. Gold SQL 在固定数据快照执行成功；
-3. 结果非空且具有区分度；
-4. `required_tables` 与 Gold SQL 实际引用一致；
-5. 同组自然语言和规范化 SQL 去重；
-6. Junction Table 不存在于 Seed 检索库；
-7. 固定随机种子下重复执行结果一致；
-8. 冻结为不可变 Benchmark Case。
+1. 把自然语言问题拆成投影、分组、过滤、时间窗口、实体范围和去重粒度六项语义契约；
+2. Schema 和 Gold SQL 静态校验；
+3. Gold SQL 在固定数据快照执行成功；
+4. 结果非空且具有区分度；
+5. `required_tables` 与 Gold SQL 实际引用一致；
+6. 独立 Oracle SQL 或人工枚举结果与 Gold 结果一致；
+7. 同组自然语言和规范化 SQL 去重；
+8. Junction Table 不存在于 Seed 检索库；
+9. 固定随机种子下重复执行结果一致；
+10. 固化结果摘要、复核人和数据库快照；
+11. 冻结为不可变 Benchmark Case。
 
 评测 Prompt 只包含问题、允许的工具结果和当前策略召回的 Schema，不包含 Gold SQL、Gold 结果、`required_tables` 或难度标签。
+
+### 3.1 自建 Gold 正确性分级
+
+自建用例必须分别记录以下状态，不能用“Gold 已验证”笼统表示：
+
+| 状态 | 含义 | 可用于正式 EX |
+| --- | --- | --- |
+| `executable` | SQL 可解析、只读、可执行且结果非空 | 否 |
+| `contract_checked` | SQL 的投影、分组、过滤、时间和去重粒度与问题契约逐项一致 | 否 |
+| `oracle_matched` | 独立实现的 Oracle 结果与 Gold 结果一致 | 是 |
+| `reviewed` | 至少两名复核者确认问题、契约和 Oracle 没有共同歧义 | 是 |
+
+Oracle 不能由主 Gold SQL 做字符串改写得到。允许的独立校验方式包括：
+
+- 对 Basic 小结果集手工枚举主键和值；
+- 用不同查询结构重写，例如相关子查询对照 `JOIN + GROUP BY`；
+- 先在 Python 中按主键集合计算，再与数据库结果比较；
+- 对复杂金额题分别核对“订单去重集合”和最终聚合，避免两个 SQL 共享同一个重复聚合错误。
+
+每条冻结用例新增或伴随保存：
+
+```text
+semantic_contract:
+  projections: [...]
+  group_keys: [...]
+  filters: [...]
+  category_scope: exact|descendants
+  time_window: {start: ..., end: ..., anchor_date: ...}
+  dedup_key: null|order_id
+oracle:
+  method: manual|independent_sql|python
+  result_digest: sha256:...
+  row_count: ...
+  reviewer_ids: [...]
+```
+
+`result_digest` 必须基于 Canonical Cell 结果生成，且绑定数据库快照。修改问题、Gold SQL、造数逻辑或语义契约后，原摘要立即失效，必须重新审核。
 
 ## 4. 消融矩阵
 
@@ -280,3 +321,176 @@ Measured 值只能由带原始 JSON Log 的评测任务产生。README 和简历
   }
 }
 ```
+
+## 11. Badcase 诊断与改进闭环
+
+### 11.1 诊断基线
+
+本节方案来自本地报告
+`run_20261005T031840Z_540294bece233a04032a8fb7e006477775742331`。
+该报告是一次诊断输入，不替代第 9 节的正式 Measured 发布流程。
+
+Schema Graph 的主要失败不是缺表：Junction Table Recall 为 41/41，
+`missing_required_table` 只剩 1 条。主类集中在：
+
+- 82 条 `grouping_grain`；
+- 27 条 `projection`；
+- 10 条递归 CTE 写法导致的 `undefined_table`；
+- 4 条“上个月”查询被函数门禁拒绝；
+- 1 条 `filter_scope`。
+
+Self-Healing 中 27 条发生了重试，没有一条在重试后通过 EX；9 条最终熔断。
+因此下一轮优先修复答案形状和复核误报，不继续扩大 Schema 召回范围。
+
+诊断是事后步骤，可以读取 Gold、`required_tables` 和难度，但这些字段仍禁止进入生成、
+复核和修复 Prompt。每条 badcase 保存预测 SQL 的结构摘要，不把完整 Gold SQL复制到模型上下文。
+
+### 11.2 统一 badcase 分类
+
+每条结果只进入一个主类，按以下优先级分类：
+
+1. `matched`；
+2. `circuit_breaker`；
+3. SQL 门禁或数据库错误；
+4. `missing_required_table`；
+5. `time_anchor`；
+6. `grouping_grain`；
+7. `filter_scope`；
+8. `join_shape`；
+9. `projection`；
+10. `other_result_mismatch`。
+
+同时保存非互斥症状，至少包括：
+
+- 缺少和多出的投影；
+- Gold 与预测的外层分组键；
+- 聚合是否只存在于 CTE；
+- 缺少的过滤字面量；
+- `exact` 被改成 `descendants` 的品类范围；
+- JOIN 等号对和 JOIN 类型差异；
+- 固定时间窗口是否被运行时日期替换；
+- 递归 CTE 是否声明 `WITH RECURSIVE`；
+- 每次修复的错误类别和规范化错误哈希。
+
+主类用于汇总，症状用于定位；不能因为主类是 `grouping_grain` 就丢弃同一条 SQL 的投影、
+过滤和 JOIN 差异。
+
+### 11.3 P0：先加回归护栏
+
+在调整 Prompt 或模型策略之前，先完成以下确定性改动：
+
+1. **Gold 独立校验**
+   - 为 132 条自建用例补齐第 3.1 节的语义契约和结果摘要；
+   - Basic 使用手工枚举或 Python Oracle，Medium/Complex 使用独立查询结构；
+   - 对“末级品类”“品类是否包含子类”“统计数量是否回显维度”等歧义逐条定稿；
+   - 新增测试，要求 132 条全部达到 `oracle_matched`，否则正式 EX 任务拒绝启动。
+2. **函数门禁名称归一化**
+   - 在 SQLGlot AST 类型和 PostgreSQL 表面函数名之间建立显式映射；
+   - `TimestampTrunc` 按渲染后的 `DATE_TRUNC` 审计，不能因为内部 `sql_name()` 是
+     `TIMESTAMP_TRUNC` 而误拒绝；
+   - 不扩大未知函数白名单；运行时钟函数和固定 `anchor_date` 的语义冲突由时间规则单独检查。
+3. **递归 CTE 静态检查**
+   - CTE 在自身定义内被引用时，必须存在 `WITH RECURSIVE`；
+   - 在查询数据库前返回 `recursive_cte_missing`，修复 Prompt 明确要求补关键字或改成非递归等值过滤；
+   - 用报告中的 10 条 CTE 自引用 case 建回归测试。
+4. **CTE 血缘感知的 JOIN 检查**
+   - 为每个 CTE 记录输出列到物理表列的血缘；
+   - 物理表与 CTE JOIN 时，沿血缘验证底层 FK；无法证明时记为
+     `join_unverified`，不能直接判为 `join_not_on_graph`；
+   - `custom_medium_047`–`050` 和 `custom_complex_023` 必须不再因可解释的
+     CTE JOIN 重复熔断。
+5. **诊断器遍历完整查询树**
+   - 分别保存外层和每个 CTE 的投影、聚合、分组及 JOIN；
+   - 不再把“CTE 内已分组、外层改写结果形状”简化为“完全没有聚合”。
+
+P0 只消除评测不确定性和确定性误报，不以提高 EX 为验收条件。
+
+### 11.4 P1：生成前先建立答案契约
+
+新增不读取 Gold 的 `AnswerContract`，从问题和固定业务词典提取：
+
+```text
+dimensions       要逐行返回的实体，如会员等级、商家、地区、品类
+dimension_fields 要回显的名称、编号和常量标签
+measures         count、sum(quantity)、sum(quantity * price) 等
+filters          状态、VIP、地区、券类型、自营标记
+category_scope   exact 或 descendants，默认 exact
+time_window      由 anchor_date 展开的半开区间 [start, end)
+dedup_key        金额汇总前需要去重的业务主键
+```
+
+生成 Prompt 在 Schema Context 之前显示这个契约，并要求：
+
+- 每个 `dimension` 必须出现在最终投影；多行答案必须出现在最终结果粒度中；
+- 问句给定单个维度值时，若输出契约要求回显该维度，不能只返回一个标量；
+- 月份、状态和类型是否作为结果列由契约决定，不能只凭模型偏好增删；
+- 品类名默认精确匹配。只有问题明确表达“及其子类、全部下级”时才能递归展开；
+- “上个月”必须用用例提供的 `anchor_date` 展开为固定常量，不能使用
+  `CURRENT_DATE`、`CURRENT_TIMESTAMP` 或 `clock_timestamp`；
+- 复杂金额题先按 `dedup_key` 形成合格事实集合，再做最终聚合。
+
+`AnswerContract` 来自问题和业务规则，不读取 Gold。评测报告保存契约摘要，便于判断是契约抽取错误还是
+SQL 生成错误。
+
+### 11.5 P2：执行成功后的契约复核
+
+Self-Healing 在 SQL 执行成功后，使用同一个 `AnswerContract` 做确定性复核：
+
+1. 最终结果投影覆盖 `dimension_fields + measures`；
+2. 最终结果粒度覆盖 `dimensions`，包括聚合位于 CTE 的情况；
+3. `exact` 品类不能出现额外的 `parent_id` 展开或递归品类树；
+4. 时间谓词与展开后的固定半开区间一致；
+5. 聚合前去重键符合契约；
+6. CTE JOIN 只在血缘证明违反 FK 时才报错；
+7. 执行成功但契约不满足时，错误消息列出“期望”和“实际”，只触发一次定向修复。
+
+修复后先重跑 AST 和契约复核，再执行 SQL。若修复没有改变对应症状，不消耗三轮相同提示；
+直接标记 `no_progress` 并熔断。报告必须区分：
+
+- SQL/数据库错误修复成功；
+- 契约复核修复成功；
+- 执行成功但 EX 仍失败；
+- 复核误报或无进展熔断。
+
+### 11.6 实施文件与测试映射
+
+| 工作项 | 主要落点 | 必需测试 |
+| --- | --- | --- |
+| Gold 语义契约和 Oracle 摘要 | `app/evaluation/custom_cases.py`、`benchmarks/custom_ecommerce/` | 132 条 Oracle 与 Gold Canonical Rows 一致 |
+| AST 函数名归一化 | `app/sandbox/gate.py` | `DATE_TRUNC` 不因 `TimestampTrunc` 内部名误拒绝；未知函数仍拒绝 |
+| 递归 CTE 检查 | `app/sandbox/gate.py` 或独立 AST 检查器 | 10 条自引用样例均在执行前定位 |
+| CTE 血缘 JOIN | `app/agents/text_to_sql/semantic.py` | 物理 FK、合法 CTE JOIN、非法 CTE JOIN 各有正反例 |
+| AnswerContract | `app/agents/text_to_sql/` 新模块 | 投影、粒度、品类范围、时间锚点、去重键单测 |
+| Prompt 接入 | `app/agents/text_to_sql/prompt.py` | Prompt 含契约，不含 Gold、难度和 `required_tables` |
+| 自愈路由 | `app/agents/text_to_sql/workflow.py` | 定向修复、`no_progress`、最大调用数和 SQL 隐藏契约 |
+| 完整 SQL 形状 | `app/evaluation/sql_shape.py` | 外层与 CTE 分开报告，解析失败保留局部诊断 |
+| badcase 汇总 | `app/evaluation/ablation.py` | 分类总数等于分母，主类与症状均可追溯到 case JSON |
+
+### 11.7 验收门槛
+
+按 P0、P1、P2 顺序提交，每一步都保留相同模型、温度、数据库快照和用例顺序，做配对比较。
+
+P0：
+
+- 132/132 自建用例达到 `oracle_matched`，且复核元数据完整；
+- Gold、Oracle 和结果摘要与数据库快照绑定；
+- 10 条递归 CTE 错误能在执行前稳定分类；
+- `DATE_TRUNC` AST 名称误判和 5 条 CTE JOIN 复核误报都有回归测试；
+- 所有未知或有副作用的函数仍被拒绝。
+
+P1：
+
+- 报告中的 27 条投影 case 和 82 条粒度 case 均生成 AnswerContract 回归夹具；
+- 夹具只验证契约抽取和静态发现，不把 Gold 内容送进 Prompt；
+- 品类精确范围、固定时间窗口、订单去重分别有正反例。
+
+P2：
+
+- 所有 `attempts > 1` 的 case 都保存“触发症状 → 修复变化 → 最终结果”链路；
+- 相同 SQL 或相同症状不允许无变化地连续消耗三轮；
+- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；
+- Schema Graph 的 Junction Table Recall 和 Required Table Recall 不得回退；
+- EX、分类计数和组间转移矩阵由原始 case JSON 重算，不能手工填写。
+
+一次新消融只有在 P0 全部通过后才可用于比较模型正确性。若 Gold 审核导致问题、SQL 或结果摘要变化，
+必须提升 `benchmark_version`，旧报告只保留为历史基线，不能与新版本直接计算提升比例。
