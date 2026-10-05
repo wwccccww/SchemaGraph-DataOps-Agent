@@ -495,6 +495,12 @@ def _join_hints(
             "California schools：schools 与 frpm/satscores 用 CDSCode 与 satscores.cds 连接，"
             "不要对 schools 与 frpm 做无键笛卡尔积。"
         )
+    if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
+        if "customer_address" in visible and "web_sales" in visible:
+            hints.append(
+                "账单/收货地址州：web_sales.ws_bill_addr_sk 与 ws_ship_addr_sk 各 JOIN 一次 customer_address，"
+                "过滤 bill_state <> ship_state。"
+            )
     if re.search(r"当前住址|current address", question, re.IGNORECASE) and "customer_address" in visible:
         for edge in edges:
             tables = {edge.source_table.lower(), edge.target_table.lower()}
