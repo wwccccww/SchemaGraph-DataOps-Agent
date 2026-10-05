@@ -61,6 +61,20 @@ def test_order_sensitive_checks_alias_order() -> None:
     assert check_frozen_semantic_contract(contract, ok, dialect="sqlite") == ()
 
 
+def test_store_sales_demographics_use_current_cdemo_sk() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_002")
+    bad = case.gold_sql.replace(
+        "ON customer.c_current_cdemo_sk = customer_demographics.cd_demo_sk",
+        "ON store_sales.ss_cdemo_sk = customer_demographics.cd_demo_sk",
+    ).replace("JOIN customer ON", "JOIN customer ON")
+    findings = check_frozen_semantic_contract(
+        case.semantic_contract, bad, dialect="postgres"
+    )
+    assert any("c_current_cdemo_sk" in item.message for item in findings)
+
+
 def test_frozen_contract_rejects_extra_output_columns() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
