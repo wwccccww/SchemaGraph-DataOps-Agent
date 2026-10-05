@@ -528,7 +528,15 @@ def _validate_sql(
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
             findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
-            if state["variant"] == "self_healing" and state["attempt"] > 1:
+            if (
+                state["variant"] == "self_healing"
+                and state["profile"] != "ecommerce"
+                and state["attempt"] >= 1
+            ) or (
+                state["variant"] == "self_healing"
+                and state["profile"] == "ecommerce"
+                and state["attempt"] > 1
+            ):
                 findings.extend(
                     check_answer_shape(
                         state["question"],

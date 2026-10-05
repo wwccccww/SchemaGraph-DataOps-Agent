@@ -30,7 +30,7 @@ from app.agents.text_to_sql.workflow import (
     TextToSqlVariant,
     inspect_text_to_sql,
 )
-from app.config.settings import get_settings
+from app.config.llm_settings import get_llm_settings
 from app.datasources.bundle import build_static_bundle
 from app.datasources.postgres_catalog import load_public_catalog
 from app.datasources.postgres_exec import EXTERNAL_RESULT_CEILING, execute_registered_postgres
@@ -405,8 +405,17 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="run every frozen case; requires gold_matched attestation",
     )
-    parser.add_argument("--variant", default="schema_graph")
-    parser.add_argument("--timeout", type=float, default=30)
+    parser.add_argument(
+        "--variant",
+        default="self_healing",
+        help="text-to-sql workflow variant (default self_healing for external EX)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=180,
+        help="SQL execution timeout seconds (TPC-DS Gold 可能超过 30s)",
+    )
     parser.add_argument("--report-root", type=Path)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -454,13 +463,13 @@ async def _run(
         )
         if len(cases) == len(loaded):
             ensure_gold_matched(loaded, source)
-    settings = get_settings()
-    if settings.deepseek_api_key is None:
+    llm = get_llm_settings()
+    if llm.deepseek_api_key is None:
         raise RuntimeError("DEEPSEEK_API_KEY is required")
     model = DeepSeekGateway(
-        api_key=settings.deepseek_api_key,
-        base_url=settings.deepseek_base_url,
-        model=settings.deepseek_model,
+        api_key=llm.deepseek_api_key,
+        base_url=llm.deepseek_base_url,
+        model=llm.deepseek_model,
         timeout_seconds=120,
     )
     counter = DeepSeekTokenCounter()
@@ -651,17 +660,7 @@ async def _tpcds_snapshot(timeout_seconds: float) -> str:
 
 
 def _tpcds_target() -> PostgresTarget:
-    try:
-        target = postgres_connection_kwargs()
-    except RuntimeError:
-        settings = get_settings()
-        target = {
-            "host": settings.postgres_host,
-            "port": settings.postgres_port,
-            "user": settings.postgres_user,
-            "password": settings.postgres_password.get_secret_value(),
-            "database": "tpcds",
-        }
+    target = postgres_connection_kwargs()
     if target["database"] == "text2sql_db":
         raise ValueError("TPC-DS evaluation must not use the ecommerce database")
     return target

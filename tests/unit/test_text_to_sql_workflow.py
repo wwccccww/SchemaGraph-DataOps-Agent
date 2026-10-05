@@ -648,7 +648,25 @@ def _tpcds_bundle(model: ScriptedModel, executor: RecordingExecutor) -> ServiceB
                 embedding_model="lexical",
                 embedding_version="none",
                 score=1.0,
-            )
+            ),
+            SchemaSeed(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="store_sales",
+                content_hash="sha256:store_sales",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            ),
+            SchemaSeed(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="date_dim",
+                content_hash="sha256:date_dim",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            ),
         ]
 
     async def load_catalog() -> tuple[list[TableDocument], list[object]]:
@@ -674,7 +692,57 @@ def _tpcds_bundle(model: ScriptedModel, executor: RecordingExecutor) -> ServiceB
                 ],
                 is_junction=False,
                 content_hash="sha256:store",
-            )
+            ),
+            TableDocument(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="store_sales",
+                table_comment=None,
+                columns=[
+                    ColumnDocument(
+                        name="ss_sold_date_sk",
+                        data_type="int",
+                        nullable=False,
+                        comment=None,
+                    ),
+                    ColumnDocument(
+                        name="ss_store_sk",
+                        data_type="int",
+                        nullable=False,
+                        comment=None,
+                    ),
+                    ColumnDocument(
+                        name="ss_sales_price",
+                        data_type="numeric",
+                        nullable=True,
+                        comment=None,
+                    ),
+                ],
+                is_junction=False,
+                content_hash="sha256:store_sales",
+            ),
+            TableDocument(
+                database_id="tpcds",
+                schema_name="public",
+                table_name="date_dim",
+                table_comment=None,
+                columns=[
+                    ColumnDocument(
+                        name="d_date_sk",
+                        data_type="int",
+                        nullable=False,
+                        comment=None,
+                    ),
+                    ColumnDocument(
+                        name="d_year",
+                        data_type="int",
+                        nullable=False,
+                        comment=None,
+                    ),
+                ],
+                is_junction=False,
+                content_hash="sha256:date_dim",
+            ),
         ], []
 
     return ServiceBundle(
@@ -689,7 +757,13 @@ def _tpcds_bundle(model: ScriptedModel, executor: RecordingExecutor) -> ServiceB
 
 
 async def test_generic_self_healing_keeps_the_executable_sql() -> None:
-    first = "SELECT s_state, SUM(1) AS amount FROM store WHERE s_store_sk = 2001 GROUP BY s_state"
+    first = (
+        "SELECT d.d_year, s.s_state, SUM(ss.ss_sales_price) AS amount "
+        "FROM store_sales AS ss "
+        "JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk "
+        "JOIN store AS s ON ss.ss_store_sk = s.s_store_sk "
+        "WHERE d.d_year = 2001 GROUP BY d.d_year, s.s_state"
+    )
     model = ScriptedModel([first, "SELECT missing FROM nowhere"])
     executor = RecordingExecutor()
 

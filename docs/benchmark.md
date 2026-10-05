@@ -93,11 +93,17 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 
 ### 2.6 外部模型评测（P2）
 
-- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。
+- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`。
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
-- Generic Prompt 版本 `text-to-sql-generic-v5`：PostgreSQL 外部库增加 `*_sk` Join 约束；修复轮次对 `disallowed_function` 与串库给出方言提示。
+- Generic Prompt 版本 `text-to-sql-generic-v6`：在 v5 基础上增加多属性/英文 characteristics 与 SAT/charter 口径提示；generic 自愈在首轮校验即做输出形状检查。
+- 环境变量（外部模型评测最低要求）：
+  - `DEEPSEEK_API_KEY`（必填）
+  - BIRD：`--database-root` 指向 `dev_databases`；可选 `BIRD_DATABASE_ROOT` 供集成测试
+  - TPC-DS：`POSTGRES_USER` / `POSTGRES_PASSWORD` 或 `TPCDS_POSTGRES_*`，库名默认 `tpcds`
+  - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
+- 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
 
 ## 3. 用例生命周期
 

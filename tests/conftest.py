@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from app.config.llm_settings import get_llm_settings
 from app.config.settings import get_settings
 from app.db.engine import dispose_engines
 from app.db.initialize import initialize_database
@@ -16,8 +17,10 @@ def clear_cached_settings():
     """每个测试都从当前环境重新读取配置。"""
 
     get_settings.cache_clear()
+    get_llm_settings.cache_clear()
     yield
     get_settings.cache_clear()
+    get_llm_settings.cache_clear()
 
 
 @pytest.fixture

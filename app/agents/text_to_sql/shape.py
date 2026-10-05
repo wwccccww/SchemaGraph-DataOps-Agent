@@ -67,7 +67,9 @@ _ENTITIES = (
     (re.compile(r"仓库|warehouse"), ("warehouse",)),
     (re.compile(r"促销|promotion"), ("promotion",)),
     (re.compile(r"\bschools?\b", re.IGNORECASE), ("schools",)),
-    (re.compile(r"\bSAT\b|\bsatscores\b"), ("satscores",)),
+    (re.compile(r"\bSAT\b|\bsatscores\b|SAT performance", re.IGNORECASE), ("satscores",)),
+    (re.compile(r"charter school|\bcharter\b", re.IGNORECASE), ("schools",)),
+    (re.compile(r"grades?\s+(?:it\s+)?serves|grades served", re.IGNORECASE), ("schools",)),
     (re.compile(r"FRPM|free meal|free or reduced", re.IGNORECASE), ("frpm",)),
 )
 _MEASURE_COLUMNS = (
@@ -189,6 +191,26 @@ def check_answer_shape(
                         f"问句点名的列 {column.name} 没有出现在投影或过滤中",
                     )
                 )
+    if re.search(r"performance level|SAT performance", question, re.IGNORECASE):
+        if re.search(r"avgscr(read|math|write)", sql, re.IGNORECASE) and "case" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SAT performance level 应使用 CASE 归类，不要只投影原始 AvgScr 列",
+                )
+            )
+    if re.search(r"charter", question, re.IGNORECASE) and any(
+        document.table_name.lower() == "schools" for document in documents
+    ):
+        if "charter school (y/n)" in lowered and re.search(
+            r"\bschools\b", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "charter school 语义优先使用 schools 表的 Charter 字段，不要用 frpm 的 Y/N 列",
+                )
+            )
     return tuple(findings)
 
 
