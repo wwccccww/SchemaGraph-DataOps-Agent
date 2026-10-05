@@ -345,5 +345,14 @@ def _redacted_summary_copies_custom_targets(summary: Mapping[str, object]) -> bo
     measured = cloned.get("measured")
     if isinstance(measured, dict):
         measured["execution_accuracy"] = None
+    execution = cloned.get("model_execution")
+    if isinstance(execution, dict):
+        for key in (
+            "executable_rate",
+            "dialect_error_rate",
+            "context_recall",
+            "sql_table_recall",
+        ):
+            execution[key] = None
     encoded = json.dumps(cloned, ensure_ascii=False)
     return any(token in encoded for token in _CUSTOM_TARGETS) or "custom_" in encoded

@@ -276,6 +276,16 @@ def test_model_report_rejects_an_empty_model_and_custom_targets(tmp_path: Path) 
             traces=[trace],
         )
     summary["model"] = "deepseek-chat"
+    execution = summary["model_execution"]
+    assert isinstance(execution, dict)
+    execution["executable_rate"] = 0.86
+    write_external_model_report(
+        tmp_path,
+        stamp="20261005T000150Z",
+        commit="abc1234",
+        summary=summary,
+        traces=[trace],
+    )
     summary["environment"] = {"note": "0.83"}
     with pytest.raises(ValueError, match="custom target"):
         write_external_model_report(
