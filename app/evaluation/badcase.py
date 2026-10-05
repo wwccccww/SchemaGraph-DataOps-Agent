@@ -124,7 +124,13 @@ def _primary(
         return "response_shape"
     if _symptom_value(symptoms, "missing_filter_literals"):
         return "filter_scope"
-    if _join_semantics(gold.sql or "", predicted.sql or "", symptoms):
+    if _join_semantics(
+        gold.sql or "",
+        predicted.sql or "",
+        symptoms,
+        gold=gold,
+        predicted=predicted,
+    ):
         return "join_semantics"
     return "other_result_mismatch"
 
@@ -252,6 +258,9 @@ def _join_semantics(
     gold_sql: str,
     predicted_sql: str,
     symptoms: tuple[tuple[str, str], ...],
+    *,
+    gold: PredictionShape,
+    predicted: PredictionShape,
 ) -> bool:
     if not _symptom_value(symptoms, "join_shape_difference"):
         return False
@@ -265,7 +274,38 @@ def _join_semantics(
         return False
     if _group_by_equivalent(gold_groups, predicted_groups):
         return False
+    if _projection_aligned_grouping(gold, predicted):
+        return False
     return True
+
+
+def _projection_aligned_grouping(gold: PredictionShape, predicted: PredictionShape) -> bool:
+    """预测 GROUP BY 使用最终 AS 别名而 Gold 用 table.column 时不算 join 语义错误。"""
+
+    if set(gold.projections) != set(predicted.projections):
+        return False
+    proj_norm = {_normalize_label(name) for name in predicted.projections}
+    groups: tuple[str, ...] = ()
+    if predicted.scopes:
+        outer = next((scope for scope in predicted.scopes if scope.name == "outer"), None)
+        if outer is not None and outer.group_by:
+            groups = outer.group_by
+    if not groups:
+        groups = predicted.group_by
+    if not groups:
+        return False
+    labels = [_group_label_token(item) for item in groups]
+    return all(_normalize_label(label) in proj_norm for label in labels)
+
+
+def _normalize_label(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def _group_label_token(expression: str) -> str:
+    normalized = expression.replace('"', " ").replace("`", " ")
+    parts = re.findall(r"[a-z_][a-z0-9_]*", normalized.lower())
+    return parts[-1] if parts else normalized.strip()
 
 
 def _group_by_equivalent(gold: str, predicted: str) -> bool:

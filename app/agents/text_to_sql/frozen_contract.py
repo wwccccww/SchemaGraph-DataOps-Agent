@@ -183,13 +183,21 @@ def check_frozen_semantic_contract(
                 )
             )
     if contract.group_keys and described.aggregations:
-        grouped = " ".join(described.group_by).lower()
+        outer = next((scope for scope in described.scopes if scope.name == "outer"), None)
+        group_by = outer.group_by if outer is not None else described.group_by
+        grouped = " ".join(group_by).lower()
+        proj_norm = {_normalize_label(name) for name in described.projections}
         for key in contract.group_keys:
-            if key.lower() not in grouped and key.lower() not in aliases:
+            kn = _normalize_label(key)
+            if kn in proj_norm and any(kn == _normalize_label(g) for g in group_by):
+                continue
+            if key.lower() in grouped or kn in grouped.replace("_", ""):
+                continue
+            if key.lower() not in aliases:
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        f"聚合查询的 GROUP BY 需包含 {key}",
+                        f"聚合查询外层 GROUP BY 需包含维度 {key}（可与 AS 别名一致）",
                     )
                 )
     if _window_and_group_by_same_select(sql, dialect=dialect):
@@ -211,6 +219,10 @@ def check_frozen_semantic_contract(
                     )
                 )
     return tuple(findings)
+
+
+def _normalize_label(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
 def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
@@ -278,6 +290,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 hints.append("清单不含 promotion 时不要额外 JOIN promotion。")
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
+        if item.startswith("anchor_date="):
+            day = item.split("=", 1)[1]
+            hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
         if item == "returns_vs_sales=separate_cte":
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"
