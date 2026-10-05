@@ -45,10 +45,12 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
     projections = list(case.expected_columns)
     measures = _measure_columns(projections)
     group_keys = [name for name in projections if name not in measures]
+    filters = _filters_from_question(case.question)
+    filters.extend(_fact_filters(case.required_tables, case.question))
     return SemanticContract(
         projections=projections,
         group_keys=group_keys,
-        filters=_filters_from_question(case.question),
+        filters=filters,
         category_scope="exact",
         time_window=_time_window(case.question),
         dedup_key=None,
@@ -65,6 +67,31 @@ def _measure_columns(projections: list[str]) -> list[str]:
     if len(projections) >= 2:
         return [projections[-1]]
     return []
+
+
+def _fact_filters(required_tables: list[str], question: str) -> list[str]:
+    """事实表提示来自冻结用例审计字段，不进入 Prompt 的 required_tables 列表。"""
+
+    sales = [
+        name
+        for name in required_tables
+        if name.endswith("_sales") or name.endswith("_returns")
+    ]
+    if not sales:
+        return []
+    if len(sales) == 1:
+        return [f"primary_fact={sales[0]}"]
+    chosen: list[str] = []
+    if "目录" in question:
+        chosen.extend(name for name in sales if name.startswith("catalog"))
+    if "门店" in question:
+        chosen.extend(name for name in sales if name.startswith("store"))
+    if "网站" in question or "网页" in question:
+        chosen.extend(name for name in sales if name.startswith("web"))
+    chosen = list(dict.fromkeys(chosen))
+    if len(chosen) == 1:
+        return [f"primary_fact={chosen[0]}"]
+    return [f"primary_facts={','.join(sorted(sales))}"]
 
 
 def _filters_from_question(question: str) -> list[str]:

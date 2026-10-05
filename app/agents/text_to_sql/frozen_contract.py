@@ -9,6 +9,13 @@ from app.evaluation.sql_shape import describe_sql
 from app.agents.text_to_sql.semantic import SemanticFinding
 from app.schemas.benchmark import SemanticContract
 
+_PROJECTION_COLUMNS: dict[str, str] = {
+    "item_category": "item.i_category",
+    "store_state": "store.s_state",
+    "return_reason": "reason.r_reason_desc",
+    "sales_year": "date_dim.d_year",
+    "return_year": "date_dim.d_year",
+}
 _PROJECTION_TABLES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("item_category", ("item",)),
     ("income_lower", ("income_band", "household_demographics")),
@@ -34,6 +41,12 @@ def format_frozen_semantic_contract(contract: SemanticContract) -> str:
         lines.append(f"GROUP BY 键：{'、'.join(contract.group_keys)}")
     if contract.filters:
         lines.append(f"过滤语义：{'；'.join(contract.filters)}")
+    for name in contract.projections:
+        column = _PROJECTION_COLUMNS.get(name)
+        if column is not None:
+            lines.append(f"列 {name} 优先投影 {column}（AS {name}）")
+    for hint in _filter_hints(contract.filters):
+        lines.append(hint)
     if contract.time_window is not None:
         lines.append(
             f"时间窗口：{contract.time_window.start} 至 {contract.time_window.end}"
@@ -74,6 +87,26 @@ def check_frozen_semantic_contract(
                     f"冻结契约要求输出列 {name}，请用 AS {name} 投影",
                 )
             )
+    for name in contract.projections:
+        column = _PROJECTION_COLUMNS.get(name)
+        if column is None:
+            continue
+        base = column.split(".")[-1].lower()
+        if base not in sql.lower():
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"列 {name} 应使用 {column}，不要用其它 surrogate 列代替",
+                )
+            )
+    primary = _primary_fact(contract.filters)
+    if primary is not None and primary.lower() not in referenced:
+        findings.append(
+            SemanticFinding(
+                "missing_entity",
+                f"冻结契约要求主事实表 {primary} 出现在 SQL 中",
+            )
+        )
     if contract.group_keys and described.aggregations:
         grouped = " ".join(described.group_by).lower()
         for key in contract.group_keys:
@@ -101,3 +134,26 @@ def _tables_for_projections(projections: Sequence[str]) -> tuple[str, ...]:
 
 def _select_aliases(sql: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(_ALIAS.findall(sql)))
+
+
+def _primary_fact(filters: Sequence[str]) -> str | None:
+    for item in filters:
+        if item.startswith("primary_fact="):
+            return item.split("=", 1)[1]
+    return None
+
+
+def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
+    hints: list[str] = []
+    for item in filters:
+        if item == "promotion_channel=dmail":
+            hints.append(
+                "直邮促销：promotion.p_channel_dmail='Y'，并用 ss_item_sk IN (SELECT p_item_sk FROM promotion ...) 或 ss_promo_sk 关联，不要仅用 item 与 promotion 的笛卡尔 JOIN"
+            )
+        if item.startswith("primary_fact="):
+            table = item.split("=", 1)[1]
+            hints.append(f"主事实表必须是 {table}（FROM/JOIN），不要换成其它渠道事实表。")
+        if item.startswith("primary_facts="):
+            tables = item.split("=", 1)[1]
+            hints.append(f"问句涉及多渠道，需覆盖事实表：{tables}")
+    return tuple(hints)

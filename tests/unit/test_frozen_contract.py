@@ -29,6 +29,20 @@ def test_format_includes_projections_and_item_hint() -> None:
     assert "item" in text
 
 
+def test_primary_fact_filter_requires_store_sales() -> None:
+    contract = SemanticContract(
+        projections=["sales_amount"],
+        group_keys=[],
+        filters=["primary_fact=store_sales"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    bad = "SELECT SUM(cs_net_profit) FROM catalog_sales"
+    findings = check_frozen_semantic_contract(contract, bad, dialect="postgres")
+    assert any("store_sales" in item.message for item in findings)
+
+
 def test_check_requires_item_when_item_category_projected() -> None:
     contract = SemanticContract(
         projections=["item_category", "sales_amount"],
