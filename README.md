@@ -127,7 +127,16 @@ uv run python -m app.evaluation.external_data verify-tpcds
 uv run python -m app.evaluation.external_data check-external-release
 ```
 
-后两条命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
+外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
+
+```bash
+uv run python -m app.evaluation.external_model --source tpcds-derived --limit 5
+uv run python -m app.evaluation.external_model --source bird --database-root /path/to/dev_databases --full
+```
+
+全量 `--full` 要求对应 `gold_attestation.json` 为 `gold_matched`。默认 `self_healing` 与 4 轮修复。详见 `docs/benchmark.md` §2.6。
+
+后两条 verify 命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
 
 配置 `DEEPSEEK_API_KEY` 后可以提问或诊断：
 

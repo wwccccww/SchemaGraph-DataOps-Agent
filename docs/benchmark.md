@@ -93,7 +93,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 
 ### 2.6 外部模型评测（P2）
 
-- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`。
+- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`、`--max-repair-rounds 4`（5 次模型调用）、`--timeout 180`。
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。

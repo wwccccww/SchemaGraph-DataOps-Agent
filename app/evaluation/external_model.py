@@ -417,7 +417,15 @@ def main(argv: list[str] | None = None) -> None:
         help="SQL execution timeout seconds (TPC-DS Gold 可能超过 30s)",
     )
     parser.add_argument("--report-root", type=Path)
+    parser.add_argument(
+        "--max-repair-rounds",
+        type=int,
+        default=4,
+        help="self-healing repair rounds for external EX (default 4 → 5 model calls)",
+    )
     args = parser.parse_args(argv)
+    if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
+        raise SystemExit("--max-repair-rounds must be between 1 and 8")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if args.variant not in TEXT_TO_SQL_VARIANTS:
         raise SystemExit(f"unknown variant: {args.variant}")
@@ -431,6 +439,7 @@ def main(argv: list[str] | None = None) -> None:
             variant=args.variant,
             timeout_seconds=args.timeout,
             report_root=args.report_root,
+            max_recovery_rounds=args.max_repair_rounds,
         )
     )
     if code:
@@ -447,6 +456,7 @@ async def _run(
     variant: TextToSqlVariant,
     timeout_seconds: float,
     report_root: Path | None,
+    max_recovery_rounds: int,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
@@ -513,6 +523,7 @@ async def _run(
             max_rows=_evaluation_max_rows(source),
             variant=variant,
             frozen_contract=case.semantic_contract,
+            max_recovery_rounds=max_recovery_rounds,
         )
 
     async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
@@ -544,6 +555,8 @@ async def _run(
             "business_rules": False,
             "official_tpcds_result": False,
             "timeout_seconds": timeout_seconds,
+            "max_recovery_rounds": max_recovery_rounds,
+            "frozen_semantic_contract": True,
         },
     )
     directory = write_external_model_report(

@@ -41,6 +41,7 @@ def test_bird_external_model_smoke_one_case() -> None:
             variant="self_healing",
             timeout_seconds=60,
             report_root=Path("/tmp/reports/bird-external-model-smoke"),
+            max_recovery_rounds=4,
         )
     )
     assert code in {0, 2}

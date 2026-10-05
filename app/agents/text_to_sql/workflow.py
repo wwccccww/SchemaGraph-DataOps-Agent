@@ -132,6 +132,7 @@ class TextToSqlState(TypedDict):
     repair_trace: list[dict[str, object]]
     join_paths: list[str]
     frozen_contract: dict[str, object] | None
+    max_model_calls: int
     initial_sql: str
     candidate_sql: str | None
     candidate_columns: list[str]
@@ -248,6 +249,7 @@ async def inspect_text_to_sql(
     anchor_date: str = "2026-10-01",
     initial_sql: str | None = None,
     frozen_contract: SemanticContract | None = None,
+    max_recovery_rounds: int | None = None,
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -293,6 +295,12 @@ async def inspect_text_to_sql(
                         if frozen_contract is None
                         else frozen_contract.model_dump(mode="json")
                     ),
+                    max_model_calls=1
+                    + (
+                        max_recovery_rounds
+                        if max_recovery_rounds is not None
+                        else MAX_RECOVERY_ROUNDS
+                    ),
                 )
             )
             return TextToSqlInspection(
@@ -326,6 +334,7 @@ def _initial_state(
     profile: str,
     schema_name: str,
     frozen_contract: dict[str, object] | None,
+    max_model_calls: int,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -361,6 +370,7 @@ def _initial_state(
         "repair_trace": [],
         "join_paths": [],
         "frozen_contract": frozen_contract,
+        "max_model_calls": max_model_calls,
         "initial_sql": initial_sql,
         "candidate_sql": None,
         "candidate_columns": [],
@@ -723,7 +733,7 @@ def _after_execute(state: TextToSqlState) -> str:
 def _failure_target(state: TextToSqlState) -> str:
     if state["variant"] != "self_healing":
         return "finish"
-    if state["circuit_breaker_triggered"] or state["attempt"] >= MAX_MODEL_CALLS:
+    if state["circuit_breaker_triggered"] or state["attempt"] >= state["max_model_calls"]:
         return "finish"
     return "repair_sql"
 
