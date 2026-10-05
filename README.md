@@ -120,6 +120,8 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 
 ```bash
 uv run python -m app.evaluation.ablation
+uv run python -m app.evaluation.external_data freeze-external-gold --source tpcds-derived
+uv run python -m app.evaluation.external_data freeze-external-gold --source bird
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
 ```

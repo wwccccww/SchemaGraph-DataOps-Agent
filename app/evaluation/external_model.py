@@ -58,6 +58,7 @@ from app.evaluation.external_report import (
 )
 from app.evaluation.sql_shape import describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
+from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
 from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
 from app.llm.gateway import DeepSeekGateway
@@ -421,11 +422,14 @@ async def _run(
     report_root: Path | None,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
+    ensure_fingerprints(loaded, source)
     cases = select_sample(
         loaded,
         per_database=per_database,
         limit=limit,
     )
+    if len(cases) == len(loaded):
+        ensure_gold_matched(loaded, source)
     settings = get_settings()
     if settings.deepseek_api_key is None:
         raise RuntimeError("DEEPSEEK_API_KEY is required")

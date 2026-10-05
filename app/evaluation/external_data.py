@@ -42,6 +42,11 @@ from app.evaluation.external_report import (
     build_external_summary,
     write_external_report,
 )
+from app.evaluation.external_gold import (
+    build_fingerprint_document,
+    merge_execution_into_attestation,
+    write_attestation,
+)
 from app.evaluation.tpcds import (
     KIT_COMMIT,
     KIT_REPO,
@@ -399,6 +404,12 @@ def main(argv: list[str] | None = None) -> None:
     verify_tpcds = subcommands.add_parser("verify-tpcds")
     verify_tpcds.add_argument("--timeout", type=float, default=180)
     verify_tpcds.add_argument("--report-root", type=Path, default=Path("reports/tpcds-derived"))
+    freeze = subcommands.add_parser("freeze-external-gold")
+    freeze.add_argument(
+        "--source",
+        choices=("bird", "tpcds-derived"),
+        required=True,
+    )
     questions = subcommands.add_parser("fetch-bird-questions")
     questions.add_argument("--dest", type=Path, required=True)
     databases = subcommands.add_parser("fetch-bird-databases")
@@ -421,6 +432,8 @@ def main(argv: list[str] | None = None) -> None:
         _verify_bird(args.database_root, args.timeout, args.report_root)
     elif args.command == "verify-tpcds":
         asyncio.run(_verify_tpcds(args.timeout, args.report_root))
+    elif args.command == "freeze-external-gold":
+        _freeze_external_gold(args.source)
     elif args.command == "fetch-bird-questions":
         fetch_bird_questions(args.dest)
     elif args.command == "fetch-bird-databases":
@@ -455,13 +468,24 @@ def _verify_bird(database_root: Path, timeout_seconds: float, report_root: Path)
     failed = [trace.case_id for trace in traces if trace.status != "ok"]
     if failed:
         raise RuntimeError(f"bird gold execution failed: {failed}")
+    checksums = load_database_checksums()
+    snapshot = hashlib.sha256(
+        json.dumps(checksums, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    _persist_gold_attestation(
+        cases,
+        traces,
+        source="bird",
+        benchmark_version=BIRD_SOURCE_VERSION,
+        database_snapshot=snapshot,
+    )
     _write_report(
         report_root,
         source="bird",
         version=BIRD_SOURCE_VERSION,
         cases=cases,
         traces=traces,
-        snapshot=QUESTIONS_SHA256,
+        snapshot=snapshot,
         environment={"executor": "sqlite-readonly-adapter", "cpu_limit": 2, "memory_limit_gb": 2},
     )
 
@@ -495,13 +519,21 @@ async def _verify_tpcds(timeout_seconds: float, report_root: Path) -> None:
                 counts[name] = value
     finally:
         await connection.close()
+    snapshot = snapshot_from_counts(counts)
+    _persist_gold_attestation(
+        cases,
+        traces,
+        source="tpcds-derived",
+        benchmark_version=TPCDS_SOURCE_VERSION,
+        database_snapshot=snapshot,
+    )
     _write_report(
         report_root,
         source="tpcds-derived",
         version=TPCDS_SOURCE_VERSION,
         cases=cases,
         traces=traces,
-        snapshot=snapshot_from_counts(counts),
+        snapshot=snapshot,
         environment={
             "postgres": "16",
             "scale_factor": 1,
@@ -510,6 +542,40 @@ async def _verify_tpcds(timeout_seconds: float, report_root: Path) -> None:
             "official_tpcds_result": False,
         },
     )
+
+
+def _freeze_external_gold(source: ExternalSource) -> None:
+    """只写入 Gold SQL 指纹，不要求数据库。CI 与 PR 靠这一层拦截意外改动。"""
+
+    cases = build_bird_cases() if source == "bird" else build_tpcds_cases()
+    version = BIRD_SOURCE_VERSION if source == "bird" else TPCDS_SOURCE_VERSION
+    document = build_fingerprint_document(cases, source=source, benchmark_version=version)
+    path = write_attestation(document, source)
+    LOGGER.info("wrote fingerprint attestation to %s", path)
+
+
+def _persist_gold_attestation(
+    cases: Sequence[BenchmarkCase],
+    traces: Sequence[GoldTrace],
+    *,
+    source: ExternalSource,
+    benchmark_version: str,
+    database_snapshot: str,
+) -> None:
+    executions = {
+        trace.case_id: (trace.row_count or 0, trace.digest or "")
+        for trace in traces
+        if trace.status == "ok"
+    }
+    document = merge_execution_into_attestation(
+        cases,
+        source=source,
+        benchmark_version=benchmark_version,
+        database_snapshot=database_snapshot,
+        executions=executions,
+    )
+    path = write_attestation(document, source)
+    LOGGER.info("updated gold attestation at %s", path)
 
 
 def _write_report(

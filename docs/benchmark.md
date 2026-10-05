@@ -78,6 +78,17 @@ Text-to-SQL：132 + 30 + 50 = 212 条
 慢 SQL：50 条独立用例
 ```
 
+### 2.5 外部 Gold 指纹与 attestation
+
+TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
+
+- **fingerprint_verified**：Gold SQL 摘要、投影列名和墙钟敏感标记与冻结用例一致；每个 PR 的单元测试会校验；
+- **gold_matched**：在固定数据库快照上执行全部 Gold，`result_digest` 与 attestation 一致；由 `verify-tpcds` / `verify-bird` 写入。
+
+正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
+
+可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
+
 ## 3. 用例生命周期
 
 每条用例依次通过：

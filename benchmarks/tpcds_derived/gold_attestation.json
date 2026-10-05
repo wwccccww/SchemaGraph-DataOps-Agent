@@ -1,0 +1,464 @@
+{
+  "benchmark_source": "tpcds-derived",
+  "benchmark_version": "tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752",
+  "database_snapshot": null,
+  "status": "fingerprint_verified",
+  "cases": {
+    "tpcds_complex_001": {
+      "gold_sql_digest": "sha256:1bc5d60819344ef1abde4da609fef50b13da40637dee5adf34e6686d0c92da86",
+      "expected_columns": [
+        "store_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_002": {
+      "gold_sql_digest": "sha256:125250eaf3a51756eedb85d55100e9f698baef0995bacf719a4d9502427b4f8f",
+      "expected_columns": [
+        "education_status",
+        "credit_rating",
+        "sales_year",
+        "net_profit"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_003": {
+      "gold_sql_digest": "sha256:1f5f69c6dca60738b687ac115fbe13c3381ed0a133f5d3400d3bfddd82f9d0eb",
+      "expected_columns": [
+        "return_reason",
+        "item_category",
+        "store_state",
+        "return_year",
+        "return_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_004": {
+      "gold_sql_digest": "sha256:500808cbf705a4ee2b00a3a969246849e801cdb6bc902df076a7abd159345a4c",
+      "expected_columns": [
+        "call_center_name",
+        "ship_type",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_005": {
+      "gold_sql_digest": "sha256:802bbe4623ae3d74567481ad8ab929bacf92e8202ed138f043a2a0f8ab214fa3",
+      "expected_columns": [
+        "warehouse_state",
+        "return_reason",
+        "item_category",
+        "call_center_state",
+        "return_year",
+        "return_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_006": {
+      "gold_sql_digest": "sha256:3bf5daa0bbd1124e4a8b0d920634a0df2e21a78716699fb61e47208a52902aad",
+      "expected_columns": [
+        "web_name",
+        "ship_type",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_007": {
+      "gold_sql_digest": "sha256:b0f6ca7a87eb9eeadf18e8ea7b295a3c1ae01b494cf0442ba37da61c74ac0bd6",
+      "expected_columns": [
+        "page_type",
+        "return_reason",
+        "item_category",
+        "return_year",
+        "return_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_008": {
+      "gold_sql_digest": "sha256:b504df86473c57b350f1fa79a1db2010535972258f89800a5f22a0fe90a606a6",
+      "expected_columns": [
+        "sales_channel",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_009": {
+      "gold_sql_digest": "sha256:85238491e2732cc8af1df3af7d4eb04f9e5056f88fbd73644ffa6a0694d1dcaf",
+      "expected_columns": [
+        "warehouse_state",
+        "item_category",
+        "inventory_year",
+        "quantity_on_hand"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_010": {
+      "gold_sql_digest": "sha256:b1108e09db14e05738cc6ec6fa9d1aab077da757d68443296a1843459f673a57",
+      "expected_columns": [
+        "income_lower",
+        "buy_potential",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_011": {
+      "gold_sql_digest": "sha256:f1baebb70f945108a6cc38bd243494ea50d032bdc4ea9b91798784d44c67aaa2",
+      "expected_columns": [
+        "promo_name",
+        "store_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_012": {
+      "gold_sql_digest": "sha256:9814b872f6ee7d6f9afc8b072e09964fc3a92b41ae73ec2c40561e756870ae09",
+      "expected_columns": [
+        "shift_name",
+        "store_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_013": {
+      "gold_sql_digest": "sha256:23c589622a85bdedf35bdb70dba0bcdc1e8d9d1a63be899b91c9472c0e5a4eab",
+      "expected_columns": [
+        "web_name",
+        "bill_state",
+        "ship_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_014": {
+      "gold_sql_digest": "sha256:b83b488eb29e4de06e5acc4e9d8ff4fe31c6c0c5a68b5547ee8612c7c5ed91ee",
+      "expected_columns": [
+        "marital_status",
+        "education_status",
+        "income_lower",
+        "item_category",
+        "sales_year",
+        "net_profit"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_015": {
+      "gold_sql_digest": "sha256:6ccf8eef14cbe02f86e272b24bc7d3de1ebb02572f5235645234383dcd553989",
+      "expected_columns": [
+        "customer_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_016": {
+      "gold_sql_digest": "sha256:da446b798dbf9df5d867becaaf82af98d02d6e6f687d624446f63156ab57b82c",
+      "expected_columns": [
+        "return_reason",
+        "item_category",
+        "return_year",
+        "return_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_017": {
+      "gold_sql_digest": "sha256:3a94aa6d255cb6e49c00a06d448466fd04a59fbe128c6ba857502a1cfd9fa118",
+      "expected_columns": [
+        "warehouse_state",
+        "promo_name",
+        "carrier",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_018": {
+      "gold_sql_digest": "sha256:727f74d2bf9a5e84dcb3d53df913e498a348f5c3bd142c8fdd12a1aedc54652c",
+      "expected_columns": [
+        "department",
+        "call_center_name",
+        "promo_name",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_019": {
+      "gold_sql_digest": "sha256:a5bd60793fae7c3732ea2407f9e37437e5e693e63b93a95d1a3d62faed7ce52f",
+      "expected_columns": [
+        "birth_year",
+        "customer_state",
+        "store_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_020": {
+      "gold_sql_digest": "sha256:d175030eca38ea5bbca5e94050617097aba4b82907ec01f2616fa3d35ca2fb16",
+      "expected_columns": [
+        "shift_name",
+        "store_state",
+        "item_category",
+        "sales_year",
+        "quantity_sold"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_021": {
+      "gold_sql_digest": "sha256:673f93acd8f4dc0a234e489220ad4bc73476b6b3843ae0f516422fa5c47817db",
+      "expected_columns": [
+        "education_status",
+        "ship_type",
+        "item_category",
+        "sales_year",
+        "net_profit"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_022": {
+      "gold_sql_digest": "sha256:58320202ac19f6249b095211809bf8a8ab10a59c6adbcda90cc39611efa74e18",
+      "expected_columns": [
+        "item_category",
+        "sales_year",
+        "store_sales_amount",
+        "web_sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_023": {
+      "gold_sql_digest": "sha256:5932a425a8193b62be969cbca5f4d07968d8a57dd5e59604d8873fc3fff3a08e",
+      "expected_columns": [
+        "warehouse_state",
+        "item_category",
+        "inventory_year",
+        "quantity_on_hand",
+        "quantity_sold"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_024": {
+      "gold_sql_digest": "sha256:4523cb617fa7dbefc93816a78ff649d01a5b7b95416a40b936ce585838a6ae7d",
+      "expected_columns": [
+        "carrier",
+        "item_category",
+        "sales_year",
+        "catalog_sales_amount",
+        "web_sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_025": {
+      "gold_sql_digest": "sha256:9a388063633c75a957bfd97b44b579c8ec75f467c87f3dc5bf69092729bb31e5",
+      "expected_columns": [
+        "promo_purpose",
+        "gender",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_026": {
+      "gold_sql_digest": "sha256:0276992471b0aa92c47d520787a3cbccf40e796ee092acc1598a82b308878a22",
+      "expected_columns": [
+        "call_center_state",
+        "customer_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_027": {
+      "gold_sql_digest": "sha256:2adfa93ab066d0cbd1c2c76c113490fa89d47ee81783212d7dfa680bc4c85947",
+      "expected_columns": [
+        "page_type",
+        "gender",
+        "web_name",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_028": {
+      "gold_sql_digest": "sha256:b9655992ff736d55e9b642316a782a0d9f752d8383c994cf3c5fd385735ad2b5",
+      "expected_columns": [
+        "buy_potential",
+        "dependent_count",
+        "income_lower",
+        "store_state",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_029": {
+      "gold_sql_digest": "sha256:7b79cadcabfe4843bbc2a4f8da1ad800b27bea6bd4fe34b19b8c4478643b646d",
+      "expected_columns": [
+        "return_reason",
+        "customer_state",
+        "store_state",
+        "item_category",
+        "return_year",
+        "return_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    },
+    "tpcds_complex_030": {
+      "gold_sql_digest": "sha256:8cfbb111542ce32904ab6f3ad2d959e8eb0ad0ff0794829f838c1c18610cc9b5",
+      "expected_columns": [
+        "store_state",
+        "customer_state",
+        "gender",
+        "income_lower",
+        "promo_name",
+        "item_category",
+        "sales_year",
+        "sales_amount"
+      ],
+      "order_sensitive": false,
+      "wall_clock_sensitive": false,
+      "row_count": null,
+      "result_digest": null,
+      "status": "fingerprint_verified"
+    }
+  }
+}

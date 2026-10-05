@@ -26,6 +26,8 @@
 
 从 `difficulty = challenging` 的题目里，按 `question_id` 升序，保留可由受限 SQLite Adapter 执行的前 50 条。适配器使用只读 URI、Authorizer、Progress Handler、内存限制和隔离子进程。静态检查或执行失败的 `question_id` 记在 `exclusions.json`。
 
+`gold_attestation.json` 记录 Gold SQL 指纹，并标记依赖 `strftime(..., 'now')` 的墙钟敏感用例。`verify-bird` 成功后会写入 `gold_matched` 与 `result_digest`。正式全量模型评测要求 attestation 为 `gold_matched`。
+
 入选结果只说明这些公开题目能在该适配器上运行。它不并入 PostgreSQL 慢 SQL 指标，也不和自建电商指标混合。
 
 重新获取：

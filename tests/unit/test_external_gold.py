@@ -1,0 +1,67 @@
+"""外部 Gold 指纹与 attestation 契约。"""
+
+from __future__ import annotations
+
+from app.evaluation.bird import BIRD_SOURCE_VERSION, load_bird_cases
+import pytest
+
+from app.evaluation.external_gold import (
+    BIRD_GOLD_SMOKE_IDS,
+    TPCDS_GOLD_SMOKE_IDS,
+    ensure_fingerprints,
+    ensure_gold_matched,
+    load_attestation,
+    wall_clock_sensitive,
+)
+from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
+
+
+def test_frozen_tpcds_attestation_covers_all_cases() -> None:
+    cases = load_tpcds_cases()
+    ensure_fingerprints(cases, "tpcds-derived")
+    document = load_attestation("tpcds-derived")
+    assert document["benchmark_version"] == TPCDS_SOURCE_VERSION
+    assert document["status"] in {"fingerprint_verified", "gold_matched"}
+    stored = document["cases"]
+    assert isinstance(stored, dict)
+    assert len(stored) == len(cases)
+
+
+def test_frozen_bird_attestation_covers_all_cases() -> None:
+    cases = load_bird_cases()
+    ensure_fingerprints(cases, "bird")
+    document = load_attestation("bird")
+    assert document["benchmark_version"] == BIRD_SOURCE_VERSION
+    stored = document["cases"]
+    assert isinstance(stored, dict)
+    assert len(stored) == len(cases)
+
+
+def test_smoke_ids_are_subset_of_frozen_cases() -> None:
+    tpcds_ids = {case.id for case in load_tpcds_cases()}
+    bird_ids = {case.id for case in load_bird_cases()}
+    assert set(TPCDS_GOLD_SMOKE_IDS) <= tpcds_ids
+    assert set(BIRD_GOLD_SMOKE_IDS) <= bird_ids
+
+
+def test_bird_wall_clock_cases_are_flagged_in_attestation() -> None:
+    cases = load_bird_cases()
+    document = load_attestation("bird")
+    stored = document["cases"]
+    assert isinstance(stored, dict)
+    flagged = {
+        case_id
+        for case_id, item in stored.items()
+        if isinstance(item, dict) and item.get("wall_clock_sensitive") is True
+    }
+    expected = {case.id for case in cases if wall_clock_sensitive(case.gold_sql)}
+    assert flagged == expected
+    assert expected, "expected at least one wall-clock BIRD case to document the policy"
+
+
+def test_full_model_eval_requires_gold_matched_attestation() -> None:
+    cases = load_tpcds_cases()
+    document = load_attestation("tpcds-derived")
+    if document.get("status") != "gold_matched":
+        with pytest.raises(RuntimeError, match="gold_matched"):
+            ensure_gold_matched(cases, "tpcds-derived")
