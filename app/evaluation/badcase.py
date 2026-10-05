@@ -322,6 +322,13 @@ def _group_by_tokens(text: str) -> frozenset[str]:
         base = part.split(".")[-1]
         if base in {"outer", "agg", "base", "sold", "returned", "ss", "sr", "cs", "ws"}:
             continue
+        if base.endswith("stats") or base in {
+            "regionalstats",
+            "overallstats",
+            "regionstats",
+            "loanstats",
+        }:
+            continue
         tokens.add(base.replace("_", ""))
     return frozenset(tokens)
 
