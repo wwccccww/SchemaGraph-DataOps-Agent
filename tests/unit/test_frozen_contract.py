@@ -61,6 +61,31 @@ def test_order_sensitive_checks_alias_order() -> None:
     assert check_frozen_semantic_contract(contract, ok, dialect="sqlite") == ()
 
 
+def test_frozen_contract_rejects_extra_output_columns() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_020")
+    bad = (
+        "SELECT t.t_shift AS shift_name, s.s_state AS store_state, "
+        "i.i_category AS item_category, d.d_year AS sales_year, "
+        "SUM(ss.ss_quantity) AS quantity_sold, SUM(ss.ss_ext_sales_price) AS total_sales "
+        "FROM store_sales ss "
+        "JOIN date_dim d ON ss.ss_sold_date_sk = d.d_date_sk "
+        "JOIN time_dim t ON ss.ss_sold_time_sk = t.t_time_sk "
+        "JOIN store s ON ss.ss_store_sk = s.s_store_sk "
+        "JOIN item i ON ss.ss_item_sk = i.i_item_sk "
+        "WHERE d.d_year = 2001 AND d.d_weekend = 'Y' "
+        "GROUP BY 1,2,3,4"
+    )
+    findings = check_frozen_semantic_contract(
+        case.semantic_contract, bad, dialect="postgres"
+    )
+    assert any("不要额外输出列" in item.message for item in findings)
+    assert check_frozen_semantic_contract(
+        case.semantic_contract, case.gold_sql, dialect="postgres"
+    ) == ()
+
+
 def test_format_includes_projections_and_item_hint() -> None:
     contract = SemanticContract(
         projections=["income_lower", "item_category", "sales_amount"],

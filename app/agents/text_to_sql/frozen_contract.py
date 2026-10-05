@@ -48,6 +48,7 @@ def format_frozen_semantic_contract(contract: SemanticContract) -> str:
     lines = [
         "冻结语义契约（与问句一并发布，不含 Gold SQL）：",
         f"最终 SELECT 列名（AS 别名）应覆盖：{'、'.join(contract.projections)}",
+        "只输出上述列，不要附加未列出的度量或金额列。",
     ]
     if contract.group_keys:
         lines.append(f"GROUP BY 键：{'、'.join(contract.group_keys)}")
@@ -141,7 +142,18 @@ def check_frozen_semantic_contract(
                 f"冻结契约要求输出列 {shown}{suffix}，请用 AS 别名逐列投影（SQLite 含空格时用双引号）",
             )
         )
-    elif "order_sensitive=true" in contract.filters and described.projections:
+    elif described.projections:
+        expected = {name.lower() for name in contract.projections}
+        extra = [name for name in described.projections if name.lower() not in expected]
+        if extra:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    f"不要额外输出列 {'、'.join(extra)}；冻结契约仅 "
+                    f"{'、'.join(contract.projections)}（问句措辞冲突时以契约为准）",
+                )
+            )
+    if not missing_aliases and "order_sensitive=true" in contract.filters and described.projections:
         alias_order = [name.lower() for name in described.projections]
         expected = [name.lower() for name in contract.projections]
         if alias_order != expected:
