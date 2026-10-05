@@ -147,6 +147,14 @@ def build_graph(services: ServiceBundle) -> Any:
     return builder.compile()
 
 
+@dataclass(frozen=True)
+class TextToSqlInspection:
+    """问数响应，以及最后一条预测 SQL。失败响应本身仍不携带 SQL。"""
+
+    response: TextToSqlResponse
+    generated_sql: str | None
+
+
 async def run_text_to_sql(
     services: ServiceBundle,
     *,
@@ -159,6 +167,30 @@ async def run_text_to_sql(
 ) -> TextToSqlResponse:
     """运行一次问数。评测标签和 Gold SQL 不是参数。默认走自愈。"""
 
+    inspection = await inspect_text_to_sql(
+        services,
+        question=question,
+        database_id=database_id,
+        execute=execute,
+        max_rows=max_rows,
+        request_id=request_id,
+        variant=variant,
+    )
+    return inspection.response
+
+
+async def inspect_text_to_sql(
+    services: ServiceBundle,
+    *,
+    question: str,
+    database_id: str,
+    execute: bool = True,
+    max_rows: int = 1000,
+    request_id: str | None = None,
+    variant: TextToSqlVariant = "self_healing",
+) -> TextToSqlInspection:
+    """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
+
     identifier = request_id or f"req_{uuid4().hex}"
     if variant not in TEXT_TO_SQL_VARIANTS:
         raise ValueError(f"unknown text-to-sql variant: {variant}")
@@ -166,15 +198,18 @@ async def run_text_to_sql(
     with request_span("text_to_sql") as span:
         try:
             if database_id != DATABASE_ID:
-                return TextToSqlResponse(
-                    request_id=identifier,
-                    status="failed",
-                    attempts=0,
-                    error=ApiError(
-                        category="unsupported_database",
-                        message="当前只支持 ecommerce 数据库",
-                        retryable=False,
+                return TextToSqlInspection(
+                    response=TextToSqlResponse(
+                        request_id=identifier,
+                        status="failed",
+                        attempts=0,
+                        error=ApiError(
+                            category="unsupported_database",
+                            message="当前只支持 ecommerce 数据库",
+                            retryable=False,
+                        ),
                     ),
+                    generated_sql=None,
                 )
             graph = cast(CompiledGraph, build_graph(services))
             final = await graph.ainvoke(
@@ -187,7 +222,10 @@ async def run_text_to_sql(
                     max_rows=max_rows,
                 )
             )
-            return _response(final)
+            return TextToSqlInspection(
+                response=_response(final),
+                generated_sql=final["generated_sql"],
+            )
         finally:
             set_request_attributes(span, _trace_fields(services, final))
 

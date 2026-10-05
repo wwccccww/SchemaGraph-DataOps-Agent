@@ -504,5 +504,32 @@ async def test_scripted_runner_scores_without_putting_gold_in_the_prompt() -> No
     assert result.ex == 1
     assert result.passed is True
     assert result.junction_recall is None
+    assert result.prediction.sql == "SELECT 1"
+    assert result.prediction.parse_error is None
     assert _GOLD not in model.prompts[0]
     assert case.question in model.prompts[0]
+    assert _GOLD not in str(result.prediction.as_json())
+
+
+async def test_rejected_prediction_is_recorded_without_changing_the_response() -> None:
+    case = _case().model_copy(update={"required_junctions": []})
+    sql = "INSERT INTO t_user VALUES (1)"
+
+    result = await evaluate_case(
+        case,
+        _bundle(
+            ScriptedModel([sql]),
+            RecordingExecutor(),
+            seeds=(),
+            documents=(),
+            edges=(),
+            fail_retrieval=True,
+        ),
+        variant="zero_shot",
+    )
+
+    assert result.ex == 0
+    assert result.error_category == "not_read_only"
+    assert result.prediction.sql == sql
+    assert result.prediction.referenced_tables == ("t_user",)
+    assert result.prediction.parse_error == "不是只读查询"

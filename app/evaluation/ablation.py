@@ -13,7 +13,7 @@ import logging
 import subprocess
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -23,11 +23,12 @@ from app.agents.text_to_sql.workflow import (
     TEXT_TO_SQL_VARIANTS,
     ServiceBundle,
     TextToSqlVariant,
-    run_text_to_sql,
+    inspect_text_to_sql,
 )
 from app.db.seed_data import SEED
 from app.evaluation.custom_cases import load_custom_cases
 from app.evaluation.ex import results_match
+from app.evaluation.sql_shape import PredictionShape, describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
 from app.graph.expand import DEFAULT_MAX_SCHEMA_TOKENS, TokenCounter, render_schema_context
 from app.sandbox.errors import ExecutionError
@@ -71,6 +72,7 @@ class CaseResult:
     difficulty: str
     ex: int
     leaked_junctions: tuple[str, ...]
+    prediction: PredictionShape = field(default_factory=PredictionShape.empty)
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -87,6 +89,7 @@ class CaseResult:
             "difficulty": self.difficulty,
             "ex": self.ex,
             "leaked_junctions": list(self.leaked_junctions),
+            "prediction": self.prediction.as_json(),
         }
 
 
@@ -249,7 +252,7 @@ async def evaluate_case(
     """生成并执行 Agent SQL。Gold SQL 不进入工作流。"""
 
     started = time.perf_counter()
-    response = await run_text_to_sql(
+    inspection = await inspect_text_to_sql(
         services,
         question=case.question,
         database_id=case.database_id,
@@ -257,6 +260,7 @@ async def evaluate_case(
         max_rows=1000,
         variant=variant,
     )
+    response = inspection.response
     latency_ms = int((time.perf_counter() - started) * 1000)
     context = response.schema_context
     seeds = tuple(context.seed_tables) if context is not None else ()
@@ -281,6 +285,7 @@ async def evaluate_case(
         difficulty=case.difficulty,
         ex=ex,
         leaked_junctions=leaked,
+        prediction=describe_sql(inspection.generated_sql),
     )
 
 
