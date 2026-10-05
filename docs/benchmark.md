@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30** 与 BIRD 高 EX 需多次 `external_model --full` 实测（当前 TPC-DS 已在 `c0ced4a` 连续 **2×30/30**；BIRD 仍 **5–6/50** 方差带）。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a` 连续 **2×** 全量）已达标；BIRD 全量 EX 仍 **5–6/50** 方差带（`bc99712` **6/50**），距 80 例综合可信度未完成。
 
 **P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push`（`cursor/**` 与评测路径）与 **UTC 06:00 日调度** 上跑单元门禁 + `check-external-release`；仓库变量 `EXTERNAL_GOLD_TESTS=1` 且配置 `BIRD_DATABASE_ROOT` 时额外跑集成 Gold 冒烟。发布前本地仍应执行 `verify-tpcds` / `verify-bird` 并刷新 attestation。
 
@@ -127,6 +127,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`bc99712` generic v14**（Financial loan→account→trans、overall 按 category JOIN）（`self_healing`，180s）：BIRD **6/50（EX 0.12）**（`run_20261005T232009Z_bc99712_*`），匹配 **`0000、0028、0036、0083、0104、0116`**。
   - **`43c9faa` 确认复跑**（同 `c0ced4a` 代码，`self_healing`，180s）：TPC-DS **30/30** 再次达成（`run_20261005T230855Z_43c9faa_*`）；BIRD **5/50**（`run_20261005T231044Z_43c9faa_*`）。
   - **`c0ced4a` store_sales 人口统计键 + 禁多余列**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T225824Z_c0ced4a_*`）；`002` 需 `customer.c_current_cdemo_sk` 而非 `ss_cdemo_sk`。同提交 BIRD **5/50**（`run_20261005T230047Z_c0ced4a_*`，方差）。
   - **`aaa20b0` 冻结契约禁多余列**（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T224840Z_aaa20b0_*`），**`020` 恢复匹配**；未匹配 **`002`**（方差）。P1 **`verify-bird`** 50/50 Gold 执行通过（`run_20261005T224519Z_*`）。
