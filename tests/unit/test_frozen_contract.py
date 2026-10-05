@@ -29,6 +29,20 @@ def test_format_includes_projections_and_item_hint() -> None:
     assert "item" in text
 
 
+def test_core_tables_are_hints_not_hard_entity_checks() -> None:
+    contract = SemanticContract(
+        projections=["sales_amount"],
+        group_keys=[],
+        filters=["core_tables=store_sales,customer,date_dim"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss"
+    findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
+    assert not any(item.category == "missing_entity" for item in findings)
+
+
 def test_primary_fact_filter_requires_store_sales() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],

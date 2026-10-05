@@ -80,16 +80,21 @@ def check_frozen_semantic_contract(
                 )
             )
     aliases = {name.lower() for name in _select_aliases(sql)}
-    for name in contract.projections:
-        if name.lower() not in aliases and name.lower() not in " ".join(
-            described.projections
-        ).lower():
-            findings.append(
-                SemanticFinding(
-                    "projection_mismatch",
-                    f"冻结契约要求输出列 {name}，请用 AS {name} 投影",
-                )
+    projected_blob = " ".join(described.projections).lower()
+    missing_aliases = [
+        name
+        for name in contract.projections
+        if name.lower() not in aliases and name.lower() not in projected_blob
+    ]
+    if missing_aliases:
+        shown = "、".join(missing_aliases[:12])
+        suffix = "…" if len(missing_aliases) > 12 else ""
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                f"冻结契约要求输出列 {shown}{suffix}，请用 AS 别名逐列投影（SQLite 含空格时用双引号）",
             )
+        )
     for name in contract.projections:
         column = _PROJECTION_COLUMNS.get(name)
         if column is None:
@@ -118,14 +123,6 @@ def check_frozen_semantic_contract(
                 f"冻结契约要求主事实表 {primary} 出现在 SQL 中",
             )
         )
-    for table in _core_tables(contract.filters):
-        if table.lower() not in referenced:
-            findings.append(
-                SemanticFinding(
-                    "missing_entity",
-                    f"冻结契约要求表 {table} 出现在 SQL 中",
-                )
-            )
     if contract.group_keys and described.aggregations:
         grouped = " ".join(described.group_by).lower()
         for key in contract.group_keys:

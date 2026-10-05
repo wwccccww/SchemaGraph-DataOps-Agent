@@ -16,6 +16,7 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
     if case.order_sensitive:
         filters.append("order_sensitive=true")
     if case.required_tables:
+        # 仅作 Prompt 提示；硬校验由投影列推导的表承担，避免一次报 8 条缺表导致熔断。
         filters.append(f"core_tables={','.join(sorted(case.required_tables))}")
     return SemanticContract(
         projections=projections,
