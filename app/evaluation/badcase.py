@@ -66,11 +66,12 @@ def classify_badcase(
     ex: int,
     anchor_date: str = "2026-10-01",
     repair_trace: Sequence[tuple[str, str, str, str]] = (),
+    dialect: str = "postgres",
 ) -> tuple[str, tuple[tuple[str, str], ...]]:
     """返回主类和症状。主类按固定优先级只取一个。"""
 
-    predicted = describe_sql(predicted_sql)
-    gold = describe_sql(gold_sql)
+    predicted = describe_sql(predicted_sql, dialect=dialect)
+    gold = describe_sql(gold_sql, dialect=dialect)
     symptoms = _symptoms(
         question=question,
         gold=gold,

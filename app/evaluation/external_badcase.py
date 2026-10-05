@@ -43,6 +43,7 @@ def classify_external_case(
         ex=ex,
         anchor_date=case.anchor_date.isoformat(),
         repair_trace=trace,
+        dialect=case.dialect,
     )
     return _coarse_class(detail), detail, symptoms
 

@@ -123,6 +123,23 @@ def test_quoted_sqlite_aliases_are_detected() -> None:
     assert check_frozen_semantic_contract(contract, sql, dialect="sqlite") == ()
 
 
+def test_window_and_group_by_same_select_is_flagged() -> None:
+    contract = SemanticContract(
+        projections=["SATRanking", "Enrollment"],
+        group_keys=[],
+        filters=[],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT RANK() OVER (ORDER BY score DESC) AS SATRanking, enrollment AS Enrollment "
+        "FROM t GROUP BY enrollment, score"
+    )
+    findings = check_frozen_semantic_contract(contract, sql, dialect="sqlite")
+    assert any("窗口函数" in item.message for item in findings)
+
+
 def test_spurious_promotion_join_is_flagged_when_not_in_core_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],

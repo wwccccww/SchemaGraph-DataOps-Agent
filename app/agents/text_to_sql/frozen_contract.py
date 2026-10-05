@@ -5,6 +5,10 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
+import sqlglot
+from sqlglot import exp
+from sqlglot.errors import SqlglotError
+
 from app.evaluation.sql_shape import describe_sql
 from app.agents.text_to_sql.semantic import SemanticFinding
 from app.schemas.benchmark import SemanticContract
@@ -174,7 +178,30 @@ def check_frozen_semantic_contract(
                         f"聚合查询的 GROUP BY 需包含 {key}",
                     )
                 )
+    if _window_and_group_by_same_select(sql, dialect=dialect):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "窗口函数（RANK 等）与 GROUP BY 不要写在同一 SELECT 层；用 CTE 先算基础列，外层再 RANK/ORDER BY",
+            )
+        )
     return tuple(findings)
+
+
+def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
+    try:
+        parsed = sqlglot.parse_one(sql, read=dialect)
+    except SqlglotError:
+        return False
+    if parsed is None:
+        return False
+    for select in parsed.find_all(exp.Select):
+        if not select.args.get("group"):
+            continue
+        for expression in select.expressions:
+            if expression.find(exp.Window) is not None:
+                return True
+    return False
 
 
 def _tables_for_projections(projections: Sequence[str]) -> tuple[str, ...]:
@@ -225,6 +252,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 hints.append("上述清单不含 promotion 时不要额外 JOIN promotion。")
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
+        if item == "returns_vs_sales=separate_cte":
+            hints.append(
+                "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"
+                "不要仅用 item/store 键硬拼 promotion 或跨事实笛卡尔积。"
+            )
     return tuple(hints)
 
 

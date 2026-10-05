@@ -36,6 +36,16 @@ def test_single_fact_filter_from_required_tables() -> None:
     assert "core_tables=customer,date_dim,item,store,store_sales" in contract.filters
 
 
+def test_returns_and_sales_question_adds_separate_cte_hint() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年门店销售与门店退货金额，按原因和类别汇总。",
+            required_tables=["store_sales", "store_returns", "date_dim", "item", "reason", "store"],
+        )
+    )
+    assert "returns_vs_sales=separate_cte" in contract.filters
+
+
 def test_channel_question_picks_catalog_sales() -> None:
     contract = contract_for(
         _case(

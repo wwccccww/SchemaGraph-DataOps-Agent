@@ -218,6 +218,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
+        - "returns_vs_sales=separate_cte"
         - "core_tables=date_dim,item,reason,store,store_returns,store_sales"
       category_scope: exact
       time_window:
@@ -2168,6 +2169,7 @@ cases:
         - "promotion_channel=dmail"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
+        - "returns_vs_sales=separate_cte"
         - "core_tables=customer,customer_address,customer_demographics,date_dim,household_demographics,income_band,item,promotion,reason,store,store_returns,store_sales"
       category_scope: exact
       time_window:

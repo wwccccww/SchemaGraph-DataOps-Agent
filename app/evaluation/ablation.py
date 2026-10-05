@@ -330,6 +330,7 @@ async def evaluate_case(
         ex=ex,
         anchor_date=anchor,
         repair_trace=trace,
+        dialect=case.dialect,
     )
     return CaseResult(
         case_id=case.id,

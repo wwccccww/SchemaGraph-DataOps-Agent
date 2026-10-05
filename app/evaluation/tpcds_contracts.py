@@ -93,7 +93,10 @@ def _fact_filters(required_tables: list[str], question: str) -> list[str]:
     chosen = list(dict.fromkeys(chosen))
     if len(chosen) == 1:
         return [f"primary_fact={chosen[0]}"]
-    return [f"primary_facts={','.join(sorted(sales))}"]
+    filters = [f"primary_facts={','.join(sorted(sales))}"]
+    if "退货" in question and "销售" in question:
+        filters.append("returns_vs_sales=separate_cte")
+    return filters
 
 
 def _filters_from_question(question: str) -> list[str]:
