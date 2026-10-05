@@ -466,7 +466,8 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "channel_pivot_compare=true":
             hints.append(
-                "渠道对比：各渠道独立 CTE 汇总，JOIN 后输出 *_sales_amount 多列（如 store_sales_amount、web_sales_amount）。"
+                "渠道对比：各渠道独立 CTE 汇总，INNER JOIN 对齐维度后输出 *_sales_amount 多列；"
+                "目录侧可按 Gold 需要 JOIN warehouse，网站侧通常不必 JOIN warehouse。"
             )
         if item == "multi_returns_union=true":
             hints.append(
