@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 import networkx as nx
 
+from app.retrieval.dynamic import entity_core, lexical_seed_tiers
 from app.schemas.catalog import (
     GraphDiagnostic,
     GraphExpansionResult,
@@ -96,13 +98,18 @@ def expand_schema(
     edges: Sequence[SchemaEdge],
     seeds: Sequence[str],
     *,
+    question: str | None = None,
     max_path_edges: int = DEFAULT_MAX_PATH_EDGES,
     max_total_tables: int = DEFAULT_MAX_TOTAL_TABLES,
     max_schema_tokens: int = DEFAULT_MAX_SCHEMA_TOKENS,
     token_counter: TokenCounter | None = None,
     low_confidence_threshold: float = DEFAULT_LOW_CONFIDENCE,
 ) -> GraphExpansionResult:
-    """扩展种子表。预算不足时只丢弃低排名的额外种子，不把必需的两张表压成一张。"""
+    """扩展种子表。预算不足时只丢弃低排名的额外种子，不把必需的两张表压成一张。
+
+    传入问句时，只把问句点名的实体当作必须连通的种子。每对实体单独选一条路径，
+    问句支持的桥表优先；低置信种子不再把所有表连成一张图。
+    """
 
     if max_path_edges < 1 or max_total_tables < 1 or max_schema_tokens < 1:
         raise ValueError("graph budgets must be positive")
@@ -111,6 +118,10 @@ def expand_schema(
     active = _unique(seeds)
     if not active:
         raise ValueError("at least one seed table is required")
+    named_question = question.strip() if question is not None else ""
+    weak: list[str] = []
+    if named_question:
+        active, weak = _anchor_seeds(named_question, documents, active)
 
     counter = token_counter or EstimatedTokenCounter()
     dropped: list[str] = []
@@ -124,10 +135,12 @@ def expand_schema(
             max_schema_tokens=max_schema_tokens,
             token_counter=counter,
             low_confidence_threshold=low_confidence_threshold,
+            question=named_question or None,
         )
-        warnings = [f"已舍弃低排名种子 {name}" for name in dropped]
+        warnings = [f"已舍弃低置信种子 {name}" for name in weak]
+        warnings.extend(f"已舍弃低排名种子 {name}" for name in dropped)
         if outcome.connected:
-            return _result(outcome, truncated=bool(dropped), warnings=warnings)
+            return _result(outcome, truncated=bool(dropped or weak), warnings=warnings)
         if outcome.code == "budget_exceeded" and len(active) > 2:
             dropped.append(active[-1])
             active = active[:-1]
@@ -178,6 +191,7 @@ def _expand_once(
     max_schema_tokens: int,
     token_counter: TokenCounter,
     low_confidence_threshold: float,
+    question: str | None = None,
 ) -> _Outcome:
     by_name = {document.table_name: document for document in documents}
     missing = [seed for seed in seeds if seed not in by_name]
@@ -208,6 +222,22 @@ def _expand_once(
             tokens_for(selected),
             "budget_exceeded",
             "种子表本身已超过表数量或 token 预算",
+        )
+    if question is not None:
+        return _expand_named_pairs(
+            by_name,
+            usable,
+            usable_graph,
+            full_graph,
+            junction,
+            seeds,
+            selected,
+            question,
+            max_path_edges=max_path_edges,
+            max_total_tables=max_total_tables,
+            fits=fits,
+            tokens_for=tokens_for,
+            blocked=blocked,
         )
 
     for left, right in _pairs(selected):
@@ -252,6 +282,209 @@ def _expand_once(
         connected=True,
         tokens=tokens_for(selected),
     )
+
+
+_HAN_RUN = re.compile(r"[\u4e00-\u9fff]{2,}")
+_JUNCTION_GENERIC = frozenset(
+    {
+        "映射",
+        "关联",
+        "活动",
+        "主键",
+        "记录",
+        "唯一",
+        "名称",
+        "编号",
+        "金额",
+        "文本",
+        "基础",
+        "标准",
+    }
+)
+
+
+def _anchor_seeds(
+    question: str,
+    documents: Sequence[TableDocument],
+    seeds: Sequence[str],
+) -> tuple[list[str], list[str]]:
+    tiers = lexical_seed_tiers(question, documents)
+    anchors = [name for name in seeds if tiers.get(name, 0) >= 1]
+    weak = [name for name in seeds if name not in anchors]
+    if not anchors:
+        return list(seeds), []
+    return anchors, weak
+
+
+def _expand_named_pairs(
+    by_name: Mapping[str, TableDocument],
+    usable: Sequence[SchemaEdge],
+    usable_graph: nx.Graph,
+    full_graph: nx.Graph,
+    junction: Mapping[str, bool],
+    seeds: Sequence[str],
+    selected: list[str],
+    question: str,
+    *,
+    max_path_edges: int,
+    max_total_tables: int,
+    fits: Callable[[Sequence[str]], bool],
+    tokens_for: Callable[[Sequence[str]], int],
+    blocked: Sequence[SchemaEdge],
+) -> _Outcome:
+    """每对点名实体选一条路径，并补上问句支持的桥表。"""
+
+    requested, allowed = _junction_support(question, by_name, usable_graph, junction)
+    anchors = list(seeds)
+    anchor_set = set(anchors)
+    clean: list[tuple[str, ...]] = []
+    fallback: list[tuple[str, ...]] = []
+    for left, right in _pairs(anchors):
+        paths = _pair_paths(usable_graph, left, right, max_path_edges, junction)
+        if not paths:
+            continue
+        path = min(
+            paths,
+            key=lambda item: _question_rank(item, anchor_set, junction, usable, allowed),
+        )
+        if _question_rank(path, anchor_set, junction, usable, allowed)[0] == 0:
+            clean.append(path)
+        else:
+            fallback.append(path)
+    _add_paths(clean, selected, fits)
+    ordered_fallback = sorted(
+        fallback,
+        key=lambda path: _question_rank(path, anchor_set, junction, usable, allowed),
+    )
+    for path in ordered_fallback:
+        if _seeds_connected(usable_graph, selected, anchors):
+            break
+        new_nodes = _new_nodes(path, selected)
+        if new_nodes and fits([*selected, *new_nodes]):
+            selected.extend(new_nodes)
+
+    for name in sorted(requested):
+        if name in selected or not fits([*selected, name]):
+            continue
+        endpoints = _entity_neighbors(usable_graph, junction, name)
+        if len(endpoints) >= 2 and all(endpoint in selected for endpoint in endpoints):
+            selected.append(name)
+
+    if not _seeds_connected(usable_graph, selected, anchors):
+        return _diagnose(
+            usable_graph,
+            full_graph,
+            selected,
+            anchors,
+            max_path_edges,
+            max_total_tables,
+            tokens_for,
+            blocked,
+        )
+    return _Outcome(
+        seeds=list(anchors),
+        expanded=[name for name in selected if name not in set(anchors)],
+        edges=_induced_edges(usable, selected),
+        connected=True,
+        tokens=tokens_for(selected),
+    )
+
+
+def _add_paths(
+    paths: Sequence[tuple[str, ...]],
+    selected: list[str],
+    fits: Callable[[Sequence[str]], bool],
+) -> None:
+    for path in paths:
+        new_nodes = _new_nodes(path, selected)
+        if new_nodes and fits([*selected, *new_nodes]):
+            selected.extend(new_nodes)
+
+
+def _junction_support(
+    question: str,
+    documents: Mapping[str, TableDocument],
+    graph: nx.Graph,
+    junction: Mapping[str, bool],
+) -> tuple[set[str], set[str]]:
+    requested: set[str] = set()
+    allowed: set[str] = set()
+    for name, is_junction in junction.items():
+        if not is_junction or name not in documents:
+            continue
+        endpoints = _entity_neighbors(graph, junction, name)
+        cores = {
+            core for endpoint in endpoints if (core := entity_core(documents[endpoint])) is not None
+        }
+        distinctive = _distinctive_phrases(documents[name], cores)
+        if any(phrase in question for phrase in distinctive):
+            requested.add(name)
+            allowed.add(name)
+        elif cores and all(core in question for core in cores):
+            allowed.add(name)
+    return requested, allowed
+
+
+def _distinctive_phrases(document: TableDocument, endpoint_cores: set[str]) -> set[str]:
+    text = document.table_comment or ""
+    text = text.split("[", 1)[0]
+    text = " ".join([text, *[column.comment or "" for column in document.columns]])
+    phrases: set[str] = set()
+    for run in _HAN_RUN.findall(text):
+        longest = min(len(run), 4)
+        for size in range(2, longest + 1):
+            for start in range(0, len(run) - size + 1):
+                piece = run[start : start + size]
+                if piece in _JUNCTION_GENERIC or piece in endpoint_cores:
+                    continue
+                if any(piece in core or core in piece for core in endpoint_cores):
+                    continue
+                phrases.add(piece)
+    return phrases
+
+
+def _entity_neighbors(
+    graph: nx.Graph,
+    junction: Mapping[str, bool],
+    table: str,
+) -> list[str]:
+    if table not in graph:
+        return []
+    return sorted(
+        neighbor for neighbor in graph.neighbors(table) if not junction.get(neighbor, False)
+    )
+
+
+def _pair_paths(
+    graph: nx.Graph,
+    left: str,
+    right: str,
+    max_path_edges: int,
+    junction: Mapping[str, bool],
+) -> list[tuple[str, ...]]:
+    paths: list[tuple[str, ...]] = []
+    for path in _simple_paths(graph, left, right, max(max_path_edges, 2)):
+        edge_count = len(path) - 1
+        junction_bridge = edge_count == 2 and junction.get(path[1], False)
+        if edge_count <= max_path_edges or junction_bridge:
+            paths.append(path)
+    return paths
+
+
+def _question_rank(
+    path: tuple[str, ...],
+    anchors: set[str],
+    junction: Mapping[str, bool],
+    edges: Sequence[SchemaEdge],
+    allowed: set[str],
+) -> tuple[int, int, int, float, tuple[str, ...]]:
+    unjustified = sum(1 for node in path if junction.get(node, False) and node not in allowed)
+    justified = sum(1 for node in path if node in allowed)
+    added = len([node for node in path if node not in anchors])
+    weight = 0.0
+    for index in range(len(path) - 1):
+        weight += _step_weight(edges, path[index], path[index + 1])
+    return (unjustified, added, -justified, weight, path)
 
 
 def _diagnose(

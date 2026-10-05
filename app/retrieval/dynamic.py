@@ -95,6 +95,30 @@ class SeedChoice:
     tier: int
 
 
+def entity_core(document: TableDocument) -> str | None:
+    """表注释里的实体词。Junction 和空注释返回 None。"""
+
+    return _table_core(document)
+
+
+def lexical_seed_tiers(
+    question: str,
+    documents: Sequence[TableDocument],
+) -> dict[str, int]:
+    """问句直接点名的实体表。没有命中时返回空字典，不把向量近邻算进来。"""
+
+    if question.strip() == "":
+        raise ValueError("retrieval question must be non-empty")
+    entities = _entity_documents(documents)
+    cores = {name: core for name, document in entities.items() if (core := _table_core(document))}
+    aliases = _alias_phrases(question)
+    column_hits = {
+        name: _maximal(_phrases_in_question(_column_text(document), question, aliases))
+        for name, document in entities.items()
+    }
+    return _lexical_tables(question, entities, cores, column_hits)
+
+
 def choose_schema_seeds(
     question: str,
     documents: Sequence[TableDocument],

@@ -333,6 +333,7 @@ def _expand_schema_graph(
             documents,
             edges,
             state["seed_tables"],
+            question=state["question"],
             token_counter=services.token_counter,
         )
         if not result.connected:
