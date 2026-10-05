@@ -12,7 +12,7 @@ from app.datasources.postgres_catalog import (
     assemble_documents,
     assemble_foreign_keys,
 )
-from app.datasources.postgres_exec import execute_registered_postgres
+from app.datasources.postgres_exec import EXTERNAL_RESULT_CEILING, execute_registered_postgres
 from app.datasources.registry import registered_database_ids, resolve_data_source
 from app.datasources.seeds import FALLBACK_SEED_CAP, lexical_schema_seeds
 from app.datasources.sqlite_catalog import load_sqlite_catalog
@@ -173,6 +173,20 @@ def test_sqlite_gate_renders_sqlite_and_rejects_an_unknown_dialect() -> None:
     rejected = check_read_only_sql("SELECT 1", dialect="mysql")
     assert rejected.error is not None
     assert rejected.sql == ""
+
+
+async def test_external_postgres_executor_rejects_results_above_the_tpcds_ceiling() -> None:
+    with pytest.raises(ValueError, match="sandbox limit"):
+        await execute_registered_postgres(
+            "SELECT 1",
+            max_rows=EXTERNAL_RESULT_CEILING + 1,
+            host="127.0.0.1",
+            port=1,
+            user="reader",
+            password="secret-password",
+            database="tpcds",
+            timeout_seconds=1,
+        )
 
 
 async def test_external_postgres_executor_refuses_the_ecommerce_database() -> None:

@@ -7,7 +7,10 @@ import time
 import asyncpg
 
 from app.sandbox.errors import ExecutionError, make_error
-from app.sandbox.execute import MAX_ROWS_CEILING, ExecutionSuccess
+from app.sandbox.execute import ExecutionSuccess
+
+# TPC-DS 派生 Gold 最多约 5.6 万行。比较执行结果时要保留完整行集。
+EXTERNAL_RESULT_CEILING = 100_000
 
 _SQLSTATE_CATEGORY = {
     "22001": "string_data_right_truncation",
@@ -46,7 +49,7 @@ async def execute_registered_postgres(
 
     if database == ECOMMERCE_DATABASE:
         raise ValueError("refusing to execute external SQL on the ecommerce database")
-    if not 1 <= max_rows <= MAX_ROWS_CEILING:
+    if not 1 <= max_rows <= EXTERNAL_RESULT_CEILING:
         raise ValueError("max_rows is outside the sandbox limit")
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")

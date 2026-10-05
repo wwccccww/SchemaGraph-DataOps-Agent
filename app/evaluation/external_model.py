@@ -32,7 +32,7 @@ from app.agents.text_to_sql.workflow import (
 from app.config.settings import get_settings
 from app.datasources.bundle import build_static_bundle
 from app.datasources.postgres_catalog import load_public_catalog
-from app.datasources.postgres_exec import execute_registered_postgres
+from app.datasources.postgres_exec import EXTERNAL_RESULT_CEILING, execute_registered_postgres
 from app.datasources.registry import resolve_data_source
 from app.datasources.sqlite_catalog import load_sqlite_catalog
 from app.datasources.sqlite_exec import sqlite_executor
@@ -421,13 +421,13 @@ async def _run(
             question=case.question,
             database_id=case.database_id,
             execute=True,
-            max_rows=EVALUATION_MAX_ROWS,
+            max_rows=_evaluation_max_rows(source),
             variant=variant,
         )
 
     async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
         await services_for(case.database_id)
-        return await runners[case.database_id](sql, max_rows=EVALUATION_MAX_ROWS)
+        return await runners[case.database_id](sql, max_rows=_evaluation_max_rows(source))
 
     traces = await evaluate_predictions(
         cases,
@@ -469,6 +469,14 @@ async def _run(
     if any(trace.leaked_tables or trace.ecommerce_rule_hits for trace in traces):
         return 2
     return 0
+
+
+def _evaluation_max_rows(source: ExternalSource) -> int:
+    """SQLite 适配器上限是 1 万行。PostgreSQL 外部库要盖住 TPC-DS 的 Gold 行数。"""
+
+    if source == "bird":
+        return EVALUATION_MAX_ROWS
+    return EXTERNAL_RESULT_CEILING
 
 
 def _verify_bird_files(database_root: Path, database_ids: set[str]) -> None:
