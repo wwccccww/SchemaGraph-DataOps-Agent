@@ -117,6 +117,9 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`f28fa5c` audit 全覆盖 + pivot web 禁 warehouse**（`self_healing`，180s）：**`013`、`024` 匹配**（`run_20261005T201136Z_f28fa5c_*`）；本 run 方差未匹配 **`023、030`**（仍为 **28/30**）。Oracle 对比：`024` 失败主因是 web CTE 误 JOIN `warehouse`；`013` 缺 `customer` JOIN 多 1 行。
   - **`1957e34` 度量/库存契约**（`self_healing`，180s）：**`013、030` 匹配**（`run_20261005T202139Z_1957e34_*`）；**28/30**；未匹配 **`023`（熔断 sql_error，终态 SQL 本地 EX=1）**、**`024`（LEFT JOIN+COALESCE）**。`quantity_on_hand` 不再误入 GROUP BY 键。
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
+  - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
+  - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **BIRD**（`1ab333d` 同提交全量）：**2/50**（`run_20261005T205150Z_1ab333d_*`），仍低于历史 **4/50** 峰值，待 join/grouping 与复跑。
   - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。`4d1608f` 再修正 alias GROUP BY 误报 **join_semantics**（**5×** vs 12×，EX 2/50 为方差，见 `run_20261005T192405Z_*`）。
   - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
   - 早期 v7 无 BIRD contract：**0/50** BIRD。
