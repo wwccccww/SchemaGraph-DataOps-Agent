@@ -287,12 +287,19 @@ def render_model_diagnosis(
                 f"- 串库表：{case.get('leaked_tables')}",
                 "",
                 "```sql",
-                str(shape.get("sql") or ""),
+                _diagnosis_sql(shape.get("sql")),
                 "```",
                 "",
             )
         )
     return "\n".join(lines)
+
+
+def _diagnosis_sql(sql: object) -> str:
+    text = "" if sql is None else str(sql)
+    if len(text) <= 2000:
+        return text
+    return text[:2000] + "\n-- truncated"
 
 
 def write_model_diagnosis(directory: Path) -> Path:

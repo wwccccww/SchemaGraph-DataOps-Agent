@@ -216,6 +216,39 @@ def test_model_report_records_accuracy_and_diagnosis(tmp_path: Path) -> None:
     )
 
 
+def test_diagnosis_truncates_a_very_long_prediction() -> None:
+    text = render_model_diagnosis(
+        {
+            "benchmark_source": "bird",
+            "model": "deepseek-chat",
+            "prompt_version": "text-to-sql-generic-v1",
+            "measured": {"execution_accuracy": 0.0},
+            "model_execution": {
+                "matched": 0,
+                "sql_error": 1,
+                "other_result_mismatch": 0,
+                "ecommerce_rule_cases": 0,
+                "cross_database_leaks": 0,
+            },
+        },
+        [
+            {
+                "case_id": "bird_0001",
+                "database_id": "california_schools",
+                "primary_class": "sql_error",
+                "error_category": "syntax_error",
+                "seed_tables": ["schools"],
+                "ecommerce_rule_hits": [],
+                "leaked_tables": [],
+                "prediction": {"sql": "A" * 3000, "referenced_tables": []},
+            }
+        ],
+    )
+
+    assert "-- truncated" in text
+    assert "A" * 3000 not in text
+
+
 def test_model_report_rejects_an_empty_model_and_custom_targets(tmp_path: Path) -> None:
     trace = _trace("bird_0001", "matched", 1)
     summary = build_external_model_summary(
