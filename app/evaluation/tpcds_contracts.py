@@ -49,6 +49,7 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
     filters.extend(_fact_filters(case.required_tables, case.question))
     if case.required_tables:
         filters.append(f"core_tables={','.join(sorted(case.required_tables))}")
+        filters.append("audit_tables_strict=true")
     return SemanticContract(
         projections=projections,
         group_keys=group_keys,

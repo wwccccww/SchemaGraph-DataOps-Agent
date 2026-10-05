@@ -34,6 +34,7 @@ def test_single_fact_filter_from_required_tables() -> None:
     contract = contract_for(_case())
     assert "primary_fact=store_sales" in contract.filters
     assert "core_tables=customer,date_dim,item,store,store_sales" in contract.filters
+    assert "audit_tables_strict=true" in contract.filters
 
 
 def test_returns_and_sales_question_adds_separate_cte_hint() -> None:

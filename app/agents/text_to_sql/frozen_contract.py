@@ -80,7 +80,7 @@ def check_frozen_semantic_contract(
     referenced = {name.lower() for name in described.referenced_tables}
     findings: list[SemanticFinding] = []
     core_tables = _core_tables(contract.filters)
-    if core_tables:
+    if core_tables and "audit_tables_strict=true" in contract.filters:
         audited = {name.lower() for name in core_tables}
         extra = sorted(name for name in referenced if name.lower() not in audited)
         if extra:
@@ -90,6 +90,18 @@ def check_frozen_semantic_contract(
                     f"只能使用冻结审计表（{'、'.join(core_tables)}），请移除：{'、'.join(extra)}",
                 )
             )
+    elif (
+        core_tables
+        and "promotion" not in core_tables
+        and "promotion_channel=dmail" not in contract.filters
+        and "promotion" in referenced
+    ):
+        findings.append(
+            SemanticFinding(
+                "missing_entity",
+                "冻结审计表清单不含 promotion，问句未要求促销时不要 JOIN promotion",
+            )
+        )
     for table in _tables_for_projections(contract.projections):
         if table.lower() not in referenced:
             findings.append(

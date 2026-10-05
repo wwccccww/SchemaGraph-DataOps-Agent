@@ -69,7 +69,7 @@ def test_core_tables_reject_audited_extra_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],
         group_keys=[],
-        filters=["core_tables=store_sales,customer,date_dim"],
+        filters=["core_tables=store_sales,customer,date_dim", "audit_tables_strict=true"],
         category_scope="exact",
         time_window=None,
         dedup_key=None,
@@ -91,6 +91,7 @@ def test_returns_case_rejects_channel_sales_table() -> None:
         filters=[
             "core_tables=catalog_returns,date_dim,item,reason,warehouse,call_center",
             "primary_fact=catalog_returns",
+            "audit_tables_strict=true",
         ],
         category_scope="exact",
         time_window=None,
