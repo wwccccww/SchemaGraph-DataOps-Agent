@@ -37,6 +37,13 @@ def test_single_fact_filter_from_required_tables() -> None:
     assert "audit_tables_strict=true" in contract.filters
 
 
+def test_dmail_question_adds_subquery_filter() -> None:
+    contract = contract_for(
+        _case(question="统计 2001 年购买过直邮促销商品的顾客净利润。")
+    )
+    assert "promotion_via_item_sk_subquery=true" in contract.filters
+
+
 def test_multi_channel_question_adds_union_hint() -> None:
     contract = contract_for(
         _case(

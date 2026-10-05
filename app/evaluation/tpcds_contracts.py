@@ -110,6 +110,7 @@ def _filters_from_question(question: str) -> list[str]:
         filters.append(f"calendar_year={year}")
     if "促销" in question or "直邮" in question:
         filters.append("promotion_channel=dmail")
+        filters.append("promotion_via_item_sk_subquery=true")
     if "退货" in question:
         filters.append("returns_present=true")
     return filters

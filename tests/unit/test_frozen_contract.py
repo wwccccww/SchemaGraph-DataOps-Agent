@@ -84,6 +84,23 @@ def test_core_tables_reject_audited_extra_tables() -> None:
     assert any("请移除" in item.message and "promotion" in item.message for item in findings)
 
 
+def test_dmail_promotion_join_is_rejected() -> None:
+    contract = SemanticContract(
+        projections=["net_profit"],
+        group_keys=["education_status"],
+        filters=["promotion_channel=dmail", "promotion_via_item_sk_subquery=true"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT SUM(ss.ss_net_profit) FROM store_sales ss "
+        "JOIN promotion p ON ss.ss_promo_sk = p.p_promo_sk WHERE p.p_channel_dmail = 'Y'"
+    )
+    findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
+    assert any("IN (SELECT" in item.message for item in findings)
+
+
 def test_multi_channel_flat_join_is_rejected() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],

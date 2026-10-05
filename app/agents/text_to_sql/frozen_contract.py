@@ -9,7 +9,7 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
-from app.evaluation.sql_shape import describe_sql
+from app.evaluation.sql_shape import PredictionShape, describe_sql
 from app.agents.text_to_sql.semantic import SemanticFinding
 from app.schemas.benchmark import SemanticContract
 
@@ -207,6 +207,34 @@ def check_frozen_semantic_contract(
                 "窗口函数（RANK 等）与 GROUP BY 不要写在同一 SELECT 层；用 CTE 先算基础列，外层再 RANK/ORDER BY",
             )
         )
+    if "promotion_via_item_sk_subquery=true" in contract.filters:
+        lowered = sql.lower()
+        if re.search(r"\bjoin\s+promotion\b", lowered) or (
+            " ss_promo_sk" in lowered and "p_channel_dmail" in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "直邮促销商品用 store_sales.ss_item_sk IN (SELECT p_item_sk FROM promotion "
+                    "WHERE p_channel_dmail='Y' AND p_item_sk IS NOT NULL)，不要 JOIN promotion 事实行",
+                )
+            )
+        elif "ss_item_sk" in lowered and "in (select" not in lowered and "in(select" not in lowered.replace(" ", ""):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "直邮促销过滤需 ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail='Y')",
+                )
+            )
+    cte_name = _sk_heavy_cte_without_dimensions(described, contract.group_keys)
+    if cte_name is not None:
+        keys = "、".join(contract.group_keys[:6])
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                f"CTE {cte_name} 不要仅按多个 *_sk 预聚合；外层应按维度 {keys} 汇总",
+            )
+        )
     if "multi_channel_union=true" in contract.filters:
         sales = [name for name in core_tables if name.endswith("_sales")]
         if len(sales) >= 2:
@@ -223,6 +251,31 @@ def check_frozen_semantic_contract(
 
 def _normalize_label(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def _group_label_token(expression: str) -> str:
+    normalized = expression.replace('"', " ").replace("`", " ")
+    parts = re.findall(r"[a-z_][a-z0-9_]*", normalized.lower())
+    return parts[-1] if parts else normalized.strip()
+
+
+def _sk_heavy_cte_without_dimensions(
+    described: PredictionShape,
+    group_keys: Sequence[str],
+) -> str | None:
+    if not group_keys or not described.scopes:
+        return None
+    dim_keys = {_normalize_label(key) for key in group_keys}
+    for scope in described.scopes:
+        if scope.name == "outer" or not scope.aggregations:
+            continue
+        sk_groups = sum(1 for item in scope.group_by if "_sk" in item.lower())
+        if sk_groups < 2 or len(scope.group_by) < 3:
+            continue
+        group_norm = {_normalize_label(_group_label_token(item)) for item in scope.group_by}
+        if not dim_keys & group_norm:
+            return scope.name
+    return None
 
 
 def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
@@ -275,6 +328,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "promotion_channel=dmail":
             hints.append(
                 "直邮促销：promotion.p_channel_dmail='Y'，并用 ss_item_sk IN (SELECT p_item_sk FROM promotion ...) 或 ss_promo_sk 关联，不要仅用 item 与 promotion 的笛卡尔 JOIN"
+            )
+        if item == "promotion_via_item_sk_subquery=true":
+            hints.append(
+                "直邮促销过滤使用 ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail='Y')，"
+                "不要 JOIN promotion 到 store_sales。"
             )
         if item.startswith("primary_fact="):
             table = item.split("=", 1)[1]
