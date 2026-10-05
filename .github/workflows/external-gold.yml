@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --frozen --group dev
-      - run: uv run pytest tests/unit/test_external_gold.py tests/unit/test_external_cases.py tests/unit/test_external_release.py tests/unit/test_frozen_contract.py tests/unit/test_bird_contracts.py tests/unit/test_tpcds_contracts.py tests/unit/test_badcase_join_semantics.py -q
+      - run: uv run pytest tests/unit/test_external_gold.py tests/unit/test_external_cases.py tests/unit/test_external_release.py tests/unit/test_frozen_contract.py tests/unit/test_bird_contracts.py tests/unit/test_tpcds_contracts.py tests/unit/test_badcase_join_semantics.py tests/unit/test_badcase_sqlite_dialect.py -q
       - run: uv run python -m app.evaluation.external_data check-external-release
 
   smoke:
