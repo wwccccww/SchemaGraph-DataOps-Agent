@@ -23,7 +23,12 @@ from app.agents.text_to_sql.prompt import (
 )
 from app.agents.text_to_sql.semantic import SemanticFinding, check_cte_outputs, check_semantics
 from app.datasources.registry import resolve_data_source
-from app.graph.expand import TokenCounter, expand_schema, render_schema_context
+from app.graph.expand import (
+    DEFAULT_MAX_TOTAL_TABLES,
+    TokenCounter,
+    expand_schema,
+    render_schema_context,
+)
 from app.llm.gateway import ChatModel
 from app.observability.tracing import (
     RequestTrace,
@@ -405,6 +410,19 @@ def _expand_schema_graph(
             question=state["question"],
             token_counter=services.token_counter,
         )
+        if not result.connected and state["profile"] != "ecommerce":
+            names = list(result.seed_tables)[:DEFAULT_MAX_TOTAL_TABLES]
+            selected = [by_name[name] for name in names if name in by_name]
+            context = _visible_schema(state, render_schema_context(selected, edges))
+            return {
+                "status": "running",
+                "seed_tables": names,
+                "expanded_tables": [],
+                "schema_context": context,
+                "schema_token_count": services.token_counter.count(context),
+                "truncated": len(result.seed_tables) > DEFAULT_MAX_TOTAL_TABLES,
+                "join_paths": _join_paths(edges, names),
+            }
         if not result.connected:
             diagnostic = result.diagnostic
             code = diagnostic.code if diagnostic is not None else "no_path"

@@ -570,3 +570,61 @@ async def test_catalog_from_another_database_stops_before_the_model() -> None:
     assert response.error is not None
     assert response.error.category == "cross_database_catalog"
     assert model.prompts == []
+
+
+async def test_generic_schema_graph_keeps_disconnected_seeds() -> None:
+    model = ScriptedModel(["SELECT 1"])
+
+    async def select_tools(_question: str) -> list[ToolHit]:
+        return []
+
+    async def select_seeds(_question: str) -> list[SchemaSeed]:
+        return [
+            SchemaSeed(
+                database_id="california_schools",
+                schema_name="main",
+                table_name=name,
+                content_hash=f"sha256:{name}",
+                embedding_model="lexical",
+                embedding_version="none",
+                score=1.0,
+            )
+            for name in ("schools", "satscores")
+        ]
+
+    async def load_catalog() -> tuple[list[TableDocument], list[object]]:
+        return [
+            TableDocument(
+                database_id="california_schools",
+                schema_name="main",
+                table_name=name,
+                table_comment=None,
+                columns=[
+                    ColumnDocument(name="cds", data_type="TEXT", nullable=False, comment=None)
+                ],
+                is_junction=False,
+                content_hash=f"sha256:{name}",
+            )
+            for name in ("schools", "satscores")
+        ], []
+
+    response = await run_text_to_sql(
+        ServiceBundle(
+            model=model,
+            select_tools=select_tools,
+            select_seeds=select_seeds,
+            load_catalog=load_catalog,
+            execute=RecordingExecutor(),
+            token_counter=EstimatedTokenCounter(),
+            database_id="california_schools",
+        ),
+        question="How many records are there?",
+        database_id="california_schools",
+        variant="schema_graph",
+    )
+
+    assert response.status == "succeeded"
+    assert response.error is None
+    assert model.prompts
+    assert "schools" in model.prompts[0]
+    assert "satscores" in model.prompts[0]

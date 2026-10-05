@@ -136,6 +136,36 @@ def test_public_catalog_drops_dbgen_and_foreign_keys_outside_the_database() -> N
     assert edges == []
 
 
+def test_chinese_fallback_prefers_retail_table_names() -> None:
+    documents = [
+        _table("call_center", database_id="tpcds"),
+        _table("store_sales", database_id="tpcds"),
+        _table("customer", database_id="tpcds"),
+        _table("item", database_id="tpcds"),
+    ]
+
+    seeds = lexical_schema_seeds("统计门店顾客购买商品的销售金额", documents)
+
+    assert [seed.table_name for seed in seeds] == [
+        "store_sales",
+        "customer",
+        "item",
+        "call_center",
+    ]
+
+
+def test_gate_turns_parser_recursion_into_syntax_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def explode(*_args: object, **_kwargs: object) -> list[object]:
+        raise RecursionError("boom")
+
+    monkeypatch.setattr("app.sandbox.gate.sqlglot.parse", explode)
+    decision = check_read_only_sql("SELECT 1")
+
+    assert decision.error is not None
+    assert decision.error.category == "syntax_error"
+    assert decision.sql == ""
+
+
 def test_sqlite_gate_renders_sqlite_and_rejects_an_unknown_dialect() -> None:
     decision = check_read_only_sql("SELECT date('now')", dialect="sqlite")
     assert decision.error is None

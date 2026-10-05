@@ -85,7 +85,7 @@ def describe_sql(sql: str | None, *, dialect: str = "postgres") -> PredictionSha
         return PredictionShape.empty(parse_error="SQL 为空")
     try:
         statements = sqlglot.parse(sql, read=dialect, error_level=sqlglot.ErrorLevel.RAISE)
-    except SqlglotError:
+    except (SqlglotError, RecursionError):
         return PredictionShape.empty(sql=sql, parse_error="SQL 无法解析")
     expressions = [statement for statement in statements if statement is not None]
     if len(expressions) != 1:

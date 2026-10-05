@@ -11,6 +11,27 @@ from app.schemas.retrieval import SchemaSeed
 
 FALLBACK_SEED_CAP = 12
 _TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9_]{2,}")
+# 只在词汇种子为空时使用。电商问数仍走原有中文注释检索，不会读到这里。
+_HINTS = (
+    ("顾客", "customer"),
+    ("客户", "customer"),
+    ("住址", "address"),
+    ("地址", "address"),
+    ("商品", "item"),
+    ("类别", "category"),
+    ("门店", "store"),
+    ("商店", "store"),
+    ("销售", "sales"),
+    ("金额", "sales"),
+    ("日期", "date"),
+    ("库存", "inventory"),
+    ("仓库", "warehouse"),
+    ("网页", "web"),
+    ("目录", "catalog"),
+    ("促销", "promotion"),
+    ("退货", "return"),
+    ("订单", "order"),
+)
 
 
 def lexical_schema_seeds(
@@ -55,7 +76,7 @@ def _seed(document: TableDocument, score: float) -> SchemaSeed:
 
 
 def _name_overlap(question: str, document: TableDocument) -> int:
-    tokens = _tokens(question)
+    tokens = _question_tokens(question)
     if not tokens:
         return 0
     names = [document.table_name, *[column.name for column in document.columns]]
@@ -63,6 +84,14 @@ def _name_overlap(question: str, document: TableDocument) -> int:
     for name in names:
         haystack.update(_tokens(name))
     return len(tokens & haystack)
+
+
+def _question_tokens(question: str) -> set[str]:
+    tokens = _tokens(question)
+    for hint, fragment in _HINTS:
+        if hint in question:
+            tokens.add(fragment)
+    return tokens
 
 
 def _tokens(text: str) -> set[str]:

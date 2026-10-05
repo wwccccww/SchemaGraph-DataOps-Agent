@@ -210,7 +210,7 @@ def check_read_only_sql(sql: str, *, dialect: str = "postgres") -> GateDecision:
         return GateDecision(sql="", error=_reject("syntax_error", "SQL 为空"))
     try:
         statements = sqlglot.parse(sql, read=dialect, error_level=sqlglot.ErrorLevel.RAISE)
-    except SqlglotError:
+    except (SqlglotError, RecursionError):
         return GateDecision(sql="", error=_reject("syntax_error", "SQL 无法解析"))
     expressions = [statement for statement in statements if statement is not None]
     if len(expressions) != 1:
