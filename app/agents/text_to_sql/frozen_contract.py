@@ -118,6 +118,36 @@ def check_frozen_semantic_contract(
                 "冻结审计表清单不含 promotion，问句未要求促销时不要 JOIN promotion",
             )
         )
+    elif core_tables:
+        allowed = {name.lower() for name in core_tables}
+        if "disp" not in allowed and "disp" in referenced:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "冻结 core_tables 不含 disp，不要 JOIN disp 或过滤 disp.type",
+                )
+            )
+        if "client" not in allowed and "client" in referenced:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "冻结 core_tables 不含 client，不要 JOIN client",
+                )
+            )
+        slim_loan_path = allowed <= {"account", "loan", "trans"}
+        if slim_loan_path and re.search(
+            r"\b(?:loan|t\d+)\.status\b|\bstatus\s*=\s*['\"]C['\"]",
+            sql,
+            re.IGNORECASE,
+        ):
+            status_in_filters = any("status" in item.lower() for item in contract.filters)
+            if not status_in_filters:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "此题仅需 loan→account→trans，不要加 loan.status 过滤",
+                    )
+                )
     for table in _tables_for_projections(contract.projections):
         if table.lower() not in referenced:
             findings.append(

@@ -607,8 +607,27 @@ def _join_hints(
         question,
         re.IGNORECASE,
     ):
+        if not re.search(
+            r"approved first|balance from|increase rate.*balance",
+            question,
+            re.IGNORECASE,
+        ):
+            hints.append(
+                "Financial 库：account 与 client 经 disp 连接，账户持有人用 disp.type = 'OWNER'。"
+            )
+    if re.search(r"approved first|loan was approved first", question, re.IGNORECASE):
         hints.append(
-            "Financial 库：account 与 client 经 disp 连接，账户持有人用 disp.type = 'OWNER'。"
+            "「当日最早获批贷款」用 WHERE loan_id = (SELECT MIN(loan_id) FROM loan WHERE date = …) "
+            "限定单笔 loan，避免同日多笔 fan-out；路径 loan→account→trans，不要 JOIN disp。"
+        )
+    if re.search(
+        r"increase rate.*balance|account balance from",
+        question,
+        re.IGNORECASE,
+    ) and {"loan", "account", "trans"} <= visible:
+        hints.append(
+            "余额增长率：loan JOIN account JOIN trans，用 IIF 按两日期 SUM(balance)；"
+            "不要加 disp 或 loan.status='C'。"
         )
     if "loan" in visible and "district" in visible and re.search(
         r"\bregion\b|district\.A3",

@@ -75,6 +75,26 @@ def test_store_sales_demographics_use_current_cdemo_sk() -> None:
     assert any("c_current_cdemo_sk" in item.message for item in findings)
 
 
+def test_slim_loan_core_tables_reject_disp_and_status_filter() -> None:
+    contract = SemanticContract(
+        projections=["pct"],
+        group_keys=[],
+        filters=["core_tables=account,loan,trans", "anchor_date=2026-10-01"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    bad = (
+        "SELECT 1 AS pct FROM loan AS T1 JOIN account AS T2 ON T1.account_id = T2.account_id "
+        "JOIN trans AS T3 ON T3.account_id = T2.account_id "
+        "JOIN disp AS T4 ON T2.account_id = T4.account_id "
+        "WHERE T4.type = 'OWNER' AND T1.status = 'C'"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    assert any("disp" in item.message for item in findings)
+    assert any("loan.status" in item.message for item in findings)
+
+
 def test_frozen_contract_rejects_extra_output_columns() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
