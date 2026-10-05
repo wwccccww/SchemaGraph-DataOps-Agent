@@ -127,6 +127,8 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`47fc46a` slim loan 契约**（`core_tables=account,loan,trans` 禁 disp/status；0116 余额增长率 shape）（`self_healing`，180s）：BIRD **6/50**（`run_20261005T234151Z_47fc46a_*`），匹配 **`0000、0028、0036、0083、0104、0116`**（**`0116`** 从 `98c0366` 5/50 恢复）。
+  - **`98c0366` badcase CTE *stats***（join 分类忽略 RegionalStats 等别名）（`self_healing`，180s）：BIRD **5/50**（`run_20261005T233042Z_98c0366_*`），方差丢 **`0116`**（v14 disp/status 误伤）。
   - **`bc99712` generic v14**（Financial loan→account→trans、overall 按 category JOIN）（`self_healing`，180s）：BIRD **6/50（EX 0.12）**（`run_20261005T232009Z_bc99712_*`），匹配 **`0000、0028、0036、0083、0104、0116`**。
   - **`43c9faa` 确认复跑**（同 `c0ced4a` 代码，`self_healing`，180s）：TPC-DS **30/30** 再次达成（`run_20261005T230855Z_43c9faa_*`）；BIRD **5/50**（`run_20261005T231044Z_43c9faa_*`）。
   - **`c0ced4a` store_sales 人口统计键 + 禁多余列**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T225824Z_c0ced4a_*`）；`002` 需 `customer.c_current_cdemo_sk` 而非 `ss_cdemo_sk`。同提交 BIRD **5/50**（`run_20261005T230047Z_c0ced4a_*`，方差）。
