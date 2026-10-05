@@ -286,6 +286,19 @@ def check_generic_shape(
         )
     if shape.formula_columns and not _formula_used(shape.formula_columns, sql):
         findings.append(SemanticFinding("projection_mismatch", f"口径：{shape.formulas[0]}"))
+    if dialect == "sqlite" and re.search(
+        r"julianday\s*\(\s*['\"]now['\"]|date\s*\(\s*['\"]now['\"]|"
+        r"strftime\s*\([^)]*['\"]now['\"]",
+        sql,
+        re.IGNORECASE,
+    ):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "计算校龄等相对日期时不要使用 date('now') 或 julianday('now')，"
+                "改用问句给定的 anchor 日期或列中的 OpenDate 差值常量。",
+            )
+        )
     return tuple(findings)
 
 
@@ -426,6 +439,14 @@ def _join_hints(
         hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
     if re.search(r"网站|web site|web_site", question, re.IGNORECASE) and "web_site" in visible:
         hints.append("网站维度用 web_site 表，通过 web_sales 或 catalog_sales 关联。")
+    if (
+        {"schools", "frpm", "satscores"} <= visible
+        or ("schools" in visible and "frpm" in visible)
+    ):
+        hints.append(
+            "California schools：schools 与 frpm/satscores 用 CDSCode 与 satscores.cds 连接，"
+            "不要对 schools 与 frpm 做无键笛卡尔积。"
+        )
     if re.search(r"当前住址|current address", question, re.IGNORECASE) and "customer_address" in visible:
         for edge in edges:
             tables = {edge.source_table.lower(), edge.target_table.lower()}

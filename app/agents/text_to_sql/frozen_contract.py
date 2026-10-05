@@ -80,12 +80,14 @@ def check_frozen_semantic_contract(
     referenced = {name.lower() for name in described.referenced_tables}
     findings: list[SemanticFinding] = []
     core_tables = _core_tables(contract.filters)
-    if core_tables and "promotion" not in core_tables and "promotion_channel=dmail" not in contract.filters:
-        if "promotion" in referenced:
+    if core_tables:
+        audited = {name.lower() for name in core_tables}
+        extra = sorted(name for name in referenced if name.lower() not in audited)
+        if extra:
             findings.append(
                 SemanticFinding(
                     "missing_entity",
-                    "冻结审计表清单不含 promotion，问句未要求促销时不要 JOIN promotion",
+                    f"只能使用冻结审计表（{'、'.join(core_tables)}），请移除：{'、'.join(extra)}",
                 )
             )
     for table in _tables_for_projections(contract.projections):
@@ -248,8 +250,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("core_tables="):
             tables = item.split("=", 1)[1]
             hints.append(f"必须 JOIN 或 FROM 这些表：{tables}")
+            hints.append("不要 JOIN 上述清单以外的其它业务表。")
             if "promotion" not in {part.strip() for part in tables.split(",")}:
-                hints.append("上述清单不含 promotion 时不要额外 JOIN promotion。")
+                hints.append("清单不含 promotion 时不要额外 JOIN promotion。")
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
         if item == "returns_vs_sales=separate_cte":

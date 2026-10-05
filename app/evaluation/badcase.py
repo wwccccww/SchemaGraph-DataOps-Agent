@@ -275,8 +275,15 @@ def _group_by_equivalent(gold: str, predicted: str) -> bool:
 
 
 def _group_by_tokens(text: str) -> frozenset[str]:
-    parts = re.findall(r"[A-Za-z_][A-Za-z0-9_.]*", text.lower())
-    return frozenset(part.split(".")[-1] for part in parts if part)
+    normalized = text.lower().replace('"', " ").replace("`", " ")
+    parts = re.findall(r"[a-z_][a-z0-9_]*", normalized)
+    tokens: set[str] = set()
+    for part in parts:
+        base = part.split(".")[-1]
+        if base in {"outer", "agg", "base", "sold", "returned", "ss", "sr", "cs", "ws"}:
+            continue
+        tokens.add(base.replace("_", ""))
+    return frozenset(tokens)
 
 
 def _projection_order(gold: PredictionShape, predicted: PredictionShape) -> str:

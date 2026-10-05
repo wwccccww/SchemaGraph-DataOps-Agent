@@ -30,3 +30,16 @@ def test_group_by_alias_differences_are_not_join_semantics() -> None:
         ex=0,
     )
     assert detail != "join_semantics"
+
+
+def test_group_by_quoted_label_matches_snake_case_alias() -> None:
+    detail, _ = classify_badcase(
+        question="count schools by county",
+        gold_sql='SELECT ss."County Name" AS c FROM schools ss GROUP BY ss."County Name"',
+        predicted_sql="SELECT county_name AS c FROM schools GROUP BY county_name",
+        required_tables=("schools",),
+        error_category=None,
+        ex=0,
+        dialect="sqlite",
+    )
+    assert detail != "join_semantics"

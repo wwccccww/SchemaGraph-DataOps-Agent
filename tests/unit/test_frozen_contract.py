@@ -65,7 +65,7 @@ def test_format_includes_projections_and_item_hint() -> None:
     assert "item" in text
 
 
-def test_core_tables_are_hints_not_hard_entity_checks() -> None:
+def test_core_tables_reject_audited_extra_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],
         group_keys=[],
@@ -74,9 +74,34 @@ def test_core_tables_are_hints_not_hard_entity_checks() -> None:
         time_window=None,
         dedup_key=None,
     )
-    sql = "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss"
+    ok = "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss"
+    assert check_frozen_semantic_contract(contract, ok, dialect="postgres") == ()
+    bad = (
+        "SELECT SUM(ss_ext_sales_price) AS sales_amount FROM store_sales AS ss "
+        "JOIN promotion AS p ON ss.ss_promo_sk = p.p_promo_sk"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="postgres")
+    assert any("请移除" in item.message and "promotion" in item.message for item in findings)
+
+
+def test_returns_case_rejects_channel_sales_table() -> None:
+    contract = SemanticContract(
+        projections=["return_amount"],
+        group_keys=[],
+        filters=[
+            "core_tables=catalog_returns,date_dim,item,reason,warehouse,call_center",
+            "primary_fact=catalog_returns",
+        ],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    sql = (
+        "SELECT SUM(cr.cr_return_amount) FROM catalog_returns AS cr "
+        "JOIN catalog_sales AS cs ON cs.cs_item_sk = cr.cr_item_sk"
+    )
     findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
-    assert not any(item.category == "missing_entity" for item in findings)
+    assert any("catalog_sales" in item.message for item in findings)
 
 
 def test_wrong_channel_fact_table_is_flagged() -> None:
