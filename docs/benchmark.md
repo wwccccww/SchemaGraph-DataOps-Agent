@@ -125,6 +125,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`c0ced4a` store_sales 人口统计键 + 禁多余列**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T225824Z_c0ced4a_*`）；`002` 需 `customer.c_current_cdemo_sk` 而非 `ss_cdemo_sk`。同提交 BIRD **5/50**（`run_20261005T230047Z_c0ced4a_*`，方差）。
   - **`aaa20b0` 冻结契约禁多余列**（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T224840Z_aaa20b0_*`），**`020` 恢复匹配**；未匹配 **`002`**（方差）。P1 **`verify-bird`** 50/50 Gold 执行通过（`run_20261005T224519Z_*`）。
   - **`01d9389` 复跑**（`self_healing`，180s）：TPC-DS **27/30**（`run_20261005T223602Z_01d9389_*`）；BIRD **5/50**（`run_20261005T223651Z_01d9389_*`）。与 **`28e6e15`/`809d945`** 一并视为方差带（TPC-DS **26–29/30**，BIRD **5–6/50**）。
   - **`28e6e15` generic v13**（Financial loan.status='C' / district.A3 / disp OWNER）（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T222601Z_28e6e15_*`）；BIRD **5/50**（`run_20261005T222704Z_28e6e15_*`，方差丢 **`0116`**，仍含 **`0000、0083`**）。
