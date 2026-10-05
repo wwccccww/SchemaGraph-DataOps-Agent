@@ -351,6 +351,29 @@ def check_frozen_semantic_contract(
                     )
                 )
                 break
+    bill_ship = {"bill_state", "ship_state"} & {name.lower() for name in contract.projections}
+    if bill_ship and "web_sales" in referenced and core_tables and "customer" in {
+        name.lower() for name in core_tables
+    }:
+        if "c_current_addr_sk" in lowered_sql and not re.search(
+            r"ws_bill_customer_sk\s*=\s*[^.]+\.c_customer_sk|c_customer_sk\s*=\s*[^.]+\.ws_bill_customer_sk",
+            lowered_sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "web_sales 关联 customer 用 ws_bill_customer_sk = customer.c_customer_sk，"
+                    "不要用 customer.c_current_addr_sk 对接账单地址",
+                )
+            )
+        elif "customer" in referenced and "ws_bill_customer_sk" not in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "账单/收货地址过滤时仍需 JOIN customer ON ws_bill_customer_sk = c_customer_sk",
+                )
+            )
     demo_dims = {"marital_status", "education_status"} & {
         name.lower() for name in contract.projections
     }

@@ -499,7 +499,7 @@ def _join_hints(
         if "customer_address" in visible and "web_sales" in visible:
             hints.append(
                 "账单/收货地址州：web_sales.ws_bill_addr_sk 与 ws_ship_addr_sk 各 JOIN 一次 customer_address，"
-                "过滤 bill_state <> ship_state。"
+                "并 JOIN customer ON ws_bill_customer_sk = c_customer_sk；过滤 bill_state <> ship_state。"
             )
     if re.search(r"当前住址|current address", question, re.IGNORECASE) and "customer_address" in visible:
         for edge in edges:

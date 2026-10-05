@@ -65,6 +65,23 @@ def test_format_includes_projections_and_item_hint() -> None:
     assert "item" in text
 
 
+def test_web_bill_ship_requires_bill_customer_sk_join() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_013")
+    bad = case.gold_sql.replace(
+        "web_sales.ws_bill_customer_sk = customer.c_customer_sk",
+        "customer.c_current_addr_sk = bill_address.ca_address_sk",
+    ).replace("JOIN customer ON", "JOIN customer ON")
+    findings = check_frozen_semantic_contract(
+        case.semantic_contract, bad, dialect="postgres"
+    )
+    assert any("ws_bill_customer_sk" in item.message for item in findings)
+    assert check_frozen_semantic_contract(
+        case.semantic_contract, case.gold_sql, dialect="postgres"
+    ) == ()
+
+
 def test_audit_strict_requires_all_core_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],

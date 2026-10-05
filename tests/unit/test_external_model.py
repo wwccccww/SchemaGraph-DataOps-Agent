@@ -177,8 +177,17 @@ async def test_result_mismatch_is_not_called_a_sql_error() -> None:
 async def test_failed_generation_does_not_execute_gold() -> None:
     case = _case("bird_0001", "california_schools")
 
-    async def execute(sql: str) -> ExecutionSuccess:
-        raise AssertionError(sql)
+    async def execute(sql: str) -> ExecutionSuccess | ExecutionError:
+        if sql == case.gold_sql:
+            raise AssertionError("gold must not execute when prediction fails")
+        return ExecutionError(
+            category="syntax_error",
+            sqlstate=None,
+            exception_type="ParseError",
+            normalized_message="bad sql",
+            retryable=True,
+            error_hash="syntax",
+        )
 
     inspection = TextToSqlInspection(
         response=TextToSqlResponse(

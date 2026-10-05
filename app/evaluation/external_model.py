@@ -213,6 +213,8 @@ async def score_prediction(
         if isinstance(predicted_outcome, ExecutionError):
             if response.status == "succeeded":
                 error_category = predicted_outcome.category
+            elif error_category is None and response.error is not None:
+                error_category = response.error.category
         else:
             gold_outcome = await execute(case.gold_sql)
             if isinstance(gold_outcome, ExecutionError):
