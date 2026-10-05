@@ -324,12 +324,14 @@ def check_frozen_semantic_contract(
             )
         )
     if "channel_pivot_compare=true" in contract.filters:
-        if "full outer join" in lowered_sql:
+        if "full outer join" in lowered_sql or (
+            "left join" in lowered_sql and "coalesce" in lowered_sql
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
-                    "渠道对比 CTE 用 INNER JOIN 对齐 item_category/sales_year，"
-                    "不要 FULL OUTER JOIN 填 0",
+                    "渠道对比 CTE 用 INNER JOIN 对齐维度，"
+                    "不要 FULL/LEFT OUTER JOIN 或 COALESCE 填 0",
                 )
             )
         if "carrier" in {name.lower() for name in contract.projections}:

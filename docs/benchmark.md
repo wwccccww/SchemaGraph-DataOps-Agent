@@ -115,6 +115,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`9b50e5d` 契约分派**（cross-channel / pivot / returns union + 销售实体收紧）（`self_healing`，180s）：TPC-DS **23/30（EX 0.767）**（`run_20261005T195921Z_9b50e5d_*`）。新增 **`010、015、019、025、026、029`** 等；未匹配 7 条。
   - **`0b127cb` 尾部用例**（inventory sold join / return-linked sales / pivot INNER / catalog demo）（`self_healing`，180s）：TPC-DS **28/30（EX 0.933）**（`run_20261005T200505Z_0b127cb_*`）；未匹配 **`013、024`**。同提交 BIRD 全量 **2/50**（`run_20261005T200401Z_0b127cb_*`，低于历史 **4/50** 峰值，作方差/回归对照）。
   - **`f28fa5c` audit 全覆盖 + pivot web 禁 warehouse**（`self_healing`，180s）：**`013`、`024` 匹配**（`run_20261005T201136Z_f28fa5c_*`）；本 run 方差未匹配 **`023、030`**（仍为 **28/30**）。Oracle 对比：`024` 失败主因是 web CTE 误 JOIN `warehouse`；`013` 缺 `customer` JOIN 多 1 行。
+  - **`1957e34` 度量/库存契约**（`self_healing`，180s）：**`013、030` 匹配**（`run_20261005T202139Z_1957e34_*`）；**28/30**；未匹配 **`023`（熔断 sql_error，终态 SQL 本地 EX=1）**、**`024`（LEFT JOIN+COALESCE）**。`quantity_on_hand` 不再误入 GROUP BY 键。
   - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。`4d1608f` 再修正 alias GROUP BY 误报 **join_semantics**（**5×** vs 12×，EX 2/50 为方差，见 `run_20261005T192405Z_*`）。
   - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
   - 早期 v7 无 BIRD contract：**0/50** BIRD。
