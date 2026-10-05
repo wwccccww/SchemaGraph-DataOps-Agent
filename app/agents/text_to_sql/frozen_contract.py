@@ -262,6 +262,41 @@ def check_frozen_semantic_contract(
                         f"多渠道请用 UNION ALL 分渠道汇总（{'、'.join(sales)}），不要在同一 SELECT 中同时 JOIN 多个渠道事实表",
                     )
                 )
+    lowered_sql = sql.lower()
+    if (
+        "returns_present=true" in contract.filters
+        and "return_amount" in contract.projections
+        and re.search(r"inc_tax|_tax\b", lowered_sql)
+        and not re.search(
+            r"cr_return_amount|wr_return_amt|sr_return_amt|cr_return_amount\b",
+            lowered_sql,
+        )
+    ):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "退货金额用 cr_return_amount / wr_return_amt / sr_return_amt 等列，"
+                "不要用 *_return_amt_inc_tax 或其它含税列",
+            )
+        )
+    income_dims = {"income_lower", "buy_potential"} & {name.lower() for name in contract.projections}
+    if income_dims and core_tables and "customer" in {name.lower() for name in core_tables}:
+        if "ss_hdemo_sk" in lowered_sql and "c_current_hdemo_sk" not in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "收入带/购买潜力应 JOIN customer 再用 customer.c_current_hdemo_sk "
+                    "连接 household_demographics，不要仅用 store_sales.ss_hdemo_sk",
+                )
+            )
+        if "store" in referenced and "store" not in {name.lower() for name in core_tables}:
+            if "store_state" not in {name.lower() for name in contract.projections}:
+                findings.append(
+                    SemanticFinding(
+                        "missing_entity",
+                        "问句未要求门店州时不要 JOIN store；收入带/购买潜力走 customer→household_demographics",
+                    )
+                )
     return tuple(findings)
 
 

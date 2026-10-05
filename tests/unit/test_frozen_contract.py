@@ -221,6 +221,43 @@ def test_spurious_promotion_join_is_flagged_when_not_in_core_tables() -> None:
     assert any("promotion" in item.message for item in findings)
 
 
+def test_returns_amount_rejects_inc_tax_column() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_005")
+    bad = case.gold_sql.replace("cr_return_amount", "cr_return_amt_inc_tax")
+    findings = check_frozen_semantic_contract(
+        case.semantic_contract, bad, dialect="postgres"
+    )
+    assert any("inc_tax" in item.message or "含税" in item.message for item in findings)
+    assert check_frozen_semantic_contract(
+        case.semantic_contract, case.gold_sql, dialect="postgres"
+    ) == ()
+
+
+def test_income_band_rejects_ss_hdemo_sk_shortcut() -> None:
+    contract = SemanticContract(
+        projections=["income_lower", "buy_potential", "sales_amount"],
+        group_keys=["income_lower", "buy_potential"],
+        filters=[
+            "core_tables=customer,date_dim,household_demographics,income_band,item,store_sales",
+            "primary_fact=store_sales",
+        ],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    bad = (
+        "SELECT ib.ib_lower_bound AS income_lower, hd.hd_buy_potential AS buy_potential, "
+        "SUM(ss.ss_ext_sales_price) AS sales_amount FROM store_sales ss "
+        "JOIN household_demographics hd ON ss.ss_hdemo_sk = hd.hd_demo_sk "
+        "JOIN income_band ib ON hd.hd_income_band_sk = ib.ib_income_band_sk "
+        "GROUP BY ib.ib_lower_bound, hd.hd_buy_potential"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="postgres")
+    assert any("c_current_hdemo_sk" in item.message for item in findings)
+
+
 def test_multi_channel_union_skips_sk_heavy_cte_warning() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
