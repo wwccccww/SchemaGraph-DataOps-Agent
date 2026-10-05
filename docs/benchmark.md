@@ -99,7 +99,13 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
-- Generic Prompt 版本 `text-to-sql-generic-v9`：在 v8 基础上增加窗口函数分层写法提示；v8 强调 SQLite 双引号别名、多属性/SAT/charter；v7 增加 TPC-DS 促销 join 与实体表提示。TPC-DS 冻结契约含 `core_tables=`（审计表清单，Prompt 提示）并在未涉及促销时禁止多余 `promotion` JOIN。
+- Generic Prompt 当前 **`text-to-sql-generic-v13`**（v12：California SAT/FRPM；v11：SQLite 明细少写 GROUP BY；v10：NSLP/frpm；v9：窗口函数分层）。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约。
+- **P1 本地 verify（Gold Oracle，无模型）**：
+  ```bash
+  python3 -m app.evaluation.external_data verify-tpcds
+  python3 -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
+  python3 -m app.evaluation.external_data check-external-release
+  ```
 - 外部模型评测会把 cases.yaml 中的 **`semantic_contract`**（与问句一并冻结，非 Gold SQL）注入输出形状，并在自愈阶段做投影/缺表复核。TPC-DS 契约含 `primary_fact=`、`core_tables=` 与 **`audit_tables_strict=true`**（自愈阶段禁止 JOIN 审计清单外业务表）；BIRD 含 `core_tables=`（Prompt 提示）与 `order_sensitive`。
 - 环境变量（外部模型评测最低要求）：
   - `DEEPSEEK_API_KEY`（必填）
@@ -119,6 +125,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`01d9389` 复跑**（`self_healing`，180s）：TPC-DS **27/30**（`run_20261005T223602Z_01d9389_*`）；BIRD **5/50**（`run_20261005T223651Z_01d9389_*`）。与 **`28e6e15`/`809d945`** 一并视为方差带（TPC-DS **26–29/30**，BIRD **5–6/50**）。
   - **`28e6e15` generic v13**（Financial loan.status='C' / district.A3 / disp OWNER）（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T222601Z_28e6e15_*`）；BIRD **5/50**（`run_20261005T222704Z_28e6e15_*`，方差丢 **`0116`**，仍含 **`0000、0083`**）。
   - **`809d945` FRPM 列口径**（`Percent (%) Eligible FRPM`、schools.District 学区均分、Financial disp OWNER 提示）（`self_healing`，180s）：BIRD **6/50**（`run_20261005T221647Z_809d945_*`，与 v12 同匹配集）；TPC-DS **28/30**（`run_20261005T221704Z_809d945_*`）。
   - **`618f219` generic v12**（SAT LEFT JOIN + Below/Average/Above 标签 + Enrollment>0）（`self_healing`，180s）：BIRD **6/50（EX 0.12）**（`run_20261005T220551Z_618f219_*`），匹配 **`0000、0028、0036、0083、0104、0116`**（**`0000`** 恢复）。同提交 TPC-DS **27/30**（`run_20261005T215656Z_618f219_*`）。
