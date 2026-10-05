@@ -167,6 +167,14 @@ def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     assert "ship_mode" in shape.entities
 
 
+def test_financial_running_loan_uses_status_c_hint() -> None:
+    question = "percentage of loans running with no issues in each region"
+    documents = [_doc(name) for name in ("loan", "account", "district")]
+    shape = extract_generic_shape(question, documents)
+    text = format_generic_shape(shape)
+    assert "status = 'C'" in text or "status='C'" in text.replace(" ", "")
+
+
 def test_frpm_eligibility_uses_percent_column_formula() -> None:
     question = "FRPM eligibility rate and SAT rankings for schools"
     documents = [

@@ -259,6 +259,21 @@ def check_answer_shape(
                     "= 'Multiple Provision Types'",
                 )
             )
+    has_loan = any(document.table_name.lower() == "loan" for document in documents)
+    if has_loan and re.search(
+        r"running with no issues|running without issues",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"status\s*=\s*'A'", sql, re.IGNORECASE) and re.search(
+            r"status\s*=\s*'C'", sql, re.IGNORECASE
+        ) is None:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "正常进行中的贷款用 loan.status = 'C' 计入 running OK，不是 'A'",
+                )
+            )
     has_frpm = any(document.table_name.lower() == "frpm" for document in documents)
     if has_frpm and re.search(r"County Name|Alameda|Los Angeles|Fresno", question, re.IGNORECASE):
         if "county name" not in lowered and re.search(
@@ -594,6 +609,25 @@ def _join_hints(
     ):
         hints.append(
             "Financial 库：account 与 client 经 disp 连接，账户持有人用 disp.type = 'OWNER'。"
+        )
+    if "loan" in visible and "district" in visible and re.search(
+        r"\bregion\b|district\.A3",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append("Financial 区域维度用 district.A3（经 account.district_id JOIN district）。")
+    if "loan" in visible and re.search(
+        r"running with no issues|running without issues|no issues.*loan",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "Financial：贷款正常进行中/无问题用 loan.status = 'C' 计数，不要用 status = 'A'。"
+        )
+    if "loan" in visible and re.search(r"loan size category|size category", question, re.IGNORECASE):
+        hints.append(
+            "贷款规模分档 CASE 标签用 Small / Medium / Large（按 amount 阈值），"
+            "不要用 '<50K' 等字面区间字符串。"
         )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:
