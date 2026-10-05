@@ -2,43 +2,15 @@
 
 from __future__ import annotations
 
-from app.evaluation.tpcds_contracts import _MEASURE_NAMES, _MEASURE_SUFFIX
 from app.schemas.benchmark import BenchmarkCase, SemanticContract
-
-_BIRD_MEASURE_TOKENS = (
-    "rate",
-    "ratio",
-    "percent",
-    "percentage",
-    "avg",
-    "average",
-    "count",
-    "total",
-    "sum",
-    "num",
-    "score",
-)
-
-
-def _bird_measure_columns(projections: list[str]) -> list[str]:
-    """BIRD 投影多为混合维度；不用 TPC-DS「最后一列当度量」启发式。"""
-
-    measures: list[str] = []
-    for name in projections:
-        lowered = name.lower()
-        if name in _MEASURE_NAMES or any(name.endswith(suffix) for suffix in _MEASURE_SUFFIX):
-            measures.append(name)
-        elif any(token in lowered for token in _BIRD_MEASURE_TOKENS):
-            measures.append(name)
-    return measures
 
 
 def contract_for(case: BenchmarkCase) -> SemanticContract:
     if case.source != "bird":
         raise ValueError("bird contracts only apply to bird cases")
     projections = list(case.expected_columns)
-    measures = _bird_measure_columns(projections)
-    group_keys = [name for name in projections if name not in measures] if measures else []
+    # BIRD 答案形态差异大；冻结契约只约束投影列，不在 Prompt 里写 GROUP BY 键（易诱发多余 GROUP BY）。
+    group_keys: list[str] = []
     filters: list[str] = []
     if case.order_sensitive:
         filters.append("order_sensitive=true")

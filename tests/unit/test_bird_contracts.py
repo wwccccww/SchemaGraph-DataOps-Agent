@@ -33,7 +33,7 @@ def test_bird_contract_lists_core_tables_and_projections() -> None:
     assert "core_tables=frpm,schools" in contract.filters
     assert "order_sensitive=true" in contract.filters
     assert "anchor_date=2026-10-01" in contract.filters
-    assert contract.group_keys == ["School Name"]
+    assert contract.group_keys == []
     assert contract.projections[-1] == "FreeRate"
 
 

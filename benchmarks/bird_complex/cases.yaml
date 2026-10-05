@@ -92,11 +92,7 @@ cases:
         - "SATPerformance"
         - "CountyAverageFreeRate"
         - "DeviationFromCountyAverage"
-      group_keys:
-        - "School Name"
-        - "IsCharterSchool"
-        - "GradesServed"
-        - "SATPerformance"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -217,18 +213,7 @@ cases:
         - "PercentageAbove1500"
         - "SATRanking"
         - "EnrollmentRanking"
-      group_keys:
-        - "Zip"
-        - "City"
-        - "CharterSchoolName"
-        - "Charter Funding Type"
-        - "Enrollment"
-        - "FRPMCategory"
-        - "YearOpened"
-        - "CurrentStatus"
-        - "SATTestTakers"
-        - "SATRanking"
-        - "EnrollmentRanking"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -352,16 +337,7 @@ cases:
         - "PerformanceClassification"
         - "OpenDate"
         - "SchoolStatus"
-      group_keys:
-        - "SchoolName"
-        - "City"
-        - "UnabbreviatedMailingAddress"
-        - "Website"
-        - "Enrollment"
-        - "PerformanceCategory"
-        - "PerformanceClassification"
-        - "OpenDate"
-        - "SchoolStatus"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -479,14 +455,7 @@ cases:
         - "Enrollment"
         - "PovertyLevel"
         - "FRPMPercentage"
-      group_keys:
-        - "SchoolName"
-        - "City"
-        - "VirtualStatus"
-        - "SchoolType"
-        - "MathRank"
-        - "Enrollment"
-        - "PovertyLevel"
+      group_keys: []
       filters:
         - "order_sensitive=true"
         - "core_tables=frpm,satscores,schools"
@@ -601,15 +570,7 @@ cases:
         - "CountyRank"
         - "PovertyLevel"
         - "PerformanceCategory"
-      group_keys:
-        - "School"
-        - "SchoolType"
-        - "EducationalOption"
-        - "TestTakers"
-        - "Enrollment"
-        - "StateRank"
-        - "PovertyLevel"
-        - "PerformanceCategory"
+      group_keys: []
       filters:
         - "order_sensitive=true"
         - "core_tables=frpm,satscores,schools"
@@ -742,13 +703,7 @@ cases:
         - "total_avg_score"
         - "percent_scoring_over_1500"
         - "frpm_rank"
-      group_keys:
-        - "District"
-        - "School"
-        - "school_type"
-        - "grade_level"
-        - "enrollment"
-        - "frpm_rank"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -886,14 +841,7 @@ cases:
         - "PercentScoring1500Plus"
         - "SchoolType"
         - "PovertyLevel"
-      group_keys:
-        - "SchoolName"
-        - "City"
-        - "GradeSpan"
-        - "ReadingRank"
-        - "Enrollment"
-        - "SchoolType"
-        - "PovertyLevel"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -998,13 +946,7 @@ cases:
         - "PercentageStudentsOver1500"
         - "CountyEnrollmentRank"
         - "CategorySATRank"
-      group_keys:
-        - "CDSCode"
-        - "School Name"
-        - "FRPMCategory"
-        - "IsCharterSchool"
-        - "SATTestTakers"
-        - "CategorySATRank"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1094,11 +1036,7 @@ cases:
         - "county_rank"
         - "avg_eligible_free_rate"
         - "free_meal_category"
-      group_keys:
-        - "SchoolName"
-        - "City"
-        - "school_type"
-        - "free_meal_category"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1190,12 +1128,7 @@ cases:
         - "Charter School"
         - "Poverty Rate"
         - "Poverty Category"
-      group_keys:
-        - "SAT Excellence Rank"
-        - "School Name"
-        - "City"
-        - "Charter School"
-        - "Poverty Category"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1292,10 +1225,7 @@ cases:
         - "SchoolsWithUnder50Testers"
         - "SchoolsWith50To100Testers"
         - "SchoolsWith100To250Testers"
-      group_keys:
-        - "SchoolsWithUnder50Testers"
-        - "SchoolsWith50To100Testers"
-        - "SchoolsWith100To250Testers"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1410,12 +1340,7 @@ cases:
         - "% Free/Reduced Price Meals"
         - "Total Schools in SAT Dataset"
         - "Average Math Score Across All Schools"
-      group_keys:
-        - "Top Math School"
-        - "Website"
-        - "Is Charter School"
-        - "Enrollment"
-        - "% Free/Reduced Price Meals"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1515,11 +1440,7 @@ cases:
         - "MaxPercentAbove1500"
         - "LargestSchool"
         - "HighPovertySchools"
-      group_keys:
-        - "CharterSchools"
-        - "NonCharterSchools"
-        - "LargestSchool"
-        - "HighPovertySchools"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1628,9 +1549,7 @@ cases:
         - "AvgSATScore"
         - "SchoolsWithoutSATData"
         - "FreeMealCategoryBreakdown"
-      group_keys:
-        - "SchoolsWithoutSATData"
-        - "FreeMealCategoryBreakdown"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1793,15 +1712,7 @@ cases:
         - "AvgMathScore"
         - "AvgWritingScore"
         - "PercentAbove1500SAT"
-      group_keys:
-        - "EnrollmentRank"
-        - "School Name"
-        - "District Name"
-        - "City"
-        - "SchoolType"
-        - "GradeSpan"
-        - "Website"
-        - "SATTestTakers"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -1917,14 +1828,7 @@ cases:
         - "TotalSATScore"
         - "HighSATScorerRate"
         - "SATParticipationRate"
-      group_keys:
-        - "FRPMRank"
-        - "School"
-        - "District"
-        - "SOCType"
-        - "Enrollment"
-        - "EligibilityCategory"
-        - "SATTestTakers"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2078,9 +1982,7 @@ cases:
         - "ComparisonToDistrictAvg"
         - "DifferenceFromDistrictAvg"
         - "PercentageTakingSAT"
-      group_keys:
-        - "School"
-        - "Enrollment (K-12)"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2226,8 +2128,7 @@ cases:
       projections:
         - "Metric"
         - "Ratio"
-      group_keys:
-        - "Metric"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2342,14 +2243,7 @@ cases:
         - "AvgWritingScore"
         - "StudentsOver1500"
         - "PercentOver1500"
-      group_keys:
-        - "SchoolName"
-        - "Website"
-        - "FundingType"
-        - "PovertyLevel"
-        - "EnrollmentRank"
-        - "SATTestTakers"
-        - "StudentsOver1500"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2487,15 +2381,7 @@ cases:
         - "SATPerformanceCategory"
         - "TotalCharterSchools"
         - "AvgCharterEnrollment"
-      group_keys:
-        - "CDSCode"
-        - "School"
-        - "City"
-        - "EnrollmentK12"
-        - "FRPMCategory"
-        - "SizeRank"
-        - "SATTestTakers"
-        - "SATPerformanceCategory"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2622,13 +2508,7 @@ cases:
         - "CountyAvgFreePercent"
         - "PctLowFreeInCounty"
         - "LATotalLowFree"
-      group_keys:
-        - "CDSCode"
-        - "School"
-        - "District"
-        - "Enrollment"
-        - "FreeCategory"
-        - "LowFreeSchools"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2757,14 +2637,7 @@ cases:
         - "FRPMStatus"
         - "FRPMRank"
         - "SATScoreRank"
-      group_keys:
-        - "School"
-        - "OpenDate"
-        - "OpenYear"
-        - "Enrollment"
-        - "SchoolType"
-        - "FRPMStatus"
-        - "FRPMRank"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2882,15 +2755,7 @@ cases:
         - "AvgWritingScore"
         - "AvgTotalScore"
         - "EnrollmentRank"
-      group_keys:
-        - "NCESDist"
-        - "School"
-        - "SchoolType"
-        - "CurrentStatus"
-        - "OpeningDate"
-        - "Enrollment"
-        - "PovertyLevel"
-        - "EnrollmentRank"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -2996,13 +2861,7 @@ cases:
         - "SAT Ranking"
         - "FRPM Count"
         - "Enrollment"
-      group_keys:
-        - "School"
-        - "City"
-        - "Poverty_Level"
-        - "Is_Charter"
-        - "SAT Ranking"
-        - "Enrollment"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -3114,12 +2973,7 @@ cases:
         - "avg_reading_score"
         - "avg_math_score"
         - "avg_writing_score"
-      group_keys:
-        - "most_common_grade_span"
-        - "active_schools"
-        - "high_poverty_schools"
-        - "medium_poverty_schools"
-        - "low_poverty_schools"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -3234,13 +3088,7 @@ cases:
         - "AvgFreeReducedMealPercentage"
         - "AverageSATScore"
         - "LargestVirtualSchool"
-      group_keys:
-        - "amount"
-        - "CharterSchools"
-        - "RegularSchools"
-        - "HighestEnrollment"
-        - "LowestEnrollment"
-        - "LargestVirtualSchool"
+      group_keys: []
       filters:
         - "core_tables=frpm,satscores,schools"
         - "anchor_date=2026-10-01"
@@ -3274,8 +3122,7 @@ cases:
       projections:
         - "City"
         - "COUNT(T2.CDSCode)"
-      group_keys:
-        - "City"
+      group_keys: []
       filters:
         - "core_tables=frpm,schools"
         - "anchor_date=2026-10-01"
@@ -3424,11 +3271,7 @@ cases:
         - "completed_female_loans"
         - "defaulted_female_loans"
         - "regions_represented"
-      group_keys:
-        - "active_female_loans"
-        - "completed_female_loans"
-        - "defaulted_female_loans"
-        - "regions_represented"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan"
         - "anchor_date=2026-10-01"
@@ -3474,8 +3317,7 @@ cases:
       projections:
         - "account_id"
         - "(SELECT MAX(A11) - MIN(A11) FROM district)"
-      group_keys:
-        - "(SELECT MAX(A11) - MIN(A11) FROM district)"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district"
         - "anchor_date=2026-10-01"
@@ -3608,11 +3450,7 @@ cases:
         - "avg_net_balance"
         - "customers_with_loans"
         - "percent_with_loans"
-      group_keys:
-        - "gender"
-        - "age_group"
-        - "region"
-        - "customers_with_loans"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -3751,19 +3589,7 @@ cases:
         - "card_types"
         - "client_category"
         - "transaction_rank"
-      group_keys:
-        - "client_id"
-        - "gender"
-        - "birth_date"
-        - "district_name"
-        - "region"
-        - "active_loans"
-        - "completed_loans"
-        - "net_balance"
-        - "last_transaction_date"
-        - "card_types"
-        - "client_category"
-        - "transaction_rank"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -3875,10 +3701,7 @@ cases:
         - "clients_with_debt"
         - "earliest_account_year"
         - "latest_account_year"
-      group_keys:
-        - "clients_with_loans"
-        - "clients_with_good_loans"
-        - "clients_with_debt"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan"
         - "anchor_date=2026-10-01"
@@ -4000,17 +3823,7 @@ cases:
         - "avg_salary"
         - "borrower_category"
         - "age_rank_by_gender"
-      group_keys:
-        - "client_id"
-        - "gender"
-        - "birth_date"
-        - "card_type"
-        - "age_at_card_issue"
-        - "active_loans"
-        - "district_name"
-        - "region"
-        - "borrower_category"
-        - "age_rank_by_gender"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan"
         - "anchor_date=2026-10-01"
@@ -4135,17 +3948,7 @@ cases:
         - "total_transactions_to_date"
         - "cards_issued"
         - "has_loan_before_transaction"
-      group_keys:
-        - "transaction_date"
-        - "amount"
-        - "balance"
-        - "district_name"
-        - "region"
-        - "client_id"
-        - "gender_full"
-        - "age_at_transaction"
-        - "cards_issued"
-        - "has_loan_before_transaction"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -4273,15 +4076,7 @@ cases:
         - "avg_client_age"
         - "transactions_before_loan"
         - "total_income_before_loan"
-      group_keys:
-        - "district_id"
-        - "district_name"
-        - "region"
-        - "salary_rank"
-        - "unemployment_rank"
-        - "male_clients"
-        - "female_clients"
-        - "transactions_before_loan"
+      group_keys: []
       filters:
         - "core_tables=account,client,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -4421,22 +4216,7 @@ cases:
         - "loan_amount"
         - "order_id"
         - "bank_to"
-      group_keys:
-        - "client_id"
-        - "card_id"
-        - "card_type"
-        - "gender"
-        - "client_age"
-        - "district_name"
-        - "region"
-        - "trans_id"
-        - "transaction_type"
-        - "transaction_date"
-        - "balance_after_transaction"
-        - "transaction_category"
-        - "loan_status"
-        - "order_id"
-        - "bank_to"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,order,trans"
         - "anchor_date=2026-10-01"
@@ -4699,12 +4479,7 @@ cases:
         - "urban_ratio"
         - "avg_salary"
         - "entrepreneurs_per_1000"
-      group_keys:
-        - "residence_district"
-        - "district_comparison"
-        - "max_balance"
-        - "region"
-        - "entrepreneurs_per_1000"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -4837,15 +4612,7 @@ cases:
         - "card_count"
         - "card_types"
         - "previous_loans"
-      group_keys:
-        - "birth_date"
-        - "age_at_loan"
-        - "district_name"
-        - "region"
-        - "max_balance"
-        - "min_balance"
-        - "card_types"
-        - "previous_loans"
+      group_keys: []
       filters:
         - "core_tables=account,card,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -4925,13 +4692,7 @@ cases:
         - "total_clients"
         - "male_clients"
         - "pct_male"
-      group_keys:
-        - "district_id"
-        - "district_name"
-        - "region"
-        - "inhabitants"
-        - "male_clients"
-        - "pct_male"
+      group_keys: []
       filters:
         - "core_tables=client,district"
         - "anchor_date=2026-10-01"
@@ -5072,9 +4833,7 @@ cases:
         - "avg_interest_paid_successful"
         - "avg_interest_paid_all"
         - "overall_percentage"
-      group_keys:
-        - "region"
-        - "successful_loans"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan"
         - "anchor_date=2026-10-01"
@@ -5187,11 +4946,7 @@ cases:
         - "avg_duration"
         - "overall_percentage"
         - "diff_from_overall"
-      group_keys:
-        - "region"
-        - "loan_size_category"
-        - "running_ok_loans"
-        - "diff_from_overall"
+      group_keys: []
       filters:
         - "core_tables=account,district,loan"
         - "anchor_date=2026-10-01"
@@ -5334,17 +5089,7 @@ cases:
         - "finished_loans"
         - "defaulted_loans"
         - "risk_category"
-      group_keys:
-        - "district_name"
-        - "district_region"
-        - "urbanization_category"
-        - "net_cash_flow"
-        - "balance_volatility"
-        - "owner_gender"
-        - "running_loans"
-        - "finished_loans"
-        - "defaulted_loans"
-        - "risk_category"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -5476,17 +5221,7 @@ cases:
         - "loan_status"
         - "customer_category"
         - "balance_rank"
-      group_keys:
-        - "opening_date"
-        - "district_name"
-        - "region"
-        - "gender"
-        - "client_age"
-        - "net_balance"
-        - "max_balance"
-        - "loan_status"
-        - "customer_category"
-        - "balance_rank"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -5607,15 +5342,7 @@ cases:
         - "district_problematic_loans"
         - "district_loan_rank"
         - "total_transactions"
-      group_keys:
-        - "loan_id"
-        - "district_name"
-        - "region"
-        - "gender"
-        - "birth_date"
-        - "status_description"
-        - "district_problematic_loans"
-        - "district_loan_rank"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
@@ -5729,13 +5456,7 @@ cases:
         - "transaction_count"
         - "savings_ratio"
         - "region_loan_rank"
-      group_keys:
-        - "district_name"
-        - "region_name"
-        - "gender"
-        - "age"
-        - "income_category"
-        - "region_loan_rank"
+      group_keys: []
       filters:
         - "core_tables=account,client,disp,district,loan,trans"
         - "anchor_date=2026-10-01"
