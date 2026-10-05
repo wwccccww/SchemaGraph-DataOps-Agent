@@ -20,6 +20,7 @@ _PROJECTION_COLUMNS: dict[str, str] = {
     "call_center_state": "call_center.cc_state",
     "page_type": "web_page.wp_type",
     "promo_name": "promotion.p_promo_name",
+    "carrier": "ship_mode.sm_carrier",
     "return_reason": "reason.r_reason_desc",
     "sales_year": "date_dim.d_year",
     "return_year": "date_dim.d_year",
@@ -283,6 +284,43 @@ def check_frozen_semantic_contract(
                 "不要用 *_return_amt_inc_tax 或其它含税列",
             )
         )
+    if "channel_pivot_compare=true" in contract.filters:
+        if "full outer join" in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "渠道对比 CTE 用 INNER JOIN 对齐 item_category/sales_year，"
+                    "不要 FULL OUTER JOIN 填 0",
+                )
+            )
+        if "carrier" in {name.lower() for name in contract.projections}:
+            if "sm_ship_mode_sk" in lowered_sql and "sm_carrier" not in lowered_sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "carrier 维度用 ship_mode.sm_carrier，不要 GROUP BY sm_ship_mode_sk",
+                    )
+                )
+    demo_dims = {"marital_status", "education_status"} & {
+        name.lower() for name in contract.projections
+    }
+    if demo_dims and "catalog_sales" in referenced and "customer" in referenced:
+        if "cs_bill_cdemo_sk" in lowered_sql and "c_current_cdemo_sk" not in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "catalog_sales 的顾客人口统计经 customer.c_current_cdemo_sk → customer_demographics，"
+                    "不要仅用 cs_bill_cdemo_sk",
+                )
+            )
+        if "cs_bill_hdemo_sk" in lowered_sql and "c_current_hdemo_sk" not in lowered_sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "收入带经 customer.c_current_hdemo_sk → household_demographics，"
+                    "不要仅用 cs_bill_hdemo_sk",
+                )
+            )
     income_dims = {"income_lower", "buy_potential"} & {name.lower() for name in contract.projections}
     if income_dims and core_tables and "customer" in {name.lower() for name in core_tables}:
         if "ss_hdemo_sk" in lowered_sql and "c_current_hdemo_sk" not in lowered_sql:
@@ -436,6 +474,17 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "birth_year_not_null=true":
             hints.append("出生年份维度需 customer.c_birth_year IS NOT NULL。")
+        if item == "inventory_sold_qty=join_sold_cte":
+            hints.append(
+                "库存+门店销量：sold CTE 按 ss_item_sk 汇总 ss_quantity，"
+                "stock CTE 按 warehouse/category/item_sk 汇总 inv_quantity_on_hand，"
+                "再 JOIN sold ON item_sk 后外层 SUM quantity_on_hand 与 quantity_sold。"
+            )
+        if item == "return_linked_sales=item_store_year":
+            hints.append(
+                "同年同店退货过滤：returned_items CTE 按 (sr_item_sk, sr_store_sk, d_year) 去重，"
+                "JOIN store_sales 用 item_sk+store_sk+sales_year，不要用 ticket_number 代替。"
+            )
         if item == "returns_present=true":
             hints.append(
                 "退货金额用事实表 cr_return_amount / wr_return_amt / sr_return_amt 等 *_return_amount 列，"

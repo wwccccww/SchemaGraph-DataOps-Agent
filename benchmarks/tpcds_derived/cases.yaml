@@ -1643,7 +1643,7 @@ cases:
         - "quantity_on_hand"
       filters:
         - "calendar_year=2001"
-        - "inventory_sold_items=subquery"
+        - "inventory_sold_qty=join_sold_cte"
         - "primary_fact=store_sales"
         - "core_tables=date_dim,inventory,item,store_sales,warehouse"
         - "audit_tables_strict=true"
@@ -2202,7 +2202,7 @@ cases:
         - "calendar_year=2001"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
-        - "returns_vs_sales=separate_cte"
+        - "return_linked_sales=item_store_year"
         - "core_tables=customer,customer_address,customer_demographics,date_dim,household_demographics,income_band,item,promotion,reason,store,store_returns,store_sales"
         - "audit_tables_strict=true"
       category_scope: exact

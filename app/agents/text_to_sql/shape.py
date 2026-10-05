@@ -62,7 +62,7 @@ _ENTITIES = (
     (re.compile(r"商品类别|item category"), ("item",)),
     (re.compile(r"促销商品|直邮促销|直邮"), ("item", "promotion")),
     (re.compile(r"门店销售|store sales"), ("store_sales",)),
-    (re.compile(r"门店退货|store returns"), ("store_returns", "store")),
+    (re.compile(r"门店退货|store returns"), ("store_returns",)),
     (re.compile(r"目录退货|catalog returns"), ("catalog_returns",)),
     (re.compile(r"目录页|catalog page|目录部门"), ("catalog_page",)),
     (re.compile(r"目录销售|catalog sales"), ("catalog_sales",)),

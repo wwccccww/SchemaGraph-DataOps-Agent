@@ -89,6 +89,43 @@ def test_returns_and_sales_question_adds_separate_cte_hint() -> None:
     assert "returns_vs_sales=separate_cte" in contract.filters
 
 
+def test_inventory_qty_uses_join_cte_not_subquery() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年各仓库所在州和商品类别的在手库存，并汇总这些库存商品当年的门店销售数量。",
+            required_tables=["inventory", "warehouse", "item", "store_sales", "date_dim"],
+            expected_columns=[
+                "warehouse_state",
+                "item_category",
+                "inventory_year",
+                "quantity_on_hand",
+                "quantity_sold",
+            ],
+        )
+    )
+    assert "inventory_sold_qty=join_sold_cte" in contract.filters
+    assert "inventory_sold_items=subquery" not in contract.filters
+
+
+def test_same_store_return_sales_filter() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年电子类商品中，同年同店发生过退货的销售，按门店州汇总销售金额。",
+            required_tables=[
+                "store_sales",
+                "store_returns",
+                "store",
+                "customer",
+                "item",
+                "date_dim",
+                "reason",
+            ],
+            expected_columns=["store_state", "sales_amount"],
+        )
+    )
+    assert "return_linked_sales=item_store_year" in contract.filters
+
+
 def test_cross_channel_buyers_not_union() -> None:
     contract = contract_for(
         _case(
