@@ -225,6 +225,10 @@ def build_summary(
             },
             "pass_at_3": None,
             "recovery_at_3": _recovery(by_variant["self_healing"]),
+            "paired_recovery": _paired_recovery(
+                by_variant["schema_graph"],
+                by_variant["self_healing"],
+            ),
             "badcase": _badcase_summary(by_variant),
             "transition_matrix": _transition_matrix(by_variant),
             "junction_recall": {
@@ -539,6 +543,39 @@ def _recovery(records: Sequence[CaseResult]) -> dict[str, object]:
         "failed": len(failed),
         "excluded_first_attempt": len(first),
         "denominator": denominator,
+    }
+
+
+def _paired_recovery(
+    graph_records: Sequence[CaseResult],
+    healing_records: Sequence[CaseResult],
+) -> dict[str, object]:
+    """自愈相对同一条 schema_graph SQL 的修复贡献。"""
+
+    graph = {record.case_id: record for record in graph_records}
+    healing = {record.case_id: record for record in healing_records}
+    shared = sorted(set(graph) & set(healing))
+    initial_failures = [case_id for case_id in shared if graph[case_id].ex == 0]
+    recovered = [case_id for case_id in initial_failures if healing[case_id].ex == 1]
+    unrecovered = [case_id for case_id in initial_failures if healing[case_id].ex == 0]
+    unnecessary = [
+        case_id for case_id in shared if graph[case_id].ex == 1 and healing[case_id].attempts > 1
+    ]
+    triggered = [case_id for case_id in shared if healing[case_id].attempts > 1]
+    graph_hits = [case_id for case_id in shared if graph[case_id].ex == 1]
+    preserved = [case_id for case_id in graph_hits if healing[case_id].ex == 1]
+    failure_count = len(initial_failures)
+    return {
+        "paired_initial_failures": failure_count,
+        "paired_recovered": len(recovered),
+        "paired_unrecovered": len(unrecovered),
+        "paired_recovery_rate": None if failure_count == 0 else len(recovered) / failure_count,
+        "unnecessary_repair_triggers": len(unnecessary),
+        "repair_trigger_precision": (None if not triggered else len(recovered) / len(triggered)),
+        "correct_candidate_preservation": {
+            "preserved": len(preserved),
+            "denominator": len(graph_hits),
+        },
     }
 
 

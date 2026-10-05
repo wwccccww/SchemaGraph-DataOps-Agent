@@ -314,6 +314,198 @@ def test_custom_gold_passes_static_review_without_gold_inputs() -> None:
     assert any("is_self_operated" in item.message for item in hidden)
 
 
+def test_quantity_fanout_requires_detail_dedup_before_the_region_map() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    question = "统计上个月华东大区VIP3以上用户购买自营美妆的已支付商品数量"
+    fanned = """
+        SELECT m.merchant_name, SUM(od.quantity) AS total_quantity
+        FROM t_order_detail AS od
+        JOIN t_order AS o ON od.order_id = o.order_id
+        JOIN t_user_region_map AS urm ON o.user_id = urm.user_id
+        JOIN t_merchant AS m ON od.product_id = m.merchant_id
+        GROUP BY m.merchant_name
+    """
+    findings = check_semantics(
+        question=question,
+        sql=fanned,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "missing_fact_dedup" for item in findings)
+    deduped = """
+        WITH details AS (
+            SELECT DISTINCT od.detail_id, od.quantity, m.merchant_id, m.merchant_name
+            FROM t_order_detail AS od
+            JOIN t_order AS o ON od.order_id = o.order_id
+            JOIN t_user_region_map AS urm ON o.user_id = urm.user_id
+            JOIN t_merchant AS m ON od.product_id = m.merchant_id
+        )
+        SELECT merchant_name, SUM(quantity) AS total_quantity
+        FROM details
+        GROUP BY merchant_id, merchant_name
+    """
+    cleared = check_semantics(
+        question=question,
+        sql=deduped,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert "missing_fact_dedup" not in {item.category for item in cleared}
+    assert "aggregate_over_fanout" not in {item.category for item in cleared}
+
+
+def test_cte_outputs_satisfy_requested_projection() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    sql = """
+        WITH products AS (
+            SELECT p.product_name, m.merchant_name
+            FROM t_product AS p
+            JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+        ),
+        coupons AS (
+            SELECT c.coupon_name FROM t_coupon AS c
+        )
+        SELECT products.merchant_name, products.product_name, coupons.coupon_name
+        FROM products
+        JOIN coupons ON TRUE
+    """
+    categories = {
+        item.category
+        for item in check_semantics(
+            question="查询上个月已支付订单中实际使用了促销满减券的商家、商品和优惠券",
+            sql=sql,
+            documents=documents,
+            edges=edges,
+            selected_tables=selected,
+            row_count=1,
+        )
+    }
+    assert "projection_mismatch" not in categories
+
+
+def test_user_filter_cte_does_not_export_quantity_fanout() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    sql = """
+        WITH region_users AS (
+            SELECT DISTINCT m.user_id
+            FROM t_user_region_map AS m
+            JOIN t_region AS r ON m.region_id = r.region_id
+            WHERE r.region_name = '华南'
+        )
+        SELECT m.merchant_name, SUM(od.quantity) AS total_quantity
+        FROM t_order_detail AS od
+        JOIN t_order AS o ON od.order_id = o.order_id
+        JOIN region_users AS ru ON o.user_id = ru.user_id
+        JOIN t_product AS p ON od.product_id = p.product_id
+        JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+        GROUP BY m.merchant_name
+    """
+    findings = check_semantics(
+        question="统计华南地区已支付订单的商品购买数量",
+        sql=sql,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    categories = {item.category for item in findings}
+    assert "missing_fact_dedup" not in categories
+    assert "aggregate_over_fanout" not in categories
+
+
+def test_quantity_projected_through_a_region_cte_is_inherited_fanout() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    sql = """
+        WITH paid_lines AS (
+            SELECT od.quantity AS quantity, m.merchant_name AS merchant_name
+            FROM t_order_detail AS od
+            JOIN t_order AS o ON od.order_id = o.order_id
+            JOIN t_user_region_map AS urm ON o.user_id = urm.user_id
+            JOIN t_product AS p ON od.product_id = p.product_id
+            JOIN t_merchant AS m ON p.merchant_id = m.merchant_id
+        )
+        SELECT merchant_name, SUM(quantity) AS total_quantity
+        FROM paid_lines
+        GROUP BY merchant_name
+    """
+    findings = check_semantics(
+        question="统计已支付订单的商品购买数量",
+        sql=sql,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "aggregate_over_fanout" for item in findings)
+
+
+def test_rejoining_details_after_order_dedup_is_flagged() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    sql = """
+        WITH orders AS (
+            SELECT DISTINCT o.order_id, o.total_amount
+            FROM t_order AS o
+        )
+        SELECT m.merchant_name, SUM(orders.total_amount) AS net_pay_amount
+        FROM orders
+        JOIN t_order_detail AS od ON od.order_id = orders.order_id
+        JOIN t_product AS p ON p.product_id = od.product_id
+        JOIN t_merchant AS m ON m.merchant_id = p.merchant_id
+        GROUP BY m.merchant_name
+    """
+    findings = check_semantics(
+        question="统计自营商家的已支付订单数和实付金额",
+        sql=sql,
+        documents=documents,
+        edges=edges,
+        selected_tables=selected,
+        row_count=1,
+    )
+    assert any(item.category == "refanout_after_dedup" for item in findings)
+
+
+def test_unqualified_cte_column_still_proves_the_foreign_key() -> None:
+    documents = _documents()
+    edges = _edges()
+    selected = [document.table_name for document in documents]
+    sql = """
+        WITH category_scope AS (
+            SELECT category_id, category_name FROM t_category WHERE category_name = '家具'
+        )
+        SELECT cs.category_name, COUNT(p.product_id) AS product_count
+        FROM category_scope AS cs
+        JOIN t_product AS p ON p.category_id = cs.category_id
+        GROUP BY cs.category_name
+    """
+    categories = {
+        item.category
+        for item in check_semantics(
+            question="统计家具品类的在售商品数量",
+            sql=sql,
+            documents=documents,
+            edges=edges,
+            selected_tables=selected,
+            row_count=1,
+        )
+    }
+    assert "join_unverified" not in categories
+    assert "join_not_on_graph" not in categories
+
+
 def test_custom_gold_functions_stay_inside_the_existing_allow_list() -> None:
     used: set[str] = set()
     for case in load_custom_cases():

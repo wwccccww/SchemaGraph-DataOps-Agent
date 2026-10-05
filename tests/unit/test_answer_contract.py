@@ -139,6 +139,22 @@ def test_category_time_and_dedup_have_positive_and_negative_examples() -> None:
     dedup = check_contract(question=orders, sql=negative_dedup)
     assert any("order_id" in item.message for item in dedup)
 
+    skincare = "统计护肤品类的在售商品数量"
+    contract = extract_answer_contract(skincare)
+    assert contract.fact_key == "product_id"
+    assert any("护肤" in item and "护肤品" in item for item in contract.filters)
+    wrong = check_contract(
+        question=skincare,
+        sql=(
+            "SELECT category_name, COUNT(*) AS product_count FROM t_category "
+            "WHERE category_name = '护肤品'"
+        ),
+    )
+    assert any(item.category == "wrong_entity_literal" for item in wrong)
+    quantity = extract_answer_contract("统计上个月华东大区购买自营美妆的已支付商品数量")
+    assert quantity.fact_key == "detail_id"
+    assert "merchant_id" in quantity.group_keys
+
 
 def test_prompt_places_the_contract_before_schema_context() -> None:
     question = "统计上个月已支付订单的数量"
@@ -163,6 +179,7 @@ def test_prompt_places_the_contract_before_schema_context() -> None:
     assert grouped.output_fields[1] == "category_group"
     assert ("category_group", "个护数码") in grouped.constants
     assert ("region_name", "华北") in grouped.constants
+    assert "事实粒度" in plan
     assert "2026-09-01 00:00:00" in prompt
     assert "GOLD" not in prompt
     assert "required_tables" not in prompt

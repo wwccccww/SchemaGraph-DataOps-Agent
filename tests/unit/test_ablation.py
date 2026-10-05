@@ -15,6 +15,7 @@ from app.agents.text_to_sql.workflow import (
 from app.evaluation.ablation import (
     TARGETS,
     CaseResult,
+    _paired_recovery,
     baseline_schema_tokens,
     build_summary,
     evaluate_case,
@@ -616,6 +617,32 @@ def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
     assert dict(with_symptoms)["recursive_cte"] == ""
     assert "level_name" in dict(grain_symptoms)["missing_projections"]
     assert "aggregation_grain" in dict(grain_symptoms)["repair_trace"]
+    fact, fact_symptoms = classify_badcase(
+        question="统计商品数量",
+        gold_sql=(
+            "SELECT DISTINCT od.detail_id, od.quantity FROM t_order_detail AS od "
+            "JOIN t_user_region_map AS urm ON od.order_id = urm.user_id"
+        ),
+        predicted_sql=(
+            "SELECT SUM(od.quantity) AS total_quantity FROM t_order_detail AS od "
+            "JOIN t_user_region_map AS urm ON od.order_id = urm.user_id"
+        ),
+        required_tables=(),
+        error_category=None,
+        ex=0,
+    )
+    assert fact == "fact_grain"
+    assert dict(fact_symptoms)["missing_dedup_key"]
+    alias, alias_symptoms = classify_badcase(
+        question="统计护肤品类的在售商品数量",
+        gold_sql="SELECT category_name FROM t_category WHERE category_name = '护肤'",
+        predicted_sql="SELECT category_name FROM t_category WHERE category_name = '护肤品'",
+        required_tables=(),
+        error_category=None,
+        ex=0,
+    )
+    assert alias == "filter_scope"
+    assert "护肤" in dict(alias_symptoms)["missing_filter_literals"]
 
     matched, _symptoms = classify_badcase(
         question="统计每个会员等级的用户数量",
@@ -627,6 +654,47 @@ def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
     )
     assert matched == "matched"
 
+
+def test_paired_recovery_counts_repairs_of_the_shared_sql() -> None:
+    def record(case_id: str, variant: str, ex: int, attempts: int) -> CaseResult:
+        return CaseResult(
+            case_id=case_id,
+            variant=variant,
+            passed=ex == 1,
+            attempts=attempts,
+            seed_tables=(),
+            expanded_tables=(),
+            junction_recall=None,
+            required_table_recall=None,
+            schema_tokens=0,
+            latency_ms=0,
+            error_category=None,
+            difficulty="complex",
+            ex=ex,
+            leaked_junctions=(),
+        )
+
+    summary = _paired_recovery(
+        [
+            record("kept", "schema_graph", 1, 1),
+            record("fixed", "schema_graph", 0, 1),
+            record("open", "schema_graph", 0, 1),
+        ],
+        [
+            record("kept", "self_healing", 1, 2),
+            record("fixed", "self_healing", 1, 2),
+            record("open", "self_healing", 0, 1),
+        ],
+    )
+    assert summary["paired_initial_failures"] == 2
+    assert summary["paired_recovered"] == 1
+    assert summary["paired_unrecovered"] == 1
+    assert summary["paired_recovery_rate"] == 0.5
+    assert summary["unnecessary_repair_triggers"] == 1
+    assert summary["repair_trigger_precision"] == 0.5
+
+
+def test_badcase_summary_uses_primary_classes() -> None:
     records = [
         _result("custom_basic_001", "schema_graph", passed=True, ex=1),
         _result("custom_basic_002", "schema_graph", passed=False, ex=0),

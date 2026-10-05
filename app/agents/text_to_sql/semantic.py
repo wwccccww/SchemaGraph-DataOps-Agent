@@ -57,7 +57,8 @@ def check_semantics(
             expression = None
         if isinstance(expression, exp.Expression):
             catalog = {document.table_name.lower() for document in shown}
-            _check_entities(question, shape.referenced_tables, shown, findings)
+            _check_entities(question, shape.referenced_tables, shown, sql, findings)
+            findings.extend(check_fact_grain(sql, question=question))
             _check_projection(question, expression, shown, findings)
             _check_joins(expression, edges, catalog, findings)
             _check_grain(question, expression, edges, catalog, findings)
@@ -123,21 +124,39 @@ def _core_continues(other: str, core: str, after: str) -> bool:
     return any(after.startswith(rest[-size:]) for size in range(2, len(rest)))
 
 
+_TABLE_KEYS = {
+    "t_user": "user_id",
+    "t_user_level": "level_id",
+    "t_merchant": "merchant_id",
+    "t_product": "product_id",
+    "t_category": "category_id",
+    "t_order": "order_id",
+    "t_region": "region_id",
+    "t_coupon": "coupon_id",
+}
+
+
 def _check_entities(
     question: str,
     referenced: Sequence[str],
     documents: Sequence[TableDocument],
+    sql: str,
     findings: list[SemanticFinding],
 ) -> None:
     used = {name.lower() for name in referenced}
+    lowered = sql.lower()
     for name in _named_entities(question, documents):
-        if name.lower() not in used:
-            findings.append(
-                SemanticFinding(
-                    "missing_entity",
-                    f"问句点名的表 {name} 没有出现在 SQL 中",
-                )
+        if name.lower() in used:
+            continue
+        key = _TABLE_KEYS.get(name.lower())
+        if key is not None and re.search(rf"\b{key}\b", lowered):
+            continue
+        findings.append(
+            SemanticFinding(
+                "missing_entity",
+                f"问句点名的表 {name} 没有出现在 SQL 中",
             )
+        )
 
 
 def _check_projection(
@@ -147,6 +166,10 @@ def _check_projection(
     findings: list[SemanticFinding],
 ) -> None:
     projected = _projected_columns(expression)
+    catalog = {document.table_name.lower() for document in documents}
+    lineage: _Lineage = {}
+    _fill_lineage(expression, catalog, lineage)
+    projected |= _physical_projected_columns(expression, catalog, lineage)
     for part in _requested_parts(question):
         if _attribute_requested(part):
             for word in _ATTRIBUTE_WORDS:
@@ -265,6 +288,29 @@ def _projected_columns(expression: exp.Expression) -> set[tuple[str | None, str]
     return projected
 
 
+def _physical_projected_columns(
+    expression: exp.Expression,
+    catalog: set[str],
+    lineage: _Lineage,
+) -> set[tuple[str | None, str]]:
+    """CTE 输出列按血缘记成物理表的列，避免外层别名被当成没有投影。"""
+
+    select = expression if isinstance(expression, exp.Select) else expression.find(exp.Select)
+    if not isinstance(select, exp.Select):
+        return set()
+    aliases = _scope_aliases(select)
+    found: set[tuple[str | None, str]] = set()
+    for projection in select.expressions:
+        for column in projection.find_all(exp.Column):
+            if _nested_select(column, select):
+                continue
+            origin = _origin_of(column, aliases, catalog, lineage)
+            if origin is None or not origin.proven:
+                continue
+            found.update(origin.columns)
+    return found
+
+
 def _projected_ref(column: exp.Column, aliases: Mapping[str, str]) -> tuple[str | None, str]:
     name = column.name.lower()
     if not column.table:
@@ -332,6 +378,9 @@ def _check_join(
             continue
         if not left.proven or not right.proven:
             saw_unverified = True
+            continue
+        if left.columns & right.columns:
+            matched = True
             continue
         pairs = [
             frozenset({one, other})
@@ -469,20 +518,36 @@ def _origin_of(
     catalog: set[str],
     lineage: _Lineage,
 ) -> _Origin | None:
-    if not isinstance(node, exp.Column) or not node.table:
+    if not isinstance(node, exp.Column):
         return None
-    table = aliases.get(node.table.lower())
-    if table is None:
+    if not node.table:
+        known = [
+            target
+            for target in dict.fromkeys(aliases.values())
+            if target in catalog or target in lineage
+        ]
+        if len(known) != 1:
+            return None
+        table = known[0]
+        name = node.name.lower()
+        if table in catalog:
+            return _Origin(frozenset({(table, name)}), True, False)
+        return _cte_origin(table, name, lineage)
+    source = aliases.get(node.table.lower())
+    if source is None:
         return None
-    if table in catalog:
-        return _Origin(frozenset({(table, node.name.lower())}), True, False)
+    if source in catalog:
+        return _Origin(frozenset({(source, node.name.lower())}), True, False)
+    return _cte_origin(source, node.name.lower(), lineage)
+
+
+def _cte_origin(table: str, name: str, lineage: _Lineage) -> _Origin | None:
     info = lineage.get(table)
     if info is None:
         return None
-    stored = info.get(node.name.lower()) if node.name.lower() in info else None
-    if node.name.lower() not in info or stored is None:
+    if name not in info or info[name] is None:
         return _Origin(frozenset(), False, True)
-    return _Origin(stored, True, True)
+    return _Origin(info[name] or frozenset(), True, True)
 
 
 def _column_ref(
@@ -498,18 +563,24 @@ def _column_ref(
 
 def _fk_pairs(edges: Sequence[SchemaEdge]) -> set[frozenset[tuple[str, str]]]:
     pairs: set[frozenset[tuple[str, str]]] = set()
+    canonical: dict[tuple[str, str], tuple[str, str]] = {}
     for edge in edges:
         if len(edge.source_columns) != len(edge.target_columns):
             continue
         for source, target in zip(edge.source_columns, edge.target_columns, strict=True):
-            pairs.add(
-                frozenset(
-                    {
-                        (edge.source_table.lower(), source.lower()),
-                        (edge.target_table.lower(), target.lower()),
-                    }
-                )
-            )
+            left = (edge.source_table.lower(), source.lower())
+            right = (edge.target_table.lower(), target.lower())
+            pairs.add(frozenset({left, right}))
+            canonical[left] = right
+            canonical.setdefault(right, right)
+    grouped: dict[tuple[str, str], list[tuple[str, str]]] = {}
+    for column, root in canonical.items():
+        grouped.setdefault(root, []).append(column)
+    for columns in grouped.values():
+        for index, left in enumerate(columns):
+            for right in columns[index + 1 :]:
+                if left != right:
+                    pairs.add(frozenset({left, right}))
     return pairs
 
 
@@ -612,6 +683,187 @@ def _remember(node: exp.Expression, mapping: dict[str, str]) -> None:
         return
     mapping[node.alias_or_name.lower()] = node.name.lower()
     mapping[node.name.lower()] = node.name.lower()
+
+
+_QUANTITY_FANOUT = frozenset({"t_user_region_map"})
+_AMOUNT_FANOUT = frozenset({"t_order_detail", "t_order_coupon_rel", "t_user_region_map"})
+_DETAIL_MULTIPLIERS = frozenset({"t_order_detail", "t_order_coupon_rel"})
+
+
+@dataclass(frozen=True)
+class _FactGrain:
+    unique: frozenset[str]
+    quantity_fanout: bool
+    amount_fanout: bool
+
+
+def check_fact_grain(sql: str, *, question: str = "") -> tuple[SemanticFinding, ...]:
+    """汇总前的事实键被一对多连接放大时给出发现。不读取 Gold。"""
+
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return ()
+    if not isinstance(expression, exp.Expression):
+        return ()
+    findings: list[SemanticFinding] = []
+    _visit_grain(expression, {}, findings, question)
+    return tuple(dict.fromkeys(findings))
+
+
+def _visit_grain(
+    node: exp.Expression,
+    grains: dict[str, _FactGrain],
+    findings: list[SemanticFinding],
+    question: str,
+) -> _FactGrain:
+    clause = node.args.get("with_")
+    if isinstance(clause, exp.With):
+        for cte in clause.expressions:
+            if not isinstance(cte, exp.CTE) or not isinstance(cte.this, exp.Expression):
+                continue
+            grain = _visit_grain(cte.this, grains, findings, question)
+            if isinstance(cte.alias, str) and cte.alias != "":
+                grains[cte.alias.lower()] = grain
+    if isinstance(node, exp.Union):
+        left = node.this if isinstance(node.this, exp.Expression) else None
+        right = node.expression if isinstance(node.expression, exp.Expression) else None
+        grains_left = _visit_grain(left, grains, findings, question) if left else _empty_grain()
+        grains_right = _visit_grain(right, grains, findings, question) if right else _empty_grain()
+        return _merge_grains(grains_left, grains_right)
+    select = node if isinstance(node, exp.Select) else node.find(exp.Select)
+    if not isinstance(select, exp.Select):
+        return _empty_grain()
+    return _measure_select(select, grains, findings, question)
+
+
+def _empty_grain() -> _FactGrain:
+    return _FactGrain(frozenset(), False, False)
+
+
+def _merge_grains(left: _FactGrain, right: _FactGrain) -> _FactGrain:
+    return _FactGrain(
+        left.unique & right.unique,
+        left.quantity_fanout or right.quantity_fanout,
+        left.amount_fanout or right.amount_fanout,
+    )
+
+
+def _measure_select(
+    select: exp.Select,
+    grains: dict[str, _FactGrain],
+    findings: list[SemanticFinding],
+    question: str,
+) -> _FactGrain:
+    sources = set(_scope_aliases(select).values())
+    keys = _collapse_keys(select)
+    inherited_quantity = False
+    inherited_amount = False
+    inherited_order = False
+    for source in sources:
+        info = grains.get(source)
+        if info is None:
+            continue
+        inherited_quantity = inherited_quantity or info.quantity_fanout
+        inherited_amount = inherited_amount or info.amount_fanout
+        inherited_order = inherited_order or "order_id" in info.unique
+    direct_quantity = bool(sources & _QUANTITY_FANOUT)
+    direct_amount = bool(sources & _AMOUNT_FANOUT)
+    quantity_fanout = (direct_quantity or inherited_quantity) and "detail_id" not in keys
+    amount_fanout = (direct_amount or inherited_amount) and "order_id" not in keys
+    for aggregate in _owned_aggs(select):
+        if aggregate.sql_name().lower() != "sum":
+            continue
+        rendered = aggregate.sql(dialect="postgres").lower()
+        if "quantity" in rendered and quantity_fanout:
+            findings.append(_quantity_finding(direct_quantity, question, keys))
+        if "total_amount" in rendered and amount_fanout:
+            findings.append(
+                _amount_finding(
+                    direct_tables=sources & _DETAIL_MULTIPLIERS,
+                    inherited_order=inherited_order,
+                    question=question,
+                    keys=keys,
+                )
+            )
+    if _owned_aggs(select):
+        return _FactGrain(frozenset(keys), False, False)
+    # 只过滤用户或订单、没有带出度量的 CTE 不会把放大传给外层。
+    return _FactGrain(
+        frozenset(keys),
+        quantity_fanout and _select_mentions(select, "quantity"),
+        amount_fanout and _select_mentions(select, "total_amount"),
+    )
+
+
+def _quantity_finding(direct: bool, question: str, keys: set[str]) -> SemanticFinding:
+    hint = _group_hint(question, keys)
+    if direct:
+        return SemanticFinding(
+            "missing_fact_dedup",
+            "汇总 quantity 前要按 detail_id 去重，当前连接了会放大明细的 t_user_region_map。"
+            + hint,
+        )
+    return SemanticFinding(
+        "aggregate_over_fanout",
+        "CTE 输出的 quantity 已经连接了会放大明细的表，汇总前要按 detail_id 去重。" + hint,
+    )
+
+
+def _amount_finding(
+    *,
+    direct_tables: set[str],
+    inherited_order: bool,
+    question: str,
+    keys: set[str],
+) -> SemanticFinding:
+    hint = _group_hint(question, keys)
+    if direct_tables and inherited_order:
+        tables = "、".join(sorted(direct_tables))
+        return SemanticFinding(
+            "refanout_after_dedup",
+            f"订单金额已经按 order_id 形成事实，又连接了 {tables}，汇总时会被放大。" + hint,
+        )
+    if direct_tables:
+        tables = "、".join(sorted(direct_tables))
+        return SemanticFinding(
+            "missing_fact_dedup",
+            f"汇总 total_amount 前要按 order_id 去重，当前连接了 {tables}。" + hint,
+        )
+    return SemanticFinding(
+        "aggregate_over_fanout",
+        "汇总 total_amount 时事实行已经被一对多连接放大，聚合前要按 order_id 去重。" + hint,
+    )
+
+
+def _group_hint(question: str, keys: set[str]) -> str:
+    if "商家" not in question or "merchant_id" in keys:
+        return ""
+    return "最终分组要包含 merchant_id 和 merchant_name。"
+
+
+def _select_mentions(select: exp.Select, name: str) -> bool:
+    return any(name in _column_names(projection, select) for projection in select.expressions)
+
+
+def _collapse_keys(select: exp.Select) -> set[str]:
+    names: set[str] = set()
+    if select.args.get("distinct") is not None:
+        for projection in select.expressions:
+            names.update(_column_names(projection, select))
+    group = select.args.get("group")
+    if isinstance(group, exp.Group):
+        for expression in group.expressions:
+            names.update(_column_names(expression, select))
+    return names
+
+
+def _column_names(node: exp.Expression, owner: exp.Select) -> set[str]:
+    return {
+        column.name.lower()
+        for column in node.find_all(exp.Column)
+        if isinstance(column, exp.Column) and not _nested_select(column, owner)
+    }
 
 
 def check_cte_outputs(sql: str) -> tuple[SemanticFinding, ...]:

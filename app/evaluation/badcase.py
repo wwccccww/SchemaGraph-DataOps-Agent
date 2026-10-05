@@ -13,6 +13,7 @@ from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
 from app.agents.text_to_sql.contract import extract_answer_contract
+from app.agents.text_to_sql.semantic import SemanticFinding, check_fact_grain
 from app.evaluation.sql_shape import PredictionShape, describe_sql
 
 _SQL_ERRORS = frozenset(
@@ -44,6 +45,11 @@ _REVIEW_ERRORS = frozenset(
         "result_too_large",
         "explain_cardinality",
         "contract_mismatch",
+        "missing_fact_dedup",
+        "refanout_after_dedup",
+        "aggregate_over_fanout",
+        "unstable_group_key",
+        "wrong_entity_literal",
     }
 )
 _CLOCK = re.compile(r"\b(?:current_date|current_timestamp|clock_timestamp)\b", re.IGNORECASE)
@@ -111,6 +117,8 @@ def _primary(
         return "time_anchor"
     if _grain_mismatch(gold, predicted):
         return "grouping_grain"
+    if _fact_grain(symptoms):
+        return "fact_grain"
     if _response_shape(symptoms):
         return "response_shape"
     if _symptom_value(symptoms, "missing_filter_literals"):
@@ -130,6 +138,7 @@ def _symptoms(
 ) -> tuple[tuple[str, str], ...]:
     gold_projection = set(gold.projections)
     predicted_projection = set(predicted.projections)
+    predicted_findings = check_fact_grain(predicted.sql or "")
     missing = sorted(gold_projection - predicted_projection)
     extra = sorted(predicted_projection - gold_projection)
     gold_groups = _groups(gold)
@@ -143,6 +152,14 @@ def _symptoms(
         ("aggregation_only_in_cte", _cte_only(predicted)),
         ("missing_output_labels", ",".join(_missing_output_labels(gold, predicted))),
         ("missing_filter_literals", ",".join(_missing_filter_literals(gold, predicted))),
+        ("missing_dedup_key", _symptom_flag(predicted_findings, "missing_fact_dedup")),
+        ("refanout_after_dedup", _symptom_flag(predicted_findings, "refanout_after_dedup")),
+        (
+            "aggregate_source_grain",
+            _symptom_flag(predicted_findings, "aggregate_over_fanout"),
+        ),
+        ("missing_group_identifier", _missing_group_identifier(gold, predicted)),
+        ("wrong_entity_literal", _wrong_entity_literal(gold, predicted)),
         ("category_scope", _category_scope(question, predicted.sql or "")),
         ("join_shape_difference", _join_difference(gold, predicted)),
         ("runtime_clock", "true" if _CLOCK.search(predicted.sql or "") else ""),
@@ -172,6 +189,50 @@ def _cte_only(shape: PredictionShape) -> str:
     if outer is not None and not outer.aggregations and nested:
         return ",".join(scope.name for scope in nested)
     return ""
+
+
+def _fact_grain(symptoms: tuple[tuple[str, str], ...]) -> bool:
+    return any(
+        _symptom_value(symptoms, name)
+        for name in (
+            "missing_dedup_key",
+            "refanout_after_dedup",
+            "aggregate_source_grain",
+        )
+    )
+
+
+def _symptom_flag(findings: tuple[SemanticFinding, ...], category: str) -> str:
+    messages = [item.message for item in findings if item.category == category]
+    return messages[0] if messages else ""
+
+
+def _missing_group_identifier(gold: PredictionShape, predicted: PredictionShape) -> str:
+    gold_text = " ".join(_groups(gold)).lower()
+    predicted_text = " ".join(_groups(predicted)).lower()
+    missing = [
+        key
+        for key in ("merchant_id", "category_id", "detail_id", "order_id")
+        if key in gold_text and key not in predicted_text
+    ]
+    return ",".join(missing)
+
+
+def _wrong_entity_literal(gold: PredictionShape, predicted: PredictionShape) -> str:
+    predicted_text = predicted.sql or ""
+    quoted = _quoted_literals(predicted_text)
+    wrong = [
+        literal
+        for literal in _where_literals(gold.sql or "")
+        if _is_label(literal)
+        and f"'{literal}'" not in predicted_text
+        and any(token.startswith(literal) and token != literal for token in quoted)
+    ]
+    return ",".join(dict.fromkeys(wrong))
+
+
+def _quoted_literals(sql: str) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(_LITERAL.findall(sql)))
 
 
 def _response_shape(symptoms: tuple[tuple[str, str], ...]) -> bool:
@@ -215,7 +276,7 @@ def _missing_output_labels(gold: PredictionShape, predicted: PredictionShape) ->
     missing = [
         literal
         for literal in _select_literals(gold.sql or "")
-        if _is_label(literal) and literal not in predicted_text
+        if _is_label(literal) and f"'{literal}'" not in predicted_text
     ]
     return tuple(dict.fromkeys(missing))
 
@@ -226,7 +287,9 @@ def _missing_filter_literals(gold: PredictionShape, predicted: PredictionShape) 
     missing = [
         literal
         for literal in _where_literals(gold.sql or "")
-        if literal not in output_labels and _is_label(literal) and literal not in predicted_text
+        if literal not in output_labels
+        and _is_label(literal)
+        and f"'{literal}'" not in predicted_text
     ]
     return tuple(dict.fromkeys(missing))
 

@@ -457,6 +457,7 @@ async def _validate_sql(state: TextToSqlState) -> dict[str, object]:
                 anchor_date=state["anchor_date"],
             )
         )
+    findings = _actionable_findings(findings)
     if findings:
         return _fail_or_restore(state, _review_error(findings))
     return {"status": "validated", "generated_sql": decision.sql}
@@ -505,6 +506,7 @@ def _execute_sql(
                 anchor_date=state["anchor_date"],
             )
         )
+        findings = _actionable_findings(findings)
         if not findings:
             if state["repair_trace"]:
                 success["repair_trace"] = [
@@ -710,6 +712,13 @@ def _restore_candidate(
         "error_retryable": False,
         "repair_trace": steps,
     }
+
+
+def _actionable_findings(findings: Sequence[SemanticFinding]) -> list[SemanticFinding]:
+    """无法证明的 JOIN 只作为警告，不因此再调用模型。"""
+
+    warnings = {"join_unverified"}
+    return [item for item in findings if item.category not in warnings]
 
 
 def _review_error(findings: Sequence[SemanticFinding]) -> ExecutionError:

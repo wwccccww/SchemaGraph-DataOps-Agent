@@ -16,6 +16,10 @@ from app.evaluation.sql_shape import describe_sql
 
 CategoryScope = Literal["exact", "descendants"]
 _DESCENDANTS = re.compile(r"及其子类|全部下级|子品类|下级品类")
+_LITERAL_ALIAS = re.compile(
+    r"'[^']*'\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)",
+    re.IGNORECASE,
+)
 _MONTH = re.compile(r"(\d{4})年(\d{1,2})月")
 _SPAN = re.compile(r"(\d{4})年(\d{1,2})月至(\d{1,2})月")
 _CLOCK = re.compile(r"\b(?:current_date|current_timestamp|clock_timestamp)\b", re.IGNORECASE)
@@ -43,6 +47,9 @@ class AnswerContract:
     dedup_key: str | None
     output_fields: tuple[str, ...] = ()
     constants: tuple[tuple[str, str], ...] = ()
+    fact_key: str | None = None
+    group_keys: tuple[str, ...] = ()
+    fanout_policy: str = ""
 
     def as_pairs(self) -> tuple[tuple[str, str], ...]:
         if self.time_window is None:
@@ -60,6 +67,9 @@ class AnswerContract:
             ("dedup_key", self.dedup_key or ""),
             ("output_fields", ",".join(self.output_fields)),
             ("constants", rendered_constants),
+            ("fact_key", self.fact_key or ""),
+            ("group_keys", ",".join(self.group_keys)),
+            ("fanout_policy", self.fanout_policy),
         )
 
 
@@ -101,6 +111,8 @@ def format_answer_contract(contract: AnswerContract) -> str:
             "时间窗口使用上面的固定常量。",
             "不要使用 CURRENT_DATE、CURRENT_TIMESTAMP 或 clock_timestamp。",
             "dedup_key 不是“无”时，先按该键形成事实集合，再做最终聚合。",
+            "fact_key 不是“无”时，汇总前先按该键去重，去重后不要再连接会放大行数的表。",
+            "group_keys 用于分组，不要求全部出现在最终投影。",
         )
     )
 
@@ -108,12 +120,17 @@ def format_answer_contract(contract: AnswerContract) -> str:
 def format_query_plan(contract: AnswerContract, join_paths: Sequence[str]) -> str:
     """事实粒度、有序输出和当前 Schema 里的外键路径。不读取 Gold。"""
 
-    grain = contract.dedup_key or "结果行"
+    grain = contract.fact_key or contract.dedup_key or "结果行"
     lines = [
         "查询计划：",
         f"事实粒度：{grain}",
         f"输出列：{_shown(contract.output_fields)}",
     ]
+    if contract.fact_key:
+        lines.append(f"事实键：{contract.fact_key}")
+        lines.append(f"防放大：{contract.fanout_policy or '聚合前按事实键去重'}")
+    if contract.group_keys:
+        lines.append(f"分组键：{'、'.join(contract.group_keys)}")
     if contract.dedup_key:
         lines.append(f"去重：聚合前按 {contract.dedup_key} 形成事实集合。")
     if contract.constants:
@@ -148,6 +165,7 @@ def check_contract(
     _check_category(contract, question, sql, findings)
     _check_time(contract, sql, findings)
     _check_dedup(contract, sql, findings)
+    _check_canonical_values(question, sql, findings)
     unique = list(dict.fromkeys(findings))
     return tuple(sorted(unique, key=lambda item: (item.category, item.message)))
 
@@ -175,6 +193,8 @@ class _Builder:
             self.filters.append(f"品类组 {group} 包含 {members}")
         if self.category_scope == "exact":
             self.filters.append("品类名称只匹配当前节点")
+        for alias, canonical in canonical_value_aliases(text):
+            self.filters.append(f"品类取值使用 {canonical}，不要写成 {alias}")
 
     def contract(self) -> AnswerContract:
         return AnswerContract(
@@ -187,6 +207,9 @@ class _Builder:
             dedup_key=self.dedup_key,
             output_fields=_output_fields(self.question),
             constants=_constants(self.question, self.window),
+            fact_key=self.fact_key,
+            group_keys=self.group_keys,
+            fanout_policy="dedup_before_aggregate" if self.fact_key else "",
         )
 
     @property
@@ -205,6 +228,37 @@ class _Builder:
         if "订单数" in text or "实付金额" in text:
             return "order_id"
         return None
+
+    @property
+    def fact_key(self) -> str | None:
+        text = self.question
+        if "在售商品数量" in text:
+            return "product_id"
+        if "用户数量" in text:
+            return "user_id"
+        if "明细行数" in text:
+            return "detail_id"
+        bought = "购买" in text and "数量" in text and "在售" not in text
+        if "销量" in text or bought or ("商品数量" in text and "在售" not in text):
+            return "detail_id"
+        return self.dedup_key
+
+    @property
+    def group_keys(self) -> tuple[str, ...]:
+        keys: list[str] = []
+        if "商家" in self.dimensions:
+            keys.extend(("merchant_id", "merchant_name"))
+        if "品类" in self.dimensions:
+            keys.extend(("category_id", "category_name"))
+        if "会员等级" in self.dimensions:
+            keys.extend(("level_id", "level_name"))
+        if "地区" in self.dimensions:
+            keys.append("region_name")
+        if "优惠券" in self.dimensions:
+            keys.append("coupon_type")
+        if "用户" in self.dimensions:
+            keys.append("user_id")
+        return tuple(dict.fromkeys(keys))
 
     def _time_filter(self) -> None:
         window = self.window
@@ -373,6 +427,15 @@ _CATEGORY_GROUPS: dict[str, tuple[str, ...]] = {
     ),
 }
 _REGIONS = ("华北", "华东", "华中", "华南", "西南", "西北")
+
+
+_CANONICAL_VALUES = (("护肤品", "护肤"),)
+
+
+def canonical_value_aliases(question: str) -> tuple[tuple[str, str], ...]:
+    """问句里的口语别名对应目录中的取值。不读取 Gold。"""
+
+    return tuple((alias, canonical) for alias, canonical in _CANONICAL_VALUES if alias in question)
 
 
 def category_group_name(question: str) -> str | None:
@@ -629,6 +692,28 @@ def _check_measures(
         )
 
 
+def _check_canonical_values(question: str, sql: str, findings: list[SemanticFinding]) -> None:
+    for alias, canonical in canonical_value_aliases(question):
+        if f"'{alias}'" in sql:
+            findings.append(
+                SemanticFinding(
+                    "wrong_entity_literal",
+                    f"期望品类取值 '{canonical}'；实际写成了 '{alias}'",
+                )
+            )
+        elif f"'{canonical}'" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "wrong_entity_literal",
+                    f"期望品类取值 '{canonical}'",
+                )
+            )
+
+
+def _literal_aliases(sql: str) -> set[str]:
+    return {match.group(1).lower() for match in _LITERAL_ALIAS.finditer(sql)}
+
+
 def _check_grain(contract: AnswerContract, shape: object, findings: list[SemanticFinding]) -> None:
     if not contract.dimensions or not contract.measures:
         return
@@ -641,10 +726,12 @@ def _check_grain(contract: AnswerContract, shape: object, findings: list[Semanti
             )
         )
         return
+    sql = getattr(shape, "sql", "") or ""
+    literals = _literal_aliases(sql)
     missing = [
         name
         for name in contract.dimensions
-        if not any(token in grouped for token in _GROUP_TOKENS.get(name, ()))
+        if not any(token in grouped or token in literals for token in _GROUP_TOKENS.get(name, ()))
     ]
     if missing:
         findings.append(
