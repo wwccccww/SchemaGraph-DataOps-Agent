@@ -106,8 +106,9 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
 - 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
 - **Measured 基线（2026-10-05，DeepSeek Chat，本地快照）**：报告在 `reports/`（不入 Git）。
-  - **v7**（`text-to-sql-generic-v7`，`self_healing`，180s）：BIRD **0/50**（`response_shape` 35，`missing_required_table` 11，`sql_table_recall`≈0.95）；TPC-DS **0/30**（`missing_required_table` 19，`response_shape` 11，`sql_table_recall`≈0.88，可执行率 100%）。
-  - **v6** 参考：TPC-DS `missing_required_table` 22 → v7 略降；`response_shape` 7 → v7 升（形状校验更严）。迭代时对比同目录 `summary.json` 的 `diagnosis_histogram`。
+  - **v7 + frozen `semantic_contract`**（`self_healing`，180s）：TPC-DS **3/30（EX 0.1）**；`missing_required_table` 10，`join_semantics` 15（`run_20261005T160104Z_*`）。
+  - **v7 无 contract**：BIRD **0/50**；TPC-DS **0/30**（`run_20261005T152856Z_*`）。
+  - 迭代时对比 `reports/*/summary.json` 的 `measured.execution_accuracy` 与 `diagnosis_histogram`。
 
 ## 3. 用例生命周期
 
