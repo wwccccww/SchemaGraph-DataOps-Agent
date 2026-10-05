@@ -108,7 +108,7 @@ def _filters_from_question(question: str) -> list[str]:
     year = int(match.group(1)) if match else SALES_YEAR
     if str(year) in question:
         filters.append(f"calendar_year={year}")
-    if "促销" in question or "直邮" in question:
+    if "直邮" in question or re.search(r"\bdmail\b", question, re.IGNORECASE):
         filters.append("promotion_channel=dmail")
         filters.append("promotion_via_item_sk_subquery=true")
     if "退货" in question:

@@ -221,6 +221,15 @@ def test_spurious_promotion_join_is_flagged_when_not_in_core_tables() -> None:
     assert any("promotion" in item.message for item in findings)
 
 
+def test_multi_channel_union_skips_sk_heavy_cte_warning() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_008")
+    assert check_frozen_semantic_contract(
+        case.semantic_contract, case.gold_sql, dialect="postgres"
+    ) == ()
+
+
 def test_check_requires_item_when_item_category_projected() -> None:
     contract = SemanticContract(
         projections=["item_category", "sales_amount"],

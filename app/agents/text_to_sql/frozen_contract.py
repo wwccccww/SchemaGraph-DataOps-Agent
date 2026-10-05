@@ -16,6 +16,10 @@ from app.schemas.benchmark import SemanticContract
 _PROJECTION_COLUMNS: dict[str, str] = {
     "item_category": "item.i_category",
     "store_state": "store.s_state",
+    "warehouse_state": "warehouse.w_state",
+    "call_center_state": "call_center.cc_state",
+    "page_type": "web_page.wp_type",
+    "promo_name": "promotion.p_promo_name",
     "return_reason": "reason.r_reason_desc",
     "sales_year": "date_dim.d_year",
     "return_year": "date_dim.d_year",
@@ -235,7 +239,10 @@ def check_frozen_semantic_contract(
                     "直邮促销过滤需 ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail='Y')",
                 )
             )
-    cte_name = _sk_heavy_cte_without_dimensions(described, contract.group_keys)
+    skip_sk_cte = "multi_channel_union=true" in contract.filters
+    cte_name = None if skip_sk_cte else _sk_heavy_cte_without_dimensions(
+        described, contract.group_keys
+    )
     if cte_name is not None:
         keys = "、".join(contract.group_keys[:6])
         findings.append(

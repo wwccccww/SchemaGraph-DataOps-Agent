@@ -431,14 +431,23 @@ def _join_hints(
     hints: list[str] = []
     visible = {document.table_name.lower() for document in documents}
     if (
-        re.search(r"促销|promotion|直邮|dmail", question, re.IGNORECASE)
+        re.search(r"直邮|dmail", question, re.IGNORECASE)
         and re.search(r"商品|item", question, re.IGNORECASE)
         and "item" in visible
         and "promotion" in visible
     ):
         hints.append(
-            "促销商品需 JOIN item（事实表 *_item_sk = item.i_item_sk）并关联 promotion"
-            "（如 p_channel_dmail='Y' 或 p_item_sk）。"
+            "直邮促销商品：store_sales.ss_item_sk IN (SELECT p_item_sk FROM promotion "
+            "WHERE p_channel_dmail='Y')，并 JOIN item；不要 JOIN promotion 事实行。"
+        )
+    elif (
+        re.search(r"促销|promotion", question, re.IGNORECASE)
+        and "promotion" in visible
+        and re.search(r"名称|目的", question)
+    ):
+        hints.append(
+            "促销名称/目的：JOIN promotion ON 事实表 ss_promo_sk/cs_promo_sk/ws_promo_sk = p_promo_sk，"
+            "投影 promotion.p_promo_name 或 p_purpose。"
         )
     if re.search(r"收入|income", question, re.IGNORECASE) and "income_band" in visible:
         hints.append("收入分段用 income_band 连接 household_demographics，不要省略 income_band。")

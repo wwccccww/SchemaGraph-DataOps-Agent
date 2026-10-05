@@ -771,8 +771,6 @@ cases:
         - "sales_year"
       filters:
         - "calendar_year=2001"
-        - "promotion_channel=dmail"
-        - "promotion_via_item_sk_subquery=true"
         - "primary_fact=store_sales"
         - "core_tables=customer,date_dim,item,promotion,store,store_sales"
         - "audit_tables_strict=true"
@@ -1208,8 +1206,6 @@ cases:
         - "sales_year"
       filters:
         - "calendar_year=2001"
-        - "promotion_channel=dmail"
-        - "promotion_via_item_sk_subquery=true"
         - "primary_fact=web_sales"
         - "core_tables=date_dim,item,promotion,ship_mode,warehouse,web_sales"
         - "audit_tables_strict=true"
@@ -1281,8 +1277,6 @@ cases:
         - "sales_year"
       filters:
         - "calendar_year=2001"
-        - "promotion_channel=dmail"
-        - "promotion_via_item_sk_subquery=true"
         - "primary_fact=catalog_sales"
         - "core_tables=call_center,catalog_page,catalog_sales,date_dim,item,promotion"
         - "audit_tables_strict=true"
@@ -1805,8 +1799,6 @@ cases:
         - "sales_year"
       filters:
         - "calendar_year=2001"
-        - "promotion_channel=dmail"
-        - "promotion_via_item_sk_subquery=true"
         - "primary_fact=store_sales"
         - "core_tables=customer,customer_demographics,date_dim,item,promotion,store_sales"
         - "audit_tables_strict=true"
@@ -2208,8 +2200,6 @@ cases:
         - "sales_year"
       filters:
         - "calendar_year=2001"
-        - "promotion_channel=dmail"
-        - "promotion_via_item_sk_subquery=true"
         - "returns_present=true"
         - "primary_facts=store_returns,store_sales"
         - "returns_vs_sales=separate_cte"

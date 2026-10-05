@@ -44,6 +44,31 @@ def test_dmail_question_adds_subquery_filter() -> None:
     assert "promotion_via_item_sk_subquery=true" in contract.filters
 
 
+def test_generic_promo_name_question_does_not_add_dmail_filter() -> None:
+    contract = contract_for(
+        _case(
+            question="统计 2001 年各促销名称、门店所在州和商品类别的销售金额。",
+            required_tables=[
+                "customer",
+                "date_dim",
+                "item",
+                "promotion",
+                "store",
+                "store_sales",
+            ],
+            expected_columns=[
+                "promo_name",
+                "store_state",
+                "item_category",
+                "sales_year",
+                "sales_amount",
+            ],
+        )
+    )
+    assert "promotion_via_item_sk_subquery=true" not in contract.filters
+    assert "promotion_channel=dmail" not in contract.filters
+
+
 def test_multi_channel_question_adds_union_hint() -> None:
     contract = contract_for(
         _case(
