@@ -11,6 +11,20 @@ from app.agents.text_to_sql.frozen_contract import (
 from app.schemas.benchmark import SemanticContract, TimeWindow
 
 
+def test_soft_core_tables_allow_extra_joins_in_prompt() -> None:
+    contract = SemanticContract(
+        projections=["School", "DOC"],
+        group_keys=[],
+        filters=["core_tables=frpm,schools", "anchor_date=2026-10-01"],
+        category_scope="exact",
+        time_window=None,
+        dedup_key=None,
+    )
+    text = format_frozen_semantic_contract(contract)
+    assert "其它维表" in text
+    assert "不要 JOIN 上述清单以外" not in text
+
+
 def test_format_includes_projection_order_hint_when_grouped() -> None:
     contract = SemanticContract(
         projections=["a", "b", "total"],

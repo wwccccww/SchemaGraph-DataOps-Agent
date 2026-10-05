@@ -513,10 +513,16 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(f"问句涉及多渠道，需覆盖事实表：{tables}")
         if item.startswith("core_tables="):
             tables = item.split("=", 1)[1]
+            strict = "audit_tables_strict=true" in filters
             hints.append(f"必须 JOIN 或 FROM 这些表：{tables}")
-            hints.append("不要 JOIN 上述清单以外的其它业务表。")
-            if "promotion" not in {part.strip() for part in tables.split(",")}:
-                hints.append("清单不含 promotion 时不要额外 JOIN promotion。")
+            if strict:
+                hints.append("不要 JOIN 上述清单以外的其它业务表。")
+                if "promotion" not in {part.strip() for part in tables.split(",")}:
+                    hints.append("清单不含 promotion 时不要额外 JOIN promotion。")
+            else:
+                hints.append(
+                    "以上为问句审计提示；若投影或过滤还需其它维表/事实表，可一并 JOIN。"
+                )
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
         if item.startswith("anchor_date="):
