@@ -60,12 +60,17 @@ _ENTITIES = (
     (re.compile(r"当前住址|current address|customer address"), ("customer_address",)),
     (re.compile(r"顾客|customer"), ("customer",)),
     (re.compile(r"商品类别|item category"), ("item",)),
+    (re.compile(r"促销商品|直邮|商品"), ("item", "promotion")),
     (re.compile(r"门店销售|门店退货|store sales|store returns"), ("store_sales", "store")),
     (re.compile(r"目录销售|目录退货|catalog sales"), ("catalog_sales", "catalog_page")),
     (re.compile(r"网站销售|网站退货|web sales"), ("web_sales", "web_site", "web_page")),
     (re.compile(r"门店|store"), ("store",)),
     (re.compile(r"仓库|warehouse"), ("warehouse",)),
     (re.compile(r"促销|promotion"), ("promotion",)),
+    (re.compile(r"呼叫中心|call center"), ("call_center",)),
+    (re.compile(r"配送方式|承运|ship mode"), ("ship_mode",)),
+    (re.compile(r"原因|reason"), ("reason",)),
+    (re.compile(r"收入分段|income band|income_band"), ("income_band", "household_demographics")),
     (re.compile(r"\bschools?\b", re.IGNORECASE), ("schools",)),
     (re.compile(r"\bSAT\b|\bsatscores\b|SAT performance", re.IGNORECASE), ("satscores",)),
     (re.compile(r"charter school|\bcharter\b", re.IGNORECASE), ("schools",)),
@@ -118,7 +123,11 @@ def extract_generic_shape(
     grouping = _GROUP_AXIS.search(question) is not None
     measured = _MEASURE.search(question) is not None
     dimensions = _dimensions(question, documents, grouping=grouping and measured)
-    entities = _entities(question, visible)
+    entities = _merge_dimension_entities(
+        _entities(question, visible),
+        question,
+        documents,
+    )
     formulas, formula_columns = _formulas(question, documents)
     joins = _join_hints(question, documents, edges)
     return GenericShape(
@@ -326,6 +335,26 @@ def _dimensions(
     return tuple(found)
 
 
+def _merge_dimension_entities(
+    entities: tuple[str, ...],
+    question: str,
+    documents: Sequence[TableDocument],
+) -> tuple[str, ...]:
+    """分组维度对应的维表也要出现在 SQL 中。"""
+
+    visible = {document.table_name.lower(): document.table_name for document in documents}
+    names = list(entities)
+    for labels, _tokens, tables in _DIMENSIONS:
+        label = next((item for item in labels if _contains(question, item)), None)
+        if label is None or not _dimension_requested(question, label):
+            continue
+        for table in tables:
+            resolved = visible.get(table.lower())
+            if resolved is not None and resolved not in names:
+                names.append(resolved)
+    return tuple(dict.fromkeys(names))
+
+
 def _entities(
     question: str,
     visible: dict[str, TableDocument],
@@ -378,19 +407,36 @@ def _join_hints(
     documents: Sequence[TableDocument],
     edges: Sequence[SchemaEdge],
 ) -> tuple[str, ...]:
-    if re.search(r"当前住址|current address", question, re.IGNORECASE) is None:
-        return ()
+    hints: list[str] = []
     visible = {document.table_name.lower() for document in documents}
-    if "customer_address" not in visible:
-        return ()
-    for edge in edges:
-        tables = {edge.source_table.lower(), edge.target_table.lower()}
-        if tables != {"customer", "customer_address"}:
-            continue
-        left = f"{edge.source_table}.{edge.source_columns[0]}"
-        right = f"{edge.target_table}.{edge.target_columns[0]}"
-        return (f"当前住址用 {left} = {right} 连接，不要只用 IS NOT NULL",)
-    return ("当前住址必须连接 customer_address，不要只用 IS NOT NULL",)
+    if (
+        re.search(r"促销|promotion|直邮|dmail", question, re.IGNORECASE)
+        and re.search(r"商品|item", question, re.IGNORECASE)
+        and "item" in visible
+        and "promotion" in visible
+    ):
+        hints.append(
+            "促销商品需 JOIN item（事实表 *_item_sk = item.i_item_sk）并关联 promotion"
+            "（如 p_channel_dmail='Y' 或 p_item_sk）。"
+        )
+    if re.search(r"收入|income", question, re.IGNORECASE) and "income_band" in visible:
+        hints.append("收入分段用 income_band 连接 household_demographics，不要省略 income_band。")
+    if re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE) and "ship_mode" in visible:
+        hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
+    if re.search(r"网站|web site|web_site", question, re.IGNORECASE) and "web_site" in visible:
+        hints.append("网站维度用 web_site 表，通过 web_sales 或 catalog_sales 关联。")
+    if re.search(r"当前住址|current address", question, re.IGNORECASE) and "customer_address" in visible:
+        for edge in edges:
+            tables = {edge.source_table.lower(), edge.target_table.lower()}
+            if tables != {"customer", "customer_address"}:
+                continue
+            left = f"{edge.source_table}.{edge.source_columns[0]}"
+            right = f"{edge.target_table}.{edge.target_columns[0]}"
+            hints.append(f"当前住址用 {left} = {right} 连接，不要只用 IS NOT NULL")
+            break
+        else:
+            hints.append("当前住址必须连接 customer_address，不要只用 IS NOT NULL")
+    return tuple(hints)
 
 
 def _dimension_line(dimension: GenericDimension) -> str:
