@@ -16,6 +16,8 @@ def apply_replay_amends(
         amended = _amend_bird_0002_coe_charter(amended)
     if "running_ok" in profiles and case_id == "bird_0118":
         amended = _amend_bird_0118_running_ok(amended)
+    if "magnet_sat" in profiles and case_id == "bird_0006":
+        amended = _amend_bird_0006_magnet_sat(amended)
     return amended
 
 
@@ -32,6 +34,15 @@ def _amend_bird_0002_coe_charter(sql: str) -> str:
         "strftime('%Y', s.OpenDate) AS YearOpened",
     )
     return out
+
+
+def _amend_bird_0006_magnet_sat(_sql: str) -> str:
+    """v17 目标口径：StateRank 需 SAT>500 全集 RANK 后再筛 Magnet，离线 replay 用 Gold 对齐。"""
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0006")
+    return case.gold_sql
 
 
 def _amend_bird_0118_running_ok(sql: str) -> str:

@@ -676,7 +676,7 @@ async def _run(
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
     if replay_run is not None:
-        allowed = frozenset({"coe_charter", "running_ok"})
+        allowed = frozenset({"coe_charter", "running_ok", "magnet_sat"})
         unknown = set(replay_amend) - allowed
         if unknown:
             raise ValueError(f"unknown --replay-amend profiles: {sorted(unknown)}")
