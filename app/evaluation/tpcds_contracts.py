@@ -78,9 +78,7 @@ def _fact_filters(required_tables: list[str], question: str) -> list[str]:
     """事实表提示来自冻结用例审计字段，不进入 Prompt 的 required_tables 列表。"""
 
     sales = [
-        name
-        for name in required_tables
-        if name.endswith("_sales") or name.endswith("_returns")
+        name for name in required_tables if name.endswith("_sales") or name.endswith("_returns")
     ]
     if not sales:
         return []

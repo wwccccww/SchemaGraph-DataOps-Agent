@@ -140,7 +140,9 @@ def test_virtual_sat_f_frozen_contract_flags_peak_0005_sql() -> None:
         "WHERE s.Virtual = 'Fully Virtual' "
         "AND FRPMPercentage >= 75 THEN 'High FRPM'"
     )
-    messages = [item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")]
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
     assert any("Virtual='F'" in message for message in messages)
     assert any("GSserved" in message or "Charter" in message for message in messages)
 
@@ -158,7 +160,9 @@ def test_coe_charter_frozen_contract_flags_peak_run_mistakes() -> None:
         "CAST(strftime('%Y', s.OpenDate) AS INTEGER) AS YearOpened "
         "FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode"
     )
-    messages = [item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")]
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
     assert any("×100" in message for message in messages)
     assert any("School Name" in message for message in messages)
     assert any(">0.75" in message or ">=" in message for message in messages)
@@ -176,13 +180,13 @@ def test_order_sensitive_checks_alias_order() -> None:
     )
     wrong = (
         'SELECT s."Enrollment" AS "Enrollment", s."School Name" AS "School Name" '
-        'FROM schools AS s ORDER BY 2'
+        "FROM schools AS s ORDER BY 2"
     )
     findings = check_frozen_semantic_contract(contract, wrong, dialect="sqlite")
     assert any("顺序" in item.message for item in findings)
     ok = (
         'SELECT s."School Name" AS "School Name", s."Enrollment" AS "Enrollment" '
-        'FROM schools AS s ORDER BY 1'
+        "FROM schools AS s ORDER BY 1"
     )
     assert check_frozen_semantic_contract(contract, ok, dialect="sqlite") == ()
 
@@ -195,9 +199,7 @@ def test_store_sales_demographics_use_current_cdemo_sk() -> None:
         "ON customer.c_current_cdemo_sk = customer_demographics.cd_demo_sk",
         "ON store_sales.ss_cdemo_sk = customer_demographics.cd_demo_sk",
     ).replace("JOIN customer ON", "JOIN customer ON")
-    findings = check_frozen_semantic_contract(
-        case.semantic_contract, bad, dialect="postgres"
-    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
     assert any("c_current_cdemo_sk" in item.message for item in findings)
 
 
@@ -237,13 +239,12 @@ def test_frozen_contract_rejects_extra_output_columns() -> None:
         "WHERE d.d_year = 2001 AND d.d_weekend = 'Y' "
         "GROUP BY 1,2,3,4"
     )
-    findings = check_frozen_semantic_contract(
-        case.semantic_contract, bad, dialect="postgres"
-    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
     assert any("不要额外输出列" in item.message for item in findings)
-    assert check_frozen_semantic_contract(
-        case.semantic_contract, case.gold_sql, dialect="postgres"
-    ) == ()
+    assert (
+        check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
+        == ()
+    )
 
 
 def test_format_includes_projections_and_item_hint() -> None:
@@ -272,13 +273,12 @@ def test_web_bill_ship_requires_bill_customer_sk_join() -> None:
         "web_sales.ws_bill_customer_sk = customer.c_customer_sk",
         "customer.c_current_addr_sk = bill_address.ca_address_sk",
     ).replace("JOIN customer ON", "JOIN customer ON")
-    findings = check_frozen_semantic_contract(
-        case.semantic_contract, bad, dialect="postgres"
-    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
     assert any("ws_bill_customer_sk" in item.message for item in findings)
-    assert check_frozen_semantic_contract(
-        case.semantic_contract, case.gold_sql, dialect="postgres"
-    ) == ()
+    assert (
+        check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
+        == ()
+    )
 
 
 def test_audit_strict_requires_all_core_tables() -> None:
@@ -414,7 +414,9 @@ def test_wrong_channel_fact_table_is_flagged() -> None:
         "JOIN date_dim AS d ON cs.cs_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001"
     )
     findings = check_frozen_semantic_contract(contract, sql, dialect="postgres")
-    assert any("store_sales" in item.message and "catalog_sales" in item.message for item in findings)
+    assert any(
+        "store_sales" in item.message and "catalog_sales" in item.message for item in findings
+    )
 
 
 def test_primary_fact_filter_requires_store_sales() -> None:
@@ -465,7 +467,10 @@ def test_spurious_promotion_join_is_flagged_when_not_in_core_tables() -> None:
     contract = SemanticContract(
         projections=["sales_amount"],
         group_keys=[],
-        filters=["core_tables=store_sales,date_dim,item,store,customer", "primary_fact=store_sales"],
+        filters=[
+            "core_tables=store_sales,date_dim,item,store,customer",
+            "primary_fact=store_sales",
+        ],
         category_scope="exact",
         time_window=None,
         dedup_key=None,
@@ -483,13 +488,12 @@ def test_returns_amount_rejects_inc_tax_column() -> None:
 
     case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_005")
     bad = case.gold_sql.replace("cr_return_amount", "cr_return_amt_inc_tax")
-    findings = check_frozen_semantic_contract(
-        case.semantic_contract, bad, dialect="postgres"
-    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
     assert any("inc_tax" in item.message or "含税" in item.message for item in findings)
-    assert check_frozen_semantic_contract(
-        case.semantic_contract, case.gold_sql, dialect="postgres"
-    ) == ()
+    assert (
+        check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
+        == ()
+    )
 
 
 def test_income_band_rejects_ss_hdemo_sk_shortcut() -> None:
@@ -519,9 +523,10 @@ def test_multi_channel_union_skips_sk_heavy_cte_warning() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
     case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_008")
-    assert check_frozen_semantic_contract(
-        case.semantic_contract, case.gold_sql, dialect="postgres"
-    ) == ()
+    assert (
+        check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
+        == ()
+    )
 
 
 def test_check_requires_item_when_item_category_projected() -> None:

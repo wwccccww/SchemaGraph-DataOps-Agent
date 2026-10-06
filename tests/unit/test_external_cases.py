@@ -12,6 +12,7 @@ from app.evaluation.bird import (
     load_bird_questions,
     question_requests_order,
 )
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.custom_cases import normalize_sql, referenced_tables
 from app.evaluation.external_data import patch_tpcds_makefile, schema_statements
 from app.evaluation.tpcds import (
@@ -22,7 +23,6 @@ from app.evaluation.tpcds import (
     build_tpcds_cases,
     load_tpcds_cases,
 )
-from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
 from app.evaluation.tpcds_oracle import structural_oracle_passed
 

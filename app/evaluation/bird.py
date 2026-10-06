@@ -15,10 +15,10 @@ from pathlib import Path
 
 import yaml
 
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.case_yaml import dump_benchmark_cases, projection_names
 from app.evaluation.custom_cases import referenced_tables
 from app.sandbox.sqlite import check_sqlite_read_only
-from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.schemas.benchmark import BenchmarkCase
 
 QUESTIONS_PATH = (
@@ -146,7 +146,9 @@ def adapt_bird_wall_clock(gold_sql: str, anchor: date | None = None) -> str:
         return f"strftime('{fmt}', '{anchor_literal}')"
 
     adapted = _STRFTIME_NOW.sub(_replace_strftime_now, gold_sql)
-    return re.sub(r"date\s*\(\s*'now'\s*\)", f"date('{anchor_literal}')", adapted, flags=re.IGNORECASE)
+    return re.sub(
+        r"date\s*\(\s*'now'\s*\)", f"date('{anchor_literal}')", adapted, flags=re.IGNORECASE
+    )
 
 
 def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:

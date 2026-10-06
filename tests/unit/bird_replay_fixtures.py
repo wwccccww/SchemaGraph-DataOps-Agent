@@ -6,8 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BIRD_PEAK_RUN = (
-    REPO_ROOT
-    / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    REPO_ROOT / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
 )
 BIRD_DB_ROOT = Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases")
 CA_SCHOOLS_DB = BIRD_DB_ROOT / "california_schools/california_schools.sqlite"

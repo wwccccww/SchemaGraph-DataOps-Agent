@@ -38,8 +38,8 @@ def test_frpm_category_labels_for_coe_charter() -> None:
         "by their FRPM percentage levels."
     )
     sql = (
-        'SELECT CASE WHEN f."Percent (%) Eligible FRPM (K-12)" * 100 < 40 THEN \'High\' END '
-        'FROM frpm f WHERE f."County Name" = \'Fresno County Office of Education\''
+        "SELECT CASE WHEN f.\"Percent (%) Eligible FRPM (K-12)\" * 100 < 40 THEN 'High' END "
+        "FROM frpm f WHERE f.\"County Name\" = 'Fresno County Office of Education'"
     )
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     messages = [item.message for item in findings]
@@ -74,7 +74,7 @@ def test_coe_charter_does_not_forbid_frpm_charter_filter() -> None:
     )
     sql = (
         'SELECT f."School Name" FROM frpm AS f JOIN schools AS s ON f.CDSCode = s.CDSCode '
-        'WHERE f."District Name" = \'Fresno County Office of Education\' '
+        "WHERE f.\"District Name\" = 'Fresno County Office of Education' "
         'AND f."Charter School (Y/N)" = 1'
     )
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
@@ -83,12 +83,8 @@ def test_coe_charter_does_not_forbid_frpm_charter_filter() -> None:
 
 
 def test_fully_virtual_flags_literal_fully_virtual_filter() -> None:
-    question = (
-        "What are the details of fully virtual schools that have an average SAT Math score above 400?"
-    )
-    sql = (
-        "SELECT s.School FROM schools s WHERE s.Virtual = 'Fully Virtual' AND s.GSserved AS SchoolType"
-    )
+    question = "What are the details of fully virtual schools that have an average SAT Math score above 400?"
+    sql = "SELECT s.School FROM schools s WHERE s.Virtual = 'Fully Virtual' AND s.GSserved AS SchoolType"
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     messages = [item.message for item in findings]
     assert any("Virtual='F'" in message for message in messages)
@@ -102,7 +98,7 @@ def test_coe_charter_flags_percent_frpm_times_100() -> None:
     )
     sql = (
         'SELECT f."Percent (%) Eligible FRPM (K-12)" * 100 AS PercentFRPM FROM frpm f '
-        'WHERE f."District Name" = \'Fresno County Office of Education\''
+        "WHERE f.\"District Name\" = 'Fresno County Office of Education'"
     )
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     assert any("不要 ×100" in item.message for item in findings)
@@ -130,8 +126,8 @@ def test_magnet_sat_flags_frpm_school_type_and_poverty_labels() -> None:
     )
     sql = (
         "SELECT CASE WHEN x >= 75 THEN 'High FRPM' END, 'Above Average' AS PerformanceCategory "
-        "FROM frpm f JOIN schools s ON 1=1 WHERE f.\"Free Meal Count (K-12)\" * 100 / "
-        "f.\"Enrollment (K-12)\" > 0"
+        'FROM frpm f JOIN schools s ON 1=1 WHERE f."Free Meal Count (K-12)" * 100 / '
+        'f."Enrollment (K-12)" > 0'
     )
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     messages = [item.message for item in findings]
@@ -142,10 +138,7 @@ def test_magnet_sat_flags_frpm_school_type_and_poverty_labels() -> None:
 
 def test_top_n_cte_order_limit_flagged() -> None:
     question = "For the top 5 schools with the highest FRPM count, list details."
-    sql = (
-        "WITH base AS (SELECT 1 AS x FROM frpm ORDER BY x DESC LIMIT 5) "
-        "SELECT * FROM base"
-    )
+    sql = "WITH base AS (SELECT 1 AS x FROM frpm ORDER BY x DESC LIMIT 5) SELECT * FROM base"
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     assert any("RANK()" in item.message for item in findings)
 
@@ -154,7 +147,7 @@ def test_charter_prefers_schools_table() -> None:
     question = "Is it a charter school?"
     sql = (
         'SELECT f."Charter School (Y/N)" FROM frpm AS f '
-        'LEFT JOIN schools AS s ON f.CDSCode = s.CDSCode'
+        "LEFT JOIN schools AS s ON f.CDSCode = s.CDSCode"
     )
     findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
     messages = [item.message for item in findings]

@@ -6,9 +6,12 @@ import os
 from pathlib import Path
 
 import pytest
-
 from app.evaluation.bird import load_bird_cases, load_database_checksums
-from app.evaluation.external_data import execute_bird_gold, execute_tpcds_gold, postgres_connection_kwargs
+from app.evaluation.external_data import (
+    execute_bird_gold,
+    execute_tpcds_gold,
+    postgres_connection_kwargs,
+)
 from app.evaluation.external_gold import BIRD_GOLD_SMOKE_IDS, TPCDS_GOLD_SMOKE_IDS
 from app.evaluation.tpcds import load_tpcds_cases
 

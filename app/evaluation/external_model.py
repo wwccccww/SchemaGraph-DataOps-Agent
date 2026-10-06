@@ -15,6 +15,7 @@ import sys
 from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -44,27 +45,27 @@ from app.evaluation.bird import (
     load_database_checksums,
 )
 from app.evaluation.ex import results_match
+from app.evaluation.external_badcase import classify_external_case
 from app.evaluation.external_data import (
     PostgresTarget,
     postgres_connection_kwargs,
     sha256_file,
     snapshot_from_counts,
 )
+from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
 from app.evaluation.external_report import (
     ExternalSource,
     ModelCaseTrace,
     build_external_model_summary,
     write_external_model_report,
 )
-from app.evaluation.sql_shape import describe_sql
-from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
-from app.evaluation.external_badcase import classify_external_case
-from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
 from app.evaluation.replay_amend import (
     GOLD_OVERLAY_PROFILES,
     PATCH_AMEND_PROFILES,
     apply_replay_amends,
 )
+from app.evaluation.sql_shape import describe_sql
+from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
 from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
 from app.llm.gateway import DeepSeekGateway
@@ -181,7 +182,7 @@ def inspection_from_replay(
             sql = raw
     if sql and amend_profiles and case_id:
         sql = apply_replay_amends(case_id, sql, profiles=amend_profiles)
-    status = "succeeded" if sql else "failed"
+    replay_status: Literal["succeeded", "failed"] = "succeeded" if sql else "failed"
     attempts = payload.get("attempts")
     if not isinstance(attempts, int):
         attempts = None
@@ -189,7 +190,7 @@ def inspection_from_replay(
     return TextToSqlInspection(
         response=TextToSqlResponse(
             request_id="replay",
-            status=status,
+            status=replay_status,
             sql=sql,
             attempts=attempts,
             error=(
@@ -212,9 +213,7 @@ async def evaluate_replay(
     traces: list[ModelCaseTrace] = []
     for case, payload in pairs:
         LOGGER.info("replay %s", case.id)
-        inspection = inspection_from_replay(
-            payload, case_id=case.id, amend_profiles=amend_profiles
-        )
+        inspection = inspection_from_replay(payload, case_id=case.id, amend_profiles=amend_profiles)
 
         async def execute(
             sql: str, *, current: BenchmarkCase = case
@@ -322,7 +321,9 @@ async def score_prediction(
                 ex = 1
                 error_category = None
             elif response.status != "succeeded":
-                error_category = error_category or response.error.category if response.error else None
+                error_category = (
+                    error_category or response.error.category if response.error else None
+                )
     primary, diagnosis, symptoms = classify_external_case(
         case,
         predicted_sql=predicted,
@@ -578,10 +579,11 @@ async def _run_replay(
     if summary_path.is_file():
         orig_summary = json.loads(summary_path.read_text(encoding="utf-8"))
     database_ids = {case.database_id for case, _ in pairs}
+    bird_database_root = database_root
     if source == "bird":
-        if database_root is None:
+        if bird_database_root is None:
             raise ValueError("--database-root is required for bird replay")
-        _verify_bird_files(database_root, database_ids)
+        _verify_bird_files(bird_database_root, database_ids)
         version = BIRD_SOURCE_VERSION
         root = report_root or Path("reports/bird")
         snapshot = orig_summary.get("database_snapshot")
@@ -591,13 +593,18 @@ async def _run_replay(
         version = TPCDS_SOURCE_VERSION
         root = report_root or Path("reports/tpcds-derived")
         snapshot_obj = orig_summary.get("database_snapshot")
-        snapshot = snapshot_obj if isinstance(snapshot_obj, str) else await _tpcds_snapshot(timeout_seconds)
+        snapshot = (
+            snapshot_obj
+            if isinstance(snapshot_obj, str)
+            else await _tpcds_snapshot(timeout_seconds)
+        )
 
     runners: dict[str, SqlExecutor] = {}
     catalogs: dict[str, tuple[str, ...]] = {}
     for database_id in sorted(database_ids):
         if source == "bird":
-            path = _sqlite_path(database_root, database_id)
+            assert bird_database_root is not None
+            path = _sqlite_path(bird_database_root, database_id)
             documents, _edges = load_sqlite_catalog(path, database_id)
             runners[database_id] = sqlite_executor(path, timeout_seconds=timeout_seconds)
         else:

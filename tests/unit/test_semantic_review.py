@@ -743,9 +743,7 @@ def test_generic_shape_requires_year_and_item_in_the_projection() -> None:
             schema_name="public",
             table_name="store_sales",
             table_comment=None,
-            columns=[
-                ColumnDocument(name="ss_ext_sales_price", data_type="numeric", nullable=True)
-            ],
+            columns=[ColumnDocument(name="ss_ext_sales_price", data_type="numeric", nullable=True)],
             is_junction=False,
             content_hash="sha256:store_sales",
         ),

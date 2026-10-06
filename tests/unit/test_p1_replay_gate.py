@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 import pytest
-
 from app.evaluation.external_release import release_ready
 from app.evaluation.replay_amend import GOLD_OVERLAY_PROFILES, PATCH_AMEND_PROFILES
 from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN, TPCDS_PEAK_RUN

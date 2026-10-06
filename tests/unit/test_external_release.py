@@ -20,8 +20,7 @@ def test_bird_attestation_is_gold_matched() -> None:
     assert isinstance(cases, dict)
     assert len(cases) == 50
     assert all(
-        isinstance(item, dict) and item.get("status") == "gold_matched"
-        for item in cases.values()
+        isinstance(item, dict) and item.get("status") == "gold_matched" for item in cases.values()
     )
 
 

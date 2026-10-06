@@ -15,6 +15,10 @@ from app.agents.text_to_sql.contract import (
     extract_answer_contract,
     format_query_plan,
 )
+from app.agents.text_to_sql.frozen_contract import (
+    check_frozen_semantic_contract,
+    format_frozen_semantic_contract,
+)
 from app.agents.text_to_sql.prompt import (
     extract_sql,
     render_generation_prompt,
@@ -27,16 +31,11 @@ from app.agents.text_to_sql.semantic import (
     check_cte_outputs,
     check_semantics,
 )
-from app.agents.text_to_sql.frozen_contract import (
-    check_frozen_semantic_contract,
-    format_frozen_semantic_contract,
-)
 from app.agents.text_to_sql.shape import (
     check_answer_shape,
     extract_generic_shape,
     format_generic_shape,
 )
-from app.schemas.benchmark import SemanticContract
 from app.datasources.registry import resolve_data_source
 from app.graph.expand import (
     DEFAULT_MAX_TOTAL_TABLES,
@@ -56,6 +55,7 @@ from app.observability.tracing import (
 from app.sandbox.errors import ExecutionError, make_error
 from app.sandbox.execute import ExecutionSuccess
 from app.sandbox.gate import check_read_only_sql
+from app.schemas.benchmark import SemanticContract
 from app.schemas.catalog import SchemaEdge, TableDocument
 from app.schemas.retrieval import SchemaSeed, ToolHit
 from app.schemas.text_to_sql import (
@@ -291,9 +291,7 @@ async def inspect_text_to_sql(
                     profile=source.profile,
                     schema_name=source.schema_name,
                     frozen_contract=(
-                        None
-                        if frozen_contract is None
-                        else frozen_contract.model_dump(mode="json")
+                        None if frozen_contract is None else frozen_contract.model_dump(mode="json")
                     ),
                     max_model_calls=1
                     + (

@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 import pytest
-
 from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN
 
 

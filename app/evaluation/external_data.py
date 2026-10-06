@@ -37,12 +37,6 @@ from app.evaluation.bird import (
     load_database_checksums,
     materialize_bird_case,
 )
-from app.evaluation.external_report import (
-    ExternalSource,
-    GoldTrace,
-    build_external_summary,
-    write_external_report,
-)
 from app.evaluation.external_gold import (
     build_fingerprint_document,
     merge_execution_into_attestation,
@@ -50,6 +44,12 @@ from app.evaluation.external_gold import (
     write_attestation,
 )
 from app.evaluation.external_release import evaluate_external_release, release_ready
+from app.evaluation.external_report import (
+    ExternalSource,
+    GoldTrace,
+    build_external_summary,
+    write_external_report,
+)
 from app.evaluation.tpcds import (
     KIT_COMMIT,
     KIT_REPO,

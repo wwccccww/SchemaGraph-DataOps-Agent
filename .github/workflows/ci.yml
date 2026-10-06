@@ -61,4 +61,4 @@ jobs:
           docker logs phase0-postgres
           exit 1
       - run: uv sync --frozen --group dev
-      - run: uv run pytest -m integration
+      - run: uv run pytest tests/integration -m integration

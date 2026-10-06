@@ -190,9 +190,7 @@ def merge_execution_into_attestation(
 ) -> dict[str, object]:
     """把一次 verify 的执行摘要写回 attestation 文档。"""
 
-    document = build_fingerprint_document(
-        cases, source=source, benchmark_version=benchmark_version
-    )
+    document = build_fingerprint_document(cases, source=source, benchmark_version=benchmark_version)
     records = document["cases"]
     assert isinstance(records, dict)
     for case in cases:
@@ -205,7 +203,9 @@ def merge_execution_into_attestation(
         entry = records[case.id]
         assert isinstance(entry, dict)
         entry["row_count"] = row_count
-        entry["result_digest"] = f"sha256:{digest_hex}" if not digest_hex.startswith("sha256:") else digest_hex
+        entry["result_digest"] = (
+            f"sha256:{digest_hex}" if not digest_hex.startswith("sha256:") else digest_hex
+        )
         entry["status"] = "gold_matched"
     document["database_snapshot"] = database_snapshot
     document["status"] = "gold_matched"
@@ -218,9 +218,7 @@ def write_attestation(document: Mapping[str, object], source: ExternalSource) ->
     return path
 
 
-def digest_rows_for_attestation(
-    rows: Sequence[Sequence[object]], *, order_sensitive: bool
-) -> str:
+def digest_rows_for_attestation(rows: Sequence[Sequence[object]], *, order_sensitive: bool) -> str:
     """与 Execution Accuracy 使用同一 canonical 规则，返回带 sha256: 前缀的摘要。"""
 
     materialized = [tuple(row) for row in rows]

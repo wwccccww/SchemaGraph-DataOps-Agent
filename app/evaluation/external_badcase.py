@@ -64,7 +64,11 @@ def _repair_steps(
         category = step.get("category")
         symptom = step.get("symptom")
         sql_hash = step.get("sql_hash")
-        if not isinstance(category, str) or not isinstance(symptom, str) or not isinstance(sql_hash, str):
+        if (
+            not isinstance(category, str)
+            or not isinstance(symptom, str)
+            or not isinstance(sql_hash, str)
+        ):
             continue
         steps.append((str(index), category, symptom, sql_hash))
     return tuple(steps)

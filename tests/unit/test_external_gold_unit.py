@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from app.evaluation.bird import BIRD_SOURCE_VERSION, load_bird_cases
-import pytest
-
 from app.evaluation.external_gold import (
     BIRD_GOLD_SMOKE_IDS,
     TPCDS_GOLD_SMOKE_IDS,

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from app.agents.text_to_sql.workflow import TextToSqlInspection
+from app.evaluation.bird import load_bird_cases
 from app.evaluation.external_model import (
     ecommerce_rule_hits,
     evaluate_predictions,
@@ -18,7 +19,6 @@ from app.evaluation.external_model import (
     select_sample,
     write_model_diagnosis,
 )
-from app.evaluation.bird import load_bird_cases
 from app.evaluation.external_report import (
     ModelCaseTrace,
     build_external_model_summary,

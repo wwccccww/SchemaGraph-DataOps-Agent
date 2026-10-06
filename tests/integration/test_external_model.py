@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from app.config.llm_settings import get_llm_settings
 from app.evaluation.external_model import _run
 
@@ -25,7 +24,9 @@ def _external_model_enabled() -> bool:
     return llm.deepseek_api_key is not None
 
 
-@pytest.mark.skipif(not _external_model_enabled(), reason="set EXTERNAL_MODEL_TESTS=1 and DEEPSEEK_API_KEY")
+@pytest.mark.skipif(
+    not _external_model_enabled(), reason="set EXTERNAL_MODEL_TESTS=1 and DEEPSEEK_API_KEY"
+)
 def test_bird_external_model_smoke_one_case() -> None:
     root = os.environ.get("BIRD_DATABASE_ROOT")
     if not root:

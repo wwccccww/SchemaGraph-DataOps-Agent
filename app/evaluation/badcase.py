@@ -274,9 +274,7 @@ def _join_semantics(
         return False
     if _group_by_equivalent(gold_groups, predicted_groups):
         return False
-    if _projection_aligned_grouping(gold, predicted):
-        return False
-    return True
+    return not _projection_aligned_grouping(gold, predicted)
 
 
 def _projection_aligned_grouping(gold: PredictionShape, predicted: PredictionShape) -> bool:

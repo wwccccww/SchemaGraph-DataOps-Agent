@@ -273,9 +273,7 @@ def check_answer_shape(
                     "PercentFRPM 直接用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，不要 ×100",
                 )
             )
-        if re.search(r">=\s*0\.75|>=\s*0\.50", sql) and re.search(
-            r"High FRPM|Medium FRPM", sql
-        ):
+        if re.search(r">=\s*0\.75|>=\s*0\.50", sql) and re.search(r"High FRPM|Medium FRPM", sql):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -374,10 +372,14 @@ def check_answer_shape(
                     "县级排名 CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)，不要用 RANK()",
                 )
             )
-    if re.search(r"top 10 schools.*free or reduced|highest number of students eligible for free", question, re.I):
-        if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and "frpm_rank<=" not in lowered.replace(
-            " ", ""
-        ):
+    if re.search(
+        r"top 10 schools.*free or reduced|highest number of students eligible for free",
+        question,
+        re.I,
+    ):
+        if re.search(
+            r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE
+        ) and "frpm_rank<=" not in lowered.replace(" ", ""):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -458,7 +460,10 @@ def check_answer_shape(
                         "不要对 TotalSATScore>1500 做窗口 COUNT",
                     )
                 )
-            if re.search(r"order by\s+satranking", sql, re.I) and "total satscore desc" not in lowered:
+            if (
+                re.search(r"order by\s+satranking", sql, re.I)
+                and "total satscore desc" not in lowered
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -490,9 +495,7 @@ def check_answer_shape(
         and not re.search(r"County Office of Education", question, re.IGNORECASE)
         and any(document.table_name.lower() == "schools" for document in documents)
     ):
-        if "charter school (y/n)" in lowered and re.search(
-            r"\bschools\b", sql, re.IGNORECASE
-        ):
+        if "charter school (y/n)" in lowered and re.search(r"\bschools\b", sql, re.IGNORECASE):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -550,9 +553,10 @@ def check_answer_shape(
         question,
         re.IGNORECASE,
     ):
-        if re.search(r"status\s*=\s*'A'", sql, re.IGNORECASE) and re.search(
-            r"status\s*=\s*'C'", sql, re.IGNORECASE
-        ) is None:
+        if (
+            re.search(r"status\s*=\s*'A'", sql, re.IGNORECASE)
+            and re.search(r"status\s*=\s*'C'", sql, re.IGNORECASE) is None
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -779,8 +783,7 @@ def _entities(
 ) -> tuple[str, ...]:
     names: list[str] = []
     sold_through_store = (
-        "store_sales" in visible
-        and re.search(r"卖过|售出|销售过|门店卖", question) is not None
+        "store_sales" in visible and re.search(r"卖过|售出|销售过|门店卖", question) is not None
     )
     if sold_through_store:
         names.append(visible["store_sales"].table_name)
@@ -880,7 +883,10 @@ def _join_hints(
             "ON customer.c_current_hdemo_sk = hd_demo_sk，JOIN income_band；"
             "不要用 ss_hdemo_sk 直连 household；问句未提门店州时不要 JOIN store。"
         )
-    if re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE) and "ship_mode" in visible:
+    if (
+        re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE)
+        and "ship_mode" in visible
+    ):
         hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
     if re.search(r"网站名|web site name", question, re.IGNORECASE) and "web_site" in visible:
         hints.append("网站维度用 web_site 表，通过 web_sales 或 catalog_sales 关联。")
@@ -894,10 +900,7 @@ def _join_hints(
             "渠道对比：各渠道独立 CTE 汇总后按 item_category/sales_year JOIN，"
             "输出 store_sales_amount 与 web_sales_amount 两列，不要 UNION 成单列。"
         )
-    if (
-        {"schools", "frpm", "satscores"} <= visible
-        or ("schools" in visible and "frpm" in visible)
-    ):
+    if {"schools", "frpm", "satscores"} <= visible or ("schools" in visible and "frpm" in visible):
         hints.append(
             "California schools：schools 与 frpm/satscores 用 CDSCode 与 satscores.cds 连接，"
             "不要对 schools 与 frpm 做无键笛卡尔积。"
@@ -930,9 +933,7 @@ def _join_hints(
         question,
         re.IGNORECASE,
     ):
-        hints.append(
-            "frpm 算餐食比例时在 WHERE 加 `Enrollment (K-12)` > 0，避免除零或无效行。"
-        )
+        hints.append("frpm 算餐食比例时在 WHERE 加 `Enrollment (K-12)` > 0，避免除零或无效行。")
     if (
         "schools" in visible
         and "satscores" in visible
@@ -959,19 +960,26 @@ def _join_hints(
             "「当日最早获批贷款」用 WHERE loan_id = (SELECT MIN(loan_id) FROM loan WHERE date = …) "
             "限定单笔 loan，避免同日多笔 fan-out；路径 loan→account→trans，不要 JOIN disp。"
         )
-    if re.search(
-        r"increase rate.*balance|account balance from",
-        question,
-        re.IGNORECASE,
-    ) and {"loan", "account", "trans"} <= visible:
+    if (
+        re.search(
+            r"increase rate.*balance|account balance from",
+            question,
+            re.IGNORECASE,
+        )
+        and {"loan", "account", "trans"} <= visible
+    ):
         hints.append(
             "余额增长率：loan JOIN account JOIN trans，用 IIF 按两日期 SUM(balance)；"
             "不要加 disp 或 loan.status='C'。"
         )
-    if "loan" in visible and "district" in visible and re.search(
-        r"\bregion\b|district\.A3",
-        question,
-        re.IGNORECASE,
+    if (
+        "loan" in visible
+        and "district" in visible
+        and re.search(
+            r"\bregion\b|district\.A3",
+            question,
+            re.IGNORECASE,
+        )
     ):
         hints.append("Financial 区域维度用 district.A3（经 account.district_id JOIN district）。")
     if "loan" in visible and re.search(
@@ -982,7 +990,9 @@ def _join_hints(
         hints.append(
             "Financial：贷款正常进行中/无问题用 loan.status = 'C' 计数，不要用 status = 'A'。"
         )
-    if "loan" in visible and re.search(r"loan size category|size category", question, re.IGNORECASE):
+    if "loan" in visible and re.search(
+        r"loan size category|size category", question, re.IGNORECASE
+    ):
         hints.append(
             "贷款规模分档 CASE 标签用 Small / Medium / Large（按 amount 阈值），"
             "不要用 '<50K' 等字面区间字符串。"
@@ -1033,7 +1043,10 @@ def _join_hints(
                 "账单/收货地址州：web_sales.ws_bill_addr_sk 与 ws_ship_addr_sk 各 JOIN 一次 customer_address，"
                 "并 JOIN customer ON ws_bill_customer_sk = c_customer_sk；过滤 bill_state <> ship_state。"
             )
-    if re.search(r"当前住址|current address", question, re.IGNORECASE) and "customer_address" in visible:
+    if (
+        re.search(r"当前住址|current address", question, re.IGNORECASE)
+        and "customer_address" in visible
+    ):
         for edge in edges:
             tables = {edge.source_table.lower(), edge.target_table.lower()}
             if tables != {"customer", "customer_address"}:

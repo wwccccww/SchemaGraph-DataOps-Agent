@@ -7,11 +7,15 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.ex import results_match
 from app.evaluation.replay_amend import apply_replay_amends
-from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, CA_SCHOOLS_DB, FINANCIAL_DB, peak_case_path
+from tests.unit.bird_replay_fixtures import (
+    BIRD_PEAK_RUN,
+    CA_SCHOOLS_DB,
+    FINANCIAL_DB,
+    peak_case_path,
+)
 
 
 def _require_peak(case_id: str, *, db: Path | None = None) -> tuple[Path, sqlite3.Connection]:
@@ -58,10 +62,7 @@ def test_magnet_sat_amend_makes_0006_match_gold() -> None:
 
 
 def test_running_ok_amend_for_0118_on_prior_run() -> None:
-    run = (
-        BIRD_PEAK_RUN.parent
-        / "run_20261005T235214Z_5410f5c1e4ca744b3e534dc2ff8e195b2d9cde35"
-    )
+    run = BIRD_PEAK_RUN.parent / "run_20261005T235214Z_5410f5c1e4ca744b3e534dc2ff8e195b2d9cde35"
     if not (run / "cases" / "bird_0118.json").is_file():
         pytest.skip("prior 0118 run missing")
     if not FINANCIAL_DB.is_file():

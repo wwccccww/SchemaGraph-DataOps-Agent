@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 from app.config.llm_settings import get_llm_settings
 

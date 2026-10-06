@@ -9,8 +9,8 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
-from app.evaluation.sql_shape import PredictionShape, describe_sql
 from app.agents.text_to_sql.semantic import SemanticFinding
+from app.evaluation.sql_shape import PredictionShape, describe_sql
 from app.schemas.benchmark import SemanticContract
 
 _PROJECTION_COLUMNS: dict[str, str] = {
@@ -68,9 +68,7 @@ def format_frozen_semantic_contract(contract: SemanticContract) -> str:
     for hint in _filter_hints(contract.filters):
         lines.append(hint)
     if contract.time_window is not None:
-        lines.append(
-            f"时间窗口：{contract.time_window.start} 至 {contract.time_window.end}"
-        )
+        lines.append(f"时间窗口：{contract.time_window.start} 至 {contract.time_window.end}")
     hinted = _tables_for_projections(contract.projections)
     if hinted:
         lines.append("这些投影通常需要 JOIN 表：" + "、".join(sorted(hinted)))
@@ -99,9 +97,7 @@ def check_frozen_semantic_contract(
                     f"只能使用冻结审计表（{'、'.join(core_tables)}），请移除：{'、'.join(extra)}",
                 )
             )
-        missing_core = sorted(
-            name for name in core_tables if name.lower() not in referenced
-        )
+        missing_core = sorted(name for name in core_tables if name.lower() not in referenced)
         if missing_core:
             findings.append(
                 SemanticFinding(
@@ -138,7 +134,11 @@ def check_frozen_semantic_contract(
                 )
             )
         if "financial_1993_poplatek_profile=true" in contract.filters:
-            if re.search(r"status\s*=\s*['\"]C['\"].*running|running_loans.*status\s*=\s*['\"]C['\"]", sql, re.I):
+            if re.search(
+                r"status\s*=\s*['\"]C['\"].*running|running_loans.*status\s*=\s*['\"]C['\"]",
+                sql,
+                re.I,
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -170,7 +170,11 @@ def check_frozen_semantic_contract(
                         "SOC 31 或 3% 在 JOIN 后过滤",
                     )
                 )
-            if re.search(r"THEN 'Yes'|THEN 'No'", sql) and "Charter" in sql and "Non-Charter" not in sql:
+            if (
+                re.search(r"THEN 'Yes'|THEN 'No'", sql)
+                and "Charter" in sql
+                and "Non-Charter" not in sql
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -184,7 +188,11 @@ def check_frozen_semantic_contract(
                         "PovertyLevel 用 High/Medium/Low/Very Low Poverty（frpm 小数阈值）",
                     )
                 )
-            if re.search(r"AvgTotalScore|Avg.*Read.*\+.*Write", sql, re.I) and "/3" not in sql and "/ 3" not in sql:
+            if (
+                re.search(r"AvgTotalScore|Avg.*Read.*\+.*Write", sql, re.I)
+                and "/3" not in sql
+                and "/ 3" not in sql
+            ):
                 if "AvgTotalScore" in " ".join(contract.projections) and re.search(
                     r"\+.*AvgScrWrite\s*\)\s+AS\s+[\"']?AvgTotalScore",
                     sql,
@@ -380,7 +388,10 @@ def check_frozen_semantic_contract(
                         "IsCharter 用 frpm.`Charter School (Y/N)`，输出 IsCharterSchool Yes/No",
                     )
                 )
-            if re.search(r"\bsatscores\b|\bss\.\b", sql, re.IGNORECASE) and "rtype" not in sql.lower():
+            if (
+                re.search(r"\bsatscores\b|\bss\.\b", sql, re.IGNORECASE)
+                and "rtype" not in sql.lower()
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -514,8 +525,8 @@ def check_frozen_semantic_contract(
             )
     if not missing_aliases and "order_sensitive=true" in contract.filters and described.projections:
         alias_order = [name.lower() for name in described.projections]
-        expected = [name.lower() for name in contract.projections]
-        if alias_order != expected:
+        expected_order = [name.lower() for name in contract.projections]
+        if alias_order != expected_order:
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -614,7 +625,11 @@ def check_frozen_semantic_contract(
                     "WHERE p_channel_dmail='Y' AND p_item_sk IS NOT NULL)，不要 JOIN promotion 事实行",
                 )
             )
-        elif "ss_item_sk" in lowered and "in (select" not in lowered and "in(select" not in lowered.replace(" ", ""):
+        elif (
+            "ss_item_sk" in lowered
+            and "in (select" not in lowered
+            and "in(select" not in lowered.replace(" ", "")
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -626,8 +641,8 @@ def check_frozen_semantic_contract(
         or "multi_returns_union=true" in contract.filters
         or "channel_pivot_compare=true" in contract.filters
     )
-    cte_name = None if skip_sk_cte else _sk_heavy_cte_without_dimensions(
-        described, contract.group_keys
+    cte_name = (
+        None if skip_sk_cte else _sk_heavy_cte_without_dimensions(described, contract.group_keys)
     )
     if cte_name is not None:
         keys = "、".join(contract.group_keys[:6])
@@ -723,9 +738,12 @@ def check_frozen_semantic_contract(
                 )
                 break
     bill_ship = {"bill_state", "ship_state"} & {name.lower() for name in contract.projections}
-    if bill_ship and "web_sales" in referenced and core_tables and "customer" in {
-        name.lower() for name in core_tables
-    }:
+    if (
+        bill_ship
+        and "web_sales" in referenced
+        and core_tables
+        and "customer" in {name.lower() for name in core_tables}
+    ):
         if "c_current_addr_sk" in lowered_sql and not re.search(
             r"ws_bill_customer_sk\s*=\s*[^.]+\.c_customer_sk|c_customer_sk\s*=\s*[^.]+\.ws_bill_customer_sk",
             lowered_sql,
@@ -774,7 +792,9 @@ def check_frozen_semantic_contract(
                     "不要仅用 cs_bill_hdemo_sk",
                 )
             )
-    income_dims = {"income_lower", "buy_potential"} & {name.lower() for name in contract.projections}
+    income_dims = {"income_lower", "buy_potential"} & {
+        name.lower() for name in contract.projections
+    }
     if income_dims and core_tables and "customer" in {name.lower() for name in core_tables}:
         if "ss_hdemo_sk" in lowered_sql and "c_current_hdemo_sk" not in lowered_sql:
             findings.append(
@@ -900,14 +920,14 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 if "promotion" not in {part.strip() for part in tables.split(",")}:
                     hints.append("清单不含 promotion 时不要额外 JOIN promotion。")
             else:
-                hints.append(
-                    "以上为问句审计提示；若投影或过滤还需其它维表/事实表，可一并 JOIN。"
-                )
+                hints.append("以上为问句审计提示；若投影或过滤还需其它维表/事实表，可一并 JOIN。")
         if item == "order_sensitive=true":
             hints.append("问句要求排序，最终 SQL 需包含 ORDER BY。")
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
-            hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+            hints.append(
+                f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。"
+            )
         if item == "financial_1993_poplatek_profile=true":
             hints.append(
                 "1993 POPLATEK PO OBRATU 账户：AccountsIn1993 CTE；trans PRIJEM/VYDAJ；"

@@ -81,9 +81,7 @@ def test_catalog_sales_only_does_not_require_catalog_page() -> None:
 
 
 def test_catalog_returns_question_does_not_require_catalog_sales() -> None:
-    question = (
-        "统计 2001 年各仓库所在州、退货原因和商品类别的目录退货金额，并关联呼叫中心。"
-    )
+    question = "统计 2001 年各仓库所在州、退货原因和商品类别的目录退货金额，并关联呼叫中心。"
     documents = [
         _doc(name)
         for name in (
@@ -159,8 +157,7 @@ def test_multi_channel_sales_does_not_require_store_dimension() -> None:
 def test_grouped_call_center_dimension_requires_call_center_entity() -> None:
     question = "统计 2001 年各呼叫中心、配送方式和商品类别的目录销售金额。"
     documents = [
-        _doc(name)
-        for name in ("call_center", "ship_mode", "item", "catalog_sales", "date_dim")
+        _doc(name) for name in ("call_center", "ship_mode", "item", "catalog_sales", "date_dim")
     ]
     shape = extract_generic_shape(question, documents)
     assert "call_center" in shape.entities

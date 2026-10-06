@@ -45,7 +45,9 @@ def evaluate_external_release() -> list[ReleaseFinding]:
             )
         snapshot = document.get("database_snapshot")
         if not isinstance(snapshot, str) or not snapshot:
-            findings.append(ReleaseFinding("error", f"{source} attestation missing database_snapshot"))
+            findings.append(
+                ReleaseFinding("error", f"{source} attestation missing database_snapshot")
+            )
         if source == "bird":
             unstable = [case.id for case in cases if wall_clock_sensitive(case.gold_sql)]
             if unstable:
