@@ -12,3 +12,5 @@ def test_run_tpcds_p0_full_eval_twice_script_contract() -> None:
     assert "tpcds-derived" in text
     assert "--full" in text
     assert "check-external-release" in text
+    assert "POSTGRES_USER" in text
+    assert "POSTGRES_PASSWORD" in text

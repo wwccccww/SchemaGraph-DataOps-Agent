@@ -3,6 +3,10 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "POSTGRES_USER and POSTGRES_PASSWORD are required (TPC-DS catalog + full eval)" >&2
+  exit 1
+fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.llm_preflight
 RUN_DIRS=()
