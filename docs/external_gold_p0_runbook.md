@@ -8,6 +8,17 @@
 2. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量）、计费后 **`DEEPSEEK_API_KEY`**。
 3. 可选：**`P0_BIRD_MIN_MATCHED=7`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步）。
 
+## 脚本 stdout 键（运维/自动化）
+
+| 键 | 典型来源 |
+| --- | --- |
+| **`ops_runbook=docs/external_gold_p0_runbook.md`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`（`--gates-only` 成功或全量结束） |
+| **`next_after_billing=./scripts/p0_post_billing_acceptance.sh`** | 同上 |
+| **`while_billing_blocked=… --gates-only`** | `print_external_p0_status.sh`（402 时） |
+| **`llm_preflight=ready`** | `python3 -m app.evaluation.llm_preflight` 成功 stdout |
+
+402 时 **`llm_preflight`** stderr 亦指向本 runbook 与 **`--gates-only`**。
+
 ## 402 期间（无 LLM）
 
 ```bash
@@ -47,7 +58,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集；`replay-gate` 需变量 **`BIRD_DATABASE_ROOT`**；smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无库）。`replay-gate` 需变量 **`BIRD_DATABASE_ROOT`**；smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
 
