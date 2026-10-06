@@ -21,3 +21,25 @@ def test_run_external_p0_full_eval_twice_requires_bird_root() -> None:
     )
     assert completed.returncode != 0
     assert "BIRD_DATABASE_ROOT" in completed.stderr
+
+
+def test_run_external_p0_full_eval_twice_requires_postgres_env() -> None:
+    script = Path(__file__).resolve().parents[2] / "scripts/run_external_p0_full_eval_twice.sh"
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")
+    }
+    env["BIRD_DATABASE_ROOT"] = env.get(
+        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
+    )
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=script.parents[1],
+    )
+    assert completed.returncode == 1
+    assert "POSTGRES_USER" in completed.stderr
