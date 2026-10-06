@@ -68,6 +68,7 @@ from app.sandbox.errors import ExecutionError, normalize_message
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
 from app.schemas.catalog import SchemaEdge, TableDocument
+from app.schemas.text_to_sql import ApiError, TextToSqlResponse
 
 LOGGER = logging.getLogger(__name__)
 _PROMPT_MARKERS = ("答案契约", "查询计划：", "事实粒度：", "防放大：")
@@ -137,6 +138,83 @@ def ecommerce_rule_hits(
         if category in _ECOMMERCE_CATEGORIES and category not in hits:
             hits.append(category)
     return tuple(hits)
+
+
+def load_replay_cases(
+    replay_dir: Path,
+    loaded: Sequence[BenchmarkCase],
+) -> list[tuple[BenchmarkCase, Mapping[str, object]]]:
+    """从已写入的 model run 目录加载 case JSON，与当前冻结用例对齐。"""
+
+    case_dir = replay_dir / "cases"
+    if not case_dir.is_dir():
+        raise ValueError(f"replay run missing cases/: {replay_dir}")
+    by_id = {case.id: case for case in loaded}
+    pairs: list[tuple[BenchmarkCase, Mapping[str, object]]] = []
+    for path in sorted(case_dir.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        case_id = payload.get("case_id")
+        if not isinstance(case_id, str) or case_id not in by_id:
+            continue
+        pairs.append((by_id[case_id], payload))
+    if not pairs:
+        raise ValueError(f"no replay cases matched benchmarks under {replay_dir}")
+    return pairs
+
+
+def inspection_from_replay(payload: Mapping[str, object]) -> TextToSqlInspection:
+    prediction = payload.get("prediction")
+    sql: str | None = None
+    if isinstance(prediction, dict):
+        raw = prediction.get("sql")
+        if isinstance(raw, str) and raw.strip():
+            sql = raw
+    status = "succeeded" if sql else "failed"
+    attempts = payload.get("attempts")
+    if not isinstance(attempts, int):
+        attempts = None
+    error_category = payload.get("error_category")
+    return TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="replay",
+            status=status,
+            sql=sql,
+            attempts=attempts,
+            error=(
+                ApiError(category=str(error_category), message="replay", retryable=False)
+                if error_category and not sql
+                else None
+            ),
+        ),
+        generated_sql=sql,
+    )
+
+
+async def evaluate_replay(
+    pairs: Sequence[tuple[BenchmarkCase, Mapping[str, object]]],
+    *,
+    execute_sql: ExecuteCase,
+    catalog_for: Callable[[str], Collection[str]],
+) -> list[ModelCaseTrace]:
+    traces: list[ModelCaseTrace] = []
+    for case, payload in pairs:
+        LOGGER.info("replay %s", case.id)
+        inspection = inspection_from_replay(payload)
+
+        async def execute(
+            sql: str, *, current: BenchmarkCase = case
+        ) -> ExecutionSuccess | ExecutionError:
+            return await execute_sql(current, sql)
+
+        trace = await score_prediction(
+            case,
+            inspection,
+            execute=execute,
+            catalog_tables=catalog_for(case.database_id),
+        )
+        traces.append(trace)
+        LOGGER.info("%s %s ex=%s", trace.case_id, trace.primary_class, trace.ex)
+    return traces
 
 
 async def evaluate_predictions(
@@ -428,9 +506,17 @@ def main(argv: list[str] | None = None) -> None:
         default=4,
         help="self-healing repair rounds for external EX (default 4 → 5 model calls)",
     )
+    parser.add_argument(
+        "--replay-run",
+        type=Path,
+        metavar="RUN_DIR",
+        help="Re-score EX from saved case JSON under RUN_DIR/cases (no LLM calls)",
+    )
     args = parser.parse_args(argv)
     if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
         raise SystemExit("--max-repair-rounds must be between 1 and 8")
+    if args.replay_run is not None and (args.full or args.limit or args.per_database):
+        raise SystemExit("--replay-run cannot combine with --full, --limit, or --per-database")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if args.variant not in TEXT_TO_SQL_VARIANTS:
         raise SystemExit(f"unknown variant: {args.variant}")
@@ -445,10 +531,110 @@ def main(argv: list[str] | None = None) -> None:
             timeout_seconds=args.timeout,
             report_root=args.report_root,
             max_recovery_rounds=args.max_repair_rounds,
+            replay_run=args.replay_run,
         )
     )
     if code:
         sys.exit(code)
+
+
+async def _run_replay(
+    *,
+    replay_run: Path,
+    source: ExternalSource,
+    loaded: Sequence[BenchmarkCase],
+    database_root: Path | None,
+    timeout_seconds: float,
+    report_root: Path | None,
+) -> int:
+    pairs = load_replay_cases(replay_run, loaded)
+    orig_matched = sum(1 for _, payload in pairs if payload.get("ex") == 1)
+    summary_path = replay_run / "summary.json"
+    orig_summary: Mapping[str, object] = {}
+    if summary_path.is_file():
+        orig_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    database_ids = {case.database_id for case, _ in pairs}
+    if source == "bird":
+        if database_root is None:
+            raise ValueError("--database-root is required for bird replay")
+        _verify_bird_files(database_root, database_ids)
+        version = BIRD_SOURCE_VERSION
+        root = report_root or Path("reports/bird")
+        snapshot = orig_summary.get("database_snapshot")
+        if not isinstance(snapshot, str):
+            snapshot = "replay"
+    else:
+        version = TPCDS_SOURCE_VERSION
+        root = report_root or Path("reports/tpcds-derived")
+        snapshot_obj = orig_summary.get("database_snapshot")
+        snapshot = snapshot_obj if isinstance(snapshot_obj, str) else await _tpcds_snapshot(timeout_seconds)
+
+    runners: dict[str, SqlExecutor] = {}
+    catalogs: dict[str, tuple[str, ...]] = {}
+    for database_id in sorted(database_ids):
+        if source == "bird":
+            path = _sqlite_path(database_root, database_id)
+            documents, _edges = load_sqlite_catalog(path, database_id)
+            runners[database_id] = sqlite_executor(path, timeout_seconds=timeout_seconds)
+        else:
+            documents, _edges = await _read_tpcds_catalog()
+            runners[database_id] = _tpcds_runner(timeout_seconds)
+        catalogs[database_id] = tuple(document.table_name for document in documents)
+
+    async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
+        return await runners[case.database_id](sql, max_rows=_evaluation_max_rows(source))
+
+    traces = await evaluate_replay(
+        pairs,
+        execute_sql=execute_sql,
+        catalog_for=lambda database_id: catalogs[database_id],
+    )
+    new_matched = sum(trace.ex for trace in traces)
+    LOGGER.info(
+        "replay EX: matched %s -> %s (from %s)",
+        orig_matched,
+        new_matched,
+        replay_run.name,
+    )
+    started = datetime.now(UTC).replace(microsecond=0)
+    model_name = orig_summary.get("model")
+    if not isinstance(model_name, str):
+        model_name = "replay"
+    prompt_version = orig_summary.get("prompt_version")
+    if not isinstance(prompt_version, str):
+        prompt_version = GENERIC_PROMPT_VERSION
+    summary = build_external_model_summary(
+        traces,
+        source=source,
+        benchmark_version=version,
+        git_commit=_git_commit(),
+        database_snapshot=snapshot,
+        started_at=started.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        model=model_name,
+        prompt_version=f"{prompt_version}+replay",
+        environment={
+            "variant": "replay",
+            "sample": len(pairs) < len(loaded),
+            "replay_of": str(replay_run),
+            "original_matched": orig_matched,
+            "lexical_seeds": False,
+            "business_rules": False,
+            "official_tpcds_result": False,
+            "timeout_seconds": timeout_seconds,
+            "frozen_semantic_contract": False,
+        },
+    )
+    directory = write_external_model_report(
+        root,
+        stamp=started.strftime("%Y%m%dT%H%M%SZ"),
+        commit=_git_commit(),
+        summary=summary,
+        traces=traces,
+    )
+    diagnosis = write_model_diagnosis(directory)
+    LOGGER.info("wrote %s", directory)
+    LOGGER.info("wrote %s", diagnosis)
+    return 0
 
 
 async def _run(
@@ -462,9 +648,19 @@ async def _run(
     timeout_seconds: float,
     report_root: Path | None,
     max_recovery_rounds: int,
+    replay_run: Path | None = None,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
+    if replay_run is not None:
+        return await _run_replay(
+            replay_run=replay_run.resolve(),
+            source=source,
+            loaded=loaded,
+            database_root=database_root,
+            timeout_seconds=timeout_seconds,
+            report_root=report_root,
+        )
     if full:
         if per_database is not None or limit is not None:
             raise ValueError("--full cannot be combined with --limit or --per-database")

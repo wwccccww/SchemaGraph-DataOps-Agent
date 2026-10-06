@@ -98,6 +98,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 ### 2.6 外部模型评测（P2）
 
 - 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`、`--max-repair-rounds 4`（5 次模型调用）、`--timeout 180`。
+- **无 LLM 复分**：`--replay-run reports/bird/run_<stamp>_<commit>` 仅重放已保存 `cases/*.json` 中的预测 SQL 并重算 EX（gateway 不可用或计分逻辑变更后复验）；例：`31113b6` 峰值 run 复分为 **7→7**。
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。

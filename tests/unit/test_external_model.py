@@ -11,11 +11,14 @@ from app.agents.text_to_sql.workflow import TextToSqlInspection
 from app.evaluation.external_model import (
     ecommerce_rule_hits,
     evaluate_predictions,
+    inspection_from_replay,
+    load_replay_cases,
     render_model_diagnosis,
     score_prediction,
     select_sample,
     write_model_diagnosis,
 )
+from app.evaluation.bird import load_bird_cases
 from app.evaluation.external_report import (
     ModelCaseTrace,
     build_external_model_summary,
@@ -27,6 +30,25 @@ from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
 from app.schemas.text_to_sql import ApiError, SchemaContextView, TextToSqlResponse
+
+
+def test_inspection_from_replay_extracts_sql() -> None:
+    inspection = inspection_from_replay(
+        {"prediction": {"sql": "SELECT 1 AS n"}, "attempts": 2, "error_category": None}
+    )
+    assert inspection.generated_sql == "SELECT 1 AS n"
+    assert inspection.response.attempts == 2
+
+
+def test_load_replay_cases_from_saved_peak_run() -> None:
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    if not run.is_dir():
+        pytest.skip("saved bird run missing")
+    pairs = load_replay_cases(run, load_bird_cases())
+    assert len(pairs) == 50
+    assert sum(1 for _case, payload in pairs if payload.get("ex") == 1) == 7
 
 
 def test_sample_limits_each_database_without_taking_the_whole_file() -> None:
