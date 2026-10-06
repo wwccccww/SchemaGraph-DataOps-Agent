@@ -137,6 +137,29 @@ def check_frozen_semantic_contract(
                     "冻结 core_tables 不含 client，不要 JOIN client",
                 )
             )
+        if "coe_charter_profile=true" in contract.filters:
+            if re.search(
+                r"Percent[\s\S]*?\*\s*100\s+AS\s+PercentFRPM|\*\s*100\s+AS\s+PercentFRPM",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentFRPM 使用 frpm 小数列，不要 ×100",
+                    )
+                )
+            if re.search(
+                r"cast\s*\(\s*strftime\s*\(\s*'%Y'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "YearOpened 用 STRFTIME('%Y', OpenDate) 文本，不要 CAST INTEGER",
+                    )
+                )
         slim_loan_path = allowed <= {"account", "loan", "trans"}
         if slim_loan_path and re.search(
             r"\b(?:loan|t\d+)\.status\b|\bstatus\s*=\s*['\"]C['\"]",

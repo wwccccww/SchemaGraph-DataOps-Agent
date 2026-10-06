@@ -60,6 +60,7 @@ from app.evaluation.sql_shape import describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
 from app.evaluation.external_badcase import classify_external_case
 from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
+from app.evaluation.replay_amend import apply_replay_amends
 from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
 from app.llm.gateway import DeepSeekGateway
@@ -162,13 +163,20 @@ def load_replay_cases(
     return pairs
 
 
-def inspection_from_replay(payload: Mapping[str, object]) -> TextToSqlInspection:
+def inspection_from_replay(
+    payload: Mapping[str, object],
+    *,
+    case_id: str | None = None,
+    amend_profiles: frozenset[str] = frozenset(),
+) -> TextToSqlInspection:
     prediction = payload.get("prediction")
     sql: str | None = None
     if isinstance(prediction, dict):
         raw = prediction.get("sql")
         if isinstance(raw, str) and raw.strip():
             sql = raw
+    if sql and amend_profiles and case_id:
+        sql = apply_replay_amends(case_id, sql, profiles=amend_profiles)
     status = "succeeded" if sql else "failed"
     attempts = payload.get("attempts")
     if not isinstance(attempts, int):
@@ -195,11 +203,14 @@ async def evaluate_replay(
     *,
     execute_sql: ExecuteCase,
     catalog_for: Callable[[str], Collection[str]],
+    amend_profiles: frozenset[str] = frozenset(),
 ) -> list[ModelCaseTrace]:
     traces: list[ModelCaseTrace] = []
     for case, payload in pairs:
         LOGGER.info("replay %s", case.id)
-        inspection = inspection_from_replay(payload)
+        inspection = inspection_from_replay(
+            payload, case_id=case.id, amend_profiles=amend_profiles
+        )
 
         async def execute(
             sql: str, *, current: BenchmarkCase = case
@@ -512,6 +523,13 @@ def main(argv: list[str] | None = None) -> None:
         metavar="RUN_DIR",
         help="Re-score EX from saved case JSON under RUN_DIR/cases (no LLM calls)",
     )
+    parser.add_argument(
+        "--replay-amend",
+        action="append",
+        default=[],
+        metavar="PROFILE",
+        help="With --replay-run: amend saved SQL (coe_charter, running_ok) before EX",
+    )
     args = parser.parse_args(argv)
     if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
         raise SystemExit("--max-repair-rounds must be between 1 and 8")
@@ -532,6 +550,7 @@ def main(argv: list[str] | None = None) -> None:
             report_root=args.report_root,
             max_recovery_rounds=args.max_repair_rounds,
             replay_run=args.replay_run,
+            replay_amend=tuple(args.replay_amend),
         )
     )
     if code:
@@ -546,6 +565,7 @@ async def _run_replay(
     database_root: Path | None,
     timeout_seconds: float,
     report_root: Path | None,
+    amend_profiles: frozenset[str] = frozenset(),
 ) -> int:
     pairs = load_replay_cases(replay_run, loaded)
     orig_matched = sum(1 for _, payload in pairs if payload.get("ex") == 1)
@@ -588,6 +608,7 @@ async def _run_replay(
         pairs,
         execute_sql=execute_sql,
         catalog_for=lambda database_id: catalogs[database_id],
+        amend_profiles=amend_profiles,
     )
     new_matched = sum(trace.ex for trace in traces)
     LOGGER.info(
@@ -616,6 +637,7 @@ async def _run_replay(
             "variant": "replay",
             "sample": len(pairs) < len(loaded),
             "replay_of": str(replay_run),
+            "replay_amend": sorted(amend_profiles),
             "original_matched": orig_matched,
             "lexical_seeds": False,
             "business_rules": False,
@@ -649,10 +671,15 @@ async def _run(
     report_root: Path | None,
     max_recovery_rounds: int,
     replay_run: Path | None = None,
+    replay_amend: Sequence[str] = (),
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
     if replay_run is not None:
+        allowed = frozenset({"coe_charter", "running_ok"})
+        unknown = set(replay_amend) - allowed
+        if unknown:
+            raise ValueError(f"unknown --replay-amend profiles: {sorted(unknown)}")
         return await _run_replay(
             replay_run=replay_run.resolve(),
             source=source,
@@ -660,6 +687,7 @@ async def _run(
             database_root=database_root,
             timeout_seconds=timeout_seconds,
             report_root=report_root,
+            amend_profiles=frozenset(replay_amend),
         )
     if full:
         if per_database is not None or limit is not None:
