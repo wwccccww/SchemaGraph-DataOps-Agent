@@ -89,7 +89,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 **P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a` 连续 **2×** 全量）已达标；BIRD 全量 EX **6–7/50** 方差带（`31113b6` v15 峰值 **7/50** 含 **`0118`**），距 80 例综合可信度未完成。
 
-**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push`（`cursor/**` 与评测路径）与 **UTC 06:00 日调度** 上跑单元门禁 + `check-external-release`；仓库变量 `EXTERNAL_GOLD_TESTS=1` 且配置 `BIRD_DATABASE_ROOT` 时额外跑集成 Gold 冒烟。发布前本地仍应执行 `verify-tpcds` / `verify-bird` 并刷新 attestation。
+**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push`（`cursor/**` 与评测路径）与 **UTC 06:00 日调度** 上跑单元门禁 + `check-external-release`；仓库变量 `EXTERNAL_GOLD_TESTS=1` 且配置 `BIRD_DATABASE_ROOT` 时额外跑集成 Gold 冒烟。发布前本地仍应执行 `verify-tpcds` / `verify-bird` 并刷新 attestation（`f66e3bc` 上 **50/50 BIRD + 30/30 TPC-DS** Gold 执行已复验，`run_20261006T004429Z_*` / `run_20261006T004553Z_*`）。
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
