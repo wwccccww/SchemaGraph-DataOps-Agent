@@ -369,6 +369,38 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "south_bohemia_top_population_profile=true" in contract.filters:
+            if re.search(
+                r"ORDER BY[\s\S]*inhabitants\s+DESC[\s\S]*LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"population_rank\s*=\s*1", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最多人口区县：RegionStats 中 RANK() OVER (ORDER BY CAST(A4 AS INTEGER) DESC)，"
+                        "WHERE population_rank=1",
+                    )
+                )
+            if re.search(r"ORDER BY[\s\S]*A4\s+DESC|ORDER BY[\s\S]*inhabitants\s+DESC", sql, re.IGNORECASE):
+                if not re.search(r"CAST\s*\(\s*A4\s+AS\s+INTEGER\s*\)|CAST\s*\(\s*d\.A4", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "inhabitants/A4 排序须 CAST(A4 AS INTEGER)（A4 为文本）",
+                        )
+                    )
+            if re.search(r"total_clients", sql, re.IGNORECASE) and re.search(
+                r"COUNT\s*\(\s*c\.client_id\s*\)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"COUNT\s*\(\s*DISTINCT\s+c\.client_id\s*\)", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_clients 用 COUNT(DISTINCT c.client_id)",
+                    )
+                )
         if "loan_98832_19960103_profile=true" in contract.filters:
             if re.search(
                 r"STRFTIME\s*\(\s*'%Y'[\s\S]{0,80}98832|98832[\s\S]{0,80}STRFTIME\s*\(\s*'%Y'",
@@ -2079,6 +2111,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "98832 贷款：LoanClient loan→account→disp OWNER→client；"
                 "ClientTransactions trans.date<loan_date；CardInfo GROUP_CONCAT type；"
                 "previous_loans 子查询跨 client 全部 account。"
+            )
+        if item == "south_bohemia_top_population_profile=true":
+            hints.append(
+                "south Bohemia：RegionStats GROUP BY district；CAST(A4) inhabitants；"
+                "RANK population_rank；JOIN district 取 A2 名称；pct_male= male/total×100。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
