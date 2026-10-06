@@ -122,6 +122,7 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 uv run python -m app.evaluation.ablation
 uv run python -m app.evaluation.external_data freeze-external-gold --source tpcds-derived
 uv run python -m app.evaluation.external_data freeze-external-gold --source bird
+./scripts/fetch_bird_dev_databases.sh   # 下载 MINIDEV dev_databases（见 benchmarks/bird_complex/SOURCE.md）
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
 uv run python -m app.evaluation.external_data check-external-release

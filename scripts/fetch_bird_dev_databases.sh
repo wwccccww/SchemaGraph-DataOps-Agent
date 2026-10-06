@@ -7,6 +7,14 @@ cd "$ROOT"
 DEST_ROOT="${BIRD_FETCH_ROOT:-/tmp/bird_dev}"
 ZIP="${BIRD_FETCH_ZIP:-/tmp/minidev_0703.zip}"
 DEV_DATABASES="$DEST_ROOT/minidev/MINIDEV/dev_databases"
+if [[ -d "$DEV_DATABASES" && "${BIRD_FETCH_FORCE:-0}" != "1" ]]; then
+  echo "bird_database_root=$DEV_DATABASES (reuse existing tree)"
+  echo "export BIRD_DATABASE_ROOT=$DEV_DATABASES"
+  if [[ "${BIRD_FETCH_VERIFY:-0}" == "1" ]]; then
+    python3 -m app.evaluation.external_data verify-bird --database-root "$DEV_DATABASES"
+  fi
+  exit 0
+fi
 echo "fetching minidev zip to $ZIP"
 python3 -m app.evaluation.external_data fetch-bird-databases --dest "$ZIP"
 mkdir -p "$DEST_ROOT"

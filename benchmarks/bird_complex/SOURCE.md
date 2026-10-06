@@ -35,7 +35,6 @@
 重新获取：
 
 ```bash
-./scripts/fetch_bird_dev_databases.sh
 eval "$(./scripts/fetch_bird_dev_databases.sh | grep '^export ')"
 uv run python -m app.evaluation.external_data verify-bird --database-root "$BIRD_DATABASE_ROOT"
 uv run python -m app.evaluation.external_data select-bird --database-root "$BIRD_DATABASE_ROOT"

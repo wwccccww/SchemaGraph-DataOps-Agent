@@ -8,8 +8,8 @@
 2. **BIRD 库（Oracle / replay）**：本地无 MINIDEV 时一键获取（校验 zip sha256，见 [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)）：
 
    ```bash
-   ./scripts/fetch_bird_dev_databases.sh
    eval "$(./scripts/fetch_bird_dev_databases.sh | grep '^export ')"
+   # 强制重下：BIRD_FETCH_FORCE=1 ./scripts/fetch_bird_dev_databases.sh
    # 可选 Oracle：BIRD_FETCH_VERIFY=1 ./scripts/fetch_bird_dev_databases.sh
    ```
 
