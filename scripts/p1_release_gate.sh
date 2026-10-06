@@ -35,6 +35,7 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_wait_for_billing_and_run_p0_script.py \
   tests/unit/test_p0_measured_summary.py \
   tests/unit/test_p0_benchmark_docs.py \
+  tests/unit/test_apply_p0_measured_benchmark_script.py \
   tests/unit/test_external_gold_runbook_docs.py \
   tests/unit/test_tpcds_postgres_reachable.py \
   -q
