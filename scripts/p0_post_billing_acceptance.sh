@@ -24,6 +24,11 @@ if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
   exit 1
 fi
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
+if python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reachable; raise SystemExit(0 if tpcds_postgres_catalog_reachable() else 1)"; then
+  echo "tpcds_postgres_catalog=ready"
+else
+  echo "tpcds_postgres_catalog=unreachable"
+fi
 if [[ "$GATES_ONLY" -eq 1 ]]; then
   echo "mode=gates_only (skipping llm_preflight and 2× full eval while billing blocked)"
   if [[ -n "${P0_GATES_ONLY_STUB:-}" ]]; then

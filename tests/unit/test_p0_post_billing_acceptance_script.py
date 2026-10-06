@@ -124,3 +124,10 @@ exec {real_python} "$@"
     assert "ops_runbook=docs/external_gold_p0_runbook.md" in completed.stdout
     assert "next_after_billing=./scripts/p0_post_billing_acceptance.sh" in completed.stdout
     assert "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh" in completed.stdout
+    assert any(
+        token in completed.stdout
+        for token in (
+            "tpcds_postgres_catalog=ready",
+            "tpcds_postgres_catalog=unreachable",
+        )
+    )
