@@ -94,6 +94,20 @@ def test_bird_0061_contract_includes_hickman_elementary_charter_profile() -> Non
     assert "hickman_elementary_charter_profile=true" in contract_for(case).filters
 
 
+def test_bird_0083_contract_includes_magnet_k8_multiple_provision_by_city_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0083")
+    assert "magnet_k8_multiple_provision_by_city_profile=true" in contract_for(case).filters
+
+
+def test_bird_0116_contract_includes_first_loan_19930705_balance_rate_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0116")
+    assert "first_loan_19930705_balance_rate_profile=true" in contract_for(case).filters
+
+
 def test_bird_0104_contract_includes_transaction_840_19981014_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

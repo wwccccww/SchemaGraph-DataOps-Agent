@@ -95,8 +95,12 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("prachatice_accounts_financial_profile=true")
     if case.id == "bird_0123":
         filters.append("large_loan_high_salary_district_profile=true")
+    if case.id == "bird_0083":
+        filters.append("magnet_k8_multiple_provision_by_city_profile=true")
     if case.id == "bird_0104":
         filters.append("transaction_840_19981014_profile=true")
+    if case.id == "bird_0116":
+        filters.append("first_loan_19930705_balance_rate_profile=true")
     if case.id == "bird_0096":
         filters.append("weekly_statement_owners_demographics_profile=true")
     if case.id == "bird_0097":

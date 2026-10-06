@@ -428,6 +428,71 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "first_loan_19930705_balance_rate_profile=true" in contract.filters:
+            if re.search(r"1993-07-05|1993/7/5|1993-03-22|1998-12-27", sql, re.IGNORECASE):
+                if not re.search(r"T1\.date\s*=\s*'1993-07-05'|loan\.date\s*=\s*'1993-07-05'", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "筛选贷款：loan.date='1993-07-05'（Gold 口径，勿用 client 子查询取 first）",
+                        )
+                    )
+                if re.search(r"\bclient\b|\bdisp\b", sql, re.IGNORECASE) and not re.search(
+                    r"IIF\s*\(", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "余额增幅用 SUM(IIF(trans.date=…, balance, 0)) 聚合（1993-03-22 与 1998-12-27）",
+                        )
+                    )
+                if re.search(
+                    r"SELECT\s+balance\s+FROM\s+trans[\s\S]{0,80}date\s*=",
+                    sql,
+                    re.IGNORECASE,
+                ) and not re.search(r"SUM\s*\(\s*IIF", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "勿用标量子查询取 balance；用 SUM(IIF(date=…, balance, 0)) 同行聚合",
+                        )
+                    )
+        if "magnet_k8_multiple_provision_by_city_profile=true" in contract.filters:
+            if re.search(r"Magnet|K-8|Provision", sql, re.IGNORECASE):
+                if re.search(r"GSserved\s*=\s*'K-8'", sql, re.IGNORECASE) and not re.search(
+                    r"GSoffered\s*=\s*'K-8'", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "K-8 学段过滤用 schools.GSoffered='K-8'（不是 GSserved）",
+                        )
+                    )
+                if re.search(r"Magnet", sql, re.IGNORECASE) and not re.search(
+                    r"Magnet\s*=\s*1", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "magnet 校 schools.Magnet=1",
+                        )
+                    )
+                if re.search(r"frpm|schools", sql, re.IGNORECASE) and not re.search(
+                    r"Multiple Provision Types", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "frpm.`NSLP Provision Status`='Multiple Provision Types'",
+                        )
+                    )
+                if re.search(r"COUNT\s*\(\s*DISTINCT\s+T2\.City\s*\)", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "按 City GROUP BY 并 COUNT(CDSCode)，勿只 COUNT(DISTINCT City)",
+                        )
+                    )
         if "transaction_840_19981014_profile=true" in contract.filters:
             if re.search(r"840", sql) and re.search(r"1998-10-14", sql):
                 if re.search(
@@ -2617,6 +2682,18 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
                 "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
                 "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
+            )
+        if item == "first_loan_19930705_balance_rate_profile=true":
+            hints.append(
+                "1993-07-05 贷款：loan JOIN account JOIN trans；WHERE loan.date='1993-07-05'；"
+                "增幅=(SUM(IIF date=1998-12-27 balance)-SUM(IIF date=1993-03-22 balance))*100"
+                "/SUM(IIF date=1993-03-22 balance)；单行聚合无 GROUP BY。"
+            )
+        if item == "magnet_k8_multiple_provision_by_city_profile=true":
+            hints.append(
+                "Magnet K-8 Multiple Provision：frpm JOIN schools ON CDSCode；"
+                "Magnet=1 AND GSoffered='K-8' AND NSLP Provision Status='Multiple Provision Types'；"
+                "SELECT City, COUNT(CDSCode) GROUP BY City。"
             )
         if item == "transaction_840_19981014_profile=true":
             hints.append(

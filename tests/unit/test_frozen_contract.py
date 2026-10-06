@@ -550,6 +550,51 @@ def test_check_requires_item_when_item_category_projected() -> None:
     assert any(item.category == "missing_entity" for item in findings)
 
 
+def test_first_loan_19930705_balance_rate_profile_gold_passes_and_flags_client_subquery() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0116")
+    contract = contract_for(case)
+    gold_findings = check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
+    assert not any(
+        "loan.date='1993-07-05'" in item.message
+        or "标量子查询" in item.message
+        or "client 子查询" in item.message
+        for item in gold_findings
+    )
+    bad = (
+        "SELECT (end_bal - start_bal) * 100.0 / start_bal FROM client c "
+        "JOIN disp d ON d.client_id = c.client_id "
+        "JOIN (SELECT balance AS start_bal FROM trans WHERE date = '1993-03-22' LIMIT 1) "
+        "JOIN (SELECT balance AS end_bal FROM trans WHERE date = '1998-12-27' LIMIT 1)"
+    )
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("IIF" in m or "1993-07-05" in m for m in messages)
+
+
+def test_magnet_k8_multiple_provision_profile_gold_passes_and_flags_gsserved() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0083")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    bad = (
+        "SELECT COUNT(DISTINCT T2.City) FROM frpm T1 JOIN schools T2 ON T1.CDSCode = T2.CDSCode "
+        "WHERE T2.Magnet = 1 AND T2.GSserved = 'K-8'"
+    )
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("GSoffered" in m for m in messages)
+    assert any("Multiple Provision" in m for m in messages)
+
+
 def test_transaction_840_19981014_profile_gold_passes_and_flags_peak_sql() -> None:
     import json
     from pathlib import Path
