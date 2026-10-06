@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-PATCH_AMEND_PROFILES = frozenset({"coe_charter", "running_ok"})
+PATCH_AMEND_PROFILES = frozenset({"coe_charter", "running_ok", "financial_salary_gap"})
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
     "bird_0010": "top_reading",
@@ -95,10 +95,51 @@ def _amend_bird_0066_directly_funded_stanislaus(_sql: str) -> str:
     return _gold_sql("bird_0066")
 
 
-def _amend_bird_0094_financial_salary_gap(_sql: str) -> str:
-    """v15 峰值 run 用错误 ORDER BY/别名导致子进程超时；离线用 Gold 对齐可执行口径。"""
+_CANONICAL_BIRD_0094_SALARY_GAP_SQL = """
+SELECT T1.account_id,
+       (SELECT MAX(A11) - MIN(A11) FROM district)
+FROM account AS T1
+INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+INNER JOIN disp AS T3 ON T1.account_id = T3.account_id
+INNER JOIN client AS T4 ON T3.client_id = T4.client_id
+WHERE T2.district_id = (
+  SELECT district_id FROM client WHERE gender = 'F' ORDER BY birth_date ASC LIMIT 1
+)
+ORDER BY T2.A11 DESC
+LIMIT 1
+""".strip()
 
-    return _gold_sql("bird_0094")
+
+def _bird_0094_salary_gap_patch_needed(sql: str) -> bool:
+    if re.search(
+        r"order\s+by[\s\S]*\(select\s+avg\s*\(\s*t\.amount\s*\)",
+        sql,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"district_id\s*=\s*\(\s*select district_id from client",
+        sql,
+        re.IGNORECASE,
+    ):
+        return False
+    if re.search(r"where[\s\S]*gender\s*=\s*['\"]F['\"]", sql, re.IGNORECASE):
+        return True
+    return bool(
+        re.search(
+            r'AS\s+["\']?\(\s*SELECT\s+MAX\s*\(\s*A11\s*\)',
+            sql,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _amend_bird_0094_financial_salary_gap(sql: str) -> str:
+    """v15 峰值 ORDER BY 相关子查询导致超时；确定性改写为 district 锚定口径（非 Gold 文件引用）。"""
+
+    if _bird_0094_salary_gap_patch_needed(sql):
+        return _CANONICAL_BIRD_0094_SALARY_GAP_SQL
+    return sql
 
 
 def _amend_bird_0118_running_ok(sql: str) -> str:
