@@ -110,12 +110,12 @@ def test_peak_v15_ex1_cases_all_have_explicit_profile() -> None:
 
 
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
-    """峰值 EX=0 保存 SQL 须触发至少一条冻结语义 finding（self-healing 可纠偏，v58 回归）。"""
+    """峰值 EX=0 保存 SQL 须 ≥3 条冻结语义 finding（v59 峰值 43/43 达标，self-healing 纠偏）。"""
     if not PEAK_V15_RUN.is_dir():
         import pytest
 
         pytest.skip("peak v15 run fixture missing")
-    silent: list[str] = []
+    weak: list[tuple[str, int]] = []
     for case in load_bird_cases():
         case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
         if not case_file.is_file():
@@ -125,12 +125,13 @@ def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
             continue
         sql = (payload.get("prediction") or {}).get("sql") or ""
         if not sql.strip():
-            silent.append(case.id)
+            weak.append((case.id, 0))
             continue
         contract = contract_for(case)
-        if not check_frozen_semantic_contract(contract, sql, dialect="sqlite"):
-            silent.append(case.id)
-    assert silent == [], f"ex=0 cases with zero frozen findings: {silent}"
+        count = len(check_frozen_semantic_contract(contract, sql, dialect="sqlite"))
+        if count < 3:
+            weak.append((case.id, count))
+    assert weak == [], f"ex=0 cases with <3 frozen findings: {weak}"
 
 
 def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
