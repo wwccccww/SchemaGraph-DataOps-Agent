@@ -3,6 +3,12 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
 echo "== check-external-release =="
 python3 -m app.evaluation.external_data check-external-release
 echo "release_ready=$(python3 -c 'from app.evaluation.external_release import release_ready; print(release_ready())')"

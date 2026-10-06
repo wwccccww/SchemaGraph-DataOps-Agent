@@ -4,6 +4,12 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
 GATES_ONLY=0
 if [[ "${1:-}" == "--gates-only" ]]; then
   GATES_ONLY=1
