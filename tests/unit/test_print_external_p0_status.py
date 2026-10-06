@@ -73,6 +73,7 @@ exec {real_python} "$@"
     )
     assert completed.returncode == 0, completed.stderr
     assert "llm_preflight=blocked_billing_402" in completed.stdout
+    assert "while_billing_blocked=./scripts/p0_post_billing_acceptance.sh --gates-only" in completed.stdout
 
 
 def test_print_external_p0_status_reports_ready_with_stub(tmp_path: Path) -> None:

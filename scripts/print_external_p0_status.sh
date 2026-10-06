@@ -47,3 +47,6 @@ if [[ -d "$PEAK/cases" ]]; then
   fi
 fi
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
+if grep -q "402" "$PREFLIGHT_LOG" 2>/dev/null; then
+  echo "while_billing_blocked=./scripts/p0_post_billing_acceptance.sh --gates-only"
+fi
