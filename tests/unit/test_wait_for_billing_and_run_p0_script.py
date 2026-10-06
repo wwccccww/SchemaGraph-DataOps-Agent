@@ -23,6 +23,8 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "BIRD_DATABASE_ROOT is required" in text
     assert "POSTGRES_USER" in text
     assert "tpcds_postgres_catalog=" in text
+    assert "P0_WAIT_LOG" in text
+    assert "wait_log=" in text
 
 
 def test_wait_for_billing_requires_postgres_env() -> None:

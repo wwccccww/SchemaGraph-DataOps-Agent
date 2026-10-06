@@ -27,17 +27,29 @@ else
   echo "tpcds_postgres_catalog=unreachable"
 fi
 INTERVAL="${P0_BILLING_POLL_SECONDS:-300}"
+WAIT_LOG="${P0_WAIT_LOG:-/tmp/p0-wait-billing.log}"
+_p0_wait_log() {
+  # shellcheck disable=SC2129
+  printf '%s\n' "$@" | tee -a "$WAIT_LOG"
+}
+_p0_wait_log "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
+echo "wait_log=${WAIT_LOG}"
+_p0_wait_log "wait_log=${WAIT_LOG}"
+_p0_wait_log "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"
 echo "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"
 while true; do
   if python3 -m app.evaluation.llm_preflight 2>/tmp/wait_for_billing_preflight.err; then
+    _p0_wait_log "llm_preflight=ready"
     echo "llm_preflight=ready"
     break
   fi
   if ! grep -q "402" /tmp/wait_for_billing_preflight.err 2>/dev/null; then
     cat /tmp/wait_for_billing_preflight.err >&2
+    _p0_wait_log "llm_preflight=failed_non_402"
     exit 2
   fi
+  _p0_wait_log "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s"
   echo "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s" >&2
   sleep "$INTERVAL"
 done

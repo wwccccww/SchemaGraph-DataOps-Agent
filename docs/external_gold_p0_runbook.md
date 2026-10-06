@@ -62,6 +62,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 ```bash
 ./scripts/wait_for_billing_and_run_p0.sh
+# 轮询日志默认追加到 /tmp/p0-wait-billing.log（export P0_WAIT_LOG=… 可改）
 ```
 
 须已配置 **`BIRD_DATABASE_ROOT`**（须为存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（与全量 acceptance 相同），否则**立即 exit 1**，避免空轮询或 verify 跑错路径。
