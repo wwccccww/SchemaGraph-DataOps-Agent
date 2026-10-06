@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v36"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v37"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -77,6 +77,9 @@ _GENERIC_SHAPE_TAIL = (
     "第10/11大 K-12 校：ROW_NUMBER() 得 EnrollmentRank，WHERE IN (10,11)；"
     "EligibleFreeRate=ROUND(Free/Enrollment*100,2)||'%'；SchoolType=Charter School/Regular School；"
     "PercentAbove1500SAT=COALESCE(ROUND(PercentAbove1500*100,2),0)||'%'。"
+    "Ricci Ulrich 管理员校：AdmFName1='Ricci' AND AdmLName1='Ulrich'；"
+    "WriteScoreRank/TotalScoreRank 用 RANK()；Comparison 文案 Equal to District Average；"
+    "DifferenceFromDistrictAvg=ROUND(写分-学区均值,2)；PercentageTakingSAT=NumTstTakr×100/Enrollment(K-12)。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

@@ -550,6 +550,31 @@ def test_check_requires_item_when_item_category_projected() -> None:
     assert any(item.category == "missing_entity" for item in findings)
 
 
+def test_ricci_ulrich_admin_sat_profile_gold_passes_and_flags_peak_labels() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0045")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    peak_file = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+        "/cases/bird_0045.json"
+    )
+    if not peak_file.is_file():
+        pytest.skip("peak bird_0045 fixture missing")
+    peak_sql = json.loads(peak_file.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, peak_sql, dialect="sqlite")
+    ]
+    assert any("Equal to District Average" in m for m in messages)
+    assert any("ROUND" in m for m in messages)
+
+
 def test_enrollment_rank_10_11_profile_gold_passes_and_flags_rank() -> None:
     from app.evaluation.bird import load_bird_cases
     from app.evaluation.bird_contracts import contract_for

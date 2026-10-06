@@ -369,6 +369,54 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "ricci_ulrich_admin_sat_profile=true" in contract.filters:
+            if not re.search(
+                r"AdmFName1\s*=\s*'Ricci'[\s\S]*AdmLName1\s*=\s*'Ulrich'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Ricci Ulrich：WHERE AdmFName1='Ricci' AND AdmLName1='Ulrich'",
+                    )
+                )
+            if re.search(r"At District Average", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ComparisonToDistrictAvg 第三档文案为 Equal to District Average（不是 At District Average）",
+                    )
+                )
+            if re.search(r"DifferenceFromDistrictAvg", sql, re.IGNORECASE) and not re.search(
+                r"ROUND\s*\(\s*\(?\s*[\w.]+\.AvgScrWrite\s*-\s*[\w.]+\.DistrictAvgWriteScore",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "DifferenceFromDistrictAvg 用 ROUND(写分-学区均值, 2)",
+                    )
+                )
+            if re.search(r"TotalSATScore\s*/\s*3", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "TotalSATScore=Read+Math+Write 三科之和（不要 /3）",
+                    )
+                )
+            if re.search(r"WriteScoreRank|TotalScoreRank", sql, re.IGNORECASE) and not re.search(
+                r"RANK\s*\(\s*\)\s*OVER",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "WriteScoreRank/TotalScoreRank 用 RANK() OVER (ORDER BY … DESC)",
+                    )
+                )
         if "enrollment_rank_10_11_profile=true" in contract.filters:
             if re.search(r"\bRANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY", sql, re.IGNORECASE):
                 findings.append(
@@ -1398,6 +1446,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "第10/11大 K-12：EnrollmentRanked 用 ROW_NUMBER() OVER (ORDER BY Enrollment DESC)；"
                 "WHERE EnrollmentRank IN (10,11)；SchoolDetails+SATPerformance LEFT JOIN；"
                 "EligibleFreeRate 与 PercentAbove1500SAT 带 ||'%'；SchoolType Charter/Regular School。"
+            )
+        if item == "ricci_ulrich_admin_sat_profile=true":
+            hints.append(
+                "Ricci Ulrich：SchoolStats JOIN satscores+frpm；DistrictAverages 按 District AVG(写分)；"
+                "RANK 写分/总分；Comparison Above/Equal/Below District Average；"
+                "DifferenceFromDistrictAvg ROUND 差值；PercentageTakingSAT=NumTstTakr×100/Enrollment(K-12)。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
