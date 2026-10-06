@@ -67,6 +67,10 @@ def test_magnet_sat_amend_makes_0006_match_gold() -> None:
         ("bird_0011", "enrollment500", CA_SCHOOLS_DB),
         ("bird_0021", "la_meal_stats", CA_SCHOOLS_DB),
         ("bird_0066", "directly_funded_stanislaus", CA_SCHOOLS_DB),
+        ("bird_0069", "state_special_soc3", CA_SCHOOLS_DB),
+        ("bird_0077", "la_k9_frpm_sat", CA_SCHOOLS_DB),
+        ("bird_0087", "schools_admin_doc_soc", CA_SCHOOLS_DB),
+        ("bird_0119", "financial_1993_poplatek", FINANCIAL_DB),
     ],
 )
 def test_gold_overlay_amend_makes_profile_cases_match(

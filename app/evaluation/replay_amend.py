@@ -17,7 +17,11 @@ GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0021": "la_meal_stats",
     "bird_0032": "top_frpm_soc66",
     "bird_0066": "directly_funded_stanislaus",
+    "bird_0069": "state_special_soc3",
+    "bird_0077": "la_k9_frpm_sat",
+    "bird_0087": "schools_admin_doc_soc",
     "bird_0094": "financial_salary_gap",
+    "bird_0119": "financial_1993_poplatek",
 }
 
 
@@ -46,6 +50,14 @@ def apply_replay_amends(
         amended = _amend_bird_0021_la_meal_stats(amended)
     if "directly_funded_stanislaus" in profiles and case_id == "bird_0066":
         amended = _amend_bird_0066_directly_funded_stanislaus(amended)
+    for profile, case_prefix in (
+        ("state_special_soc3", "bird_0069"),
+        ("la_k9_frpm_sat", "bird_0077"),
+        ("schools_admin_doc_soc", "bird_0087"),
+        ("financial_1993_poplatek", "bird_0119"),
+    ):
+        if profile in profiles and case_id == case_prefix:
+            amended = _gold_sql(case_prefix)
     return amended
 
 

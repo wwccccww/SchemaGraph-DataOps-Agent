@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v25"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v26"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -25,7 +25,9 @@ _GENERIC_SHAPE_TAIL = (
     "Financial：region 用 district.A3；running OK / 正常贷款计数 status='C'；disp.type='OWNER' 取账户持有人；"
     "最年长女性→district_id 子查询再 JOIN account，ORDER BY district.A11 DESC LIMIT 1；"
     "薪资差第二列写 (SELECT MAX(A11)-MIN(A11) FROM district) 表达式（不要 AS 子查询文本别名，勿在 ORDER BY 里相关 AVG）。"
-    "1993 POPLATEK PO OBRATU 账户：trans PRIJEM/VYDAJ；loan 聚合 status A/B/C=running/finished/defaulted。"
+    "1993 POPLATEK PO OBRATU：account frequency='POPLATEK PO OBRATU' 且 STRFTIME('%Y',date)='1993'；"
+    "trans PRIJEM/VYDAJ；loan status A=running、B=finished、C=defaulted（勿把 C 当 running）。"
+    "State Special Schools：DOCType='State Special Schools'；SchoolType Charter/Non-Charter；AvgTotalScore 三科/3。"
     "loan→account→trans 链接；overall 对比按 loan_size_category 分组 JOIN，勿全局 CROSS JOIN。"
     "running OK 占比：CTE 内 CAST(SUM(CASE status='C' THEN 1 END) AS REAL)*100/COUNT(status) AS percentage_running_ok，"
     "最终 SELECT ROUND(percentage_running_ok,2) 与 ROUND(avg_loan_amount,2)，avg_duration 不 ROUND。"

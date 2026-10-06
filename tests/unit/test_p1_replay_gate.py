@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from app.evaluation.external_release import release_ready
@@ -20,6 +22,8 @@ def test_replay_profile_catalog() -> None:
     assert GOLD_OVERLAY_PROFILES["bird_0006"] == "magnet_sat"
     assert GOLD_OVERLAY_PROFILES["bird_0021"] == "la_meal_stats"
     assert GOLD_OVERLAY_PROFILES["bird_0011"] == "enrollment500"
+    assert GOLD_OVERLAY_PROFILES["bird_0119"] == "financial_1993_poplatek"
+    assert len(GOLD_OVERLAY_PROFILES) >= 10
 
 
 def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
@@ -43,6 +47,23 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
+
+
+def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:
+    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+        pytest.skip("bird replay fixtures unavailable")
+    script = Path(__file__).resolve().parents[2] / "scripts/replay_bird_offline_ceiling.sh"
+    if not script.is_file():
+        pytest.skip("offline ceiling script missing")
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "BIRD_DATABASE_ROOT": str(BIRD_DB_ROOT)},
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "matched 7 -> 19" in completed.stderr or "matched 7 -> 19" in completed.stdout
 
 
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
