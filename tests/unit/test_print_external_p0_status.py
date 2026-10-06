@@ -67,3 +67,37 @@ exec {real_python} "$@"
     )
     assert completed.returncode == 0, completed.stderr
     assert "llm_preflight=blocked_billing_402" in completed.stdout
+
+
+def test_print_external_p0_status_reports_ready_with_stub(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/print_external_p0_status.sh"
+    real_python = subprocess.run(
+        ["bash", "-lc", "command -v python3"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    fake_python = tmp_path / "python3"
+    fake_python.write_text(
+        f"""#!/usr/bin/env bash
+if [[ "$1" == "-m" && "$2" == "app.evaluation.llm_preflight" ]]; then
+  echo "llm_preflight=ready"
+  exit 0
+fi
+exec {real_python} "$@"
+"""
+    )
+    fake_python.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
+    env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=root,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.count("llm_preflight=ready") >= 1
