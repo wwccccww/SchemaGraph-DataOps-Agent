@@ -5,7 +5,7 @@
 ## 环境
 
 1. 复制 [`.env.example`](../.env.example) 为项目根 `.env`（勿提交）；tmux/CI 无 `.env` 时须 **export** 同名变量（各 gate 脚本会 `source .env` 若存在）。
-2. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量）、计费后 **`DEEPSEEK_API_KEY`**。
+2. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
 3. 可选：**`P0_BIRD_MIN_MATCHED=7`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步）。
 
 ## 脚本 stdout 键（运维/自动化）

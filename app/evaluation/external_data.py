@@ -374,6 +374,27 @@ def snapshot_from_counts(counts: Mapping[str, int]) -> str:
     return hashlib.sha256("\n".join(lines).encode()).hexdigest()
 
 
+def tpcds_postgres_catalog_reachable(*, timeout_seconds: float = 3.0) -> bool:
+    """Env 已设且能连上 TPC-DS catalog 库（replay/verify 前置）。"""
+    try:
+        kwargs = postgres_connection_kwargs()
+    except RuntimeError:
+        return False
+
+    async def probe() -> None:
+        conn = await asyncpg.connect(timeout=timeout_seconds, **kwargs)
+        try:
+            await conn.execute("SELECT 1")
+        finally:
+            await conn.close()
+
+    try:
+        asyncio.run(probe())
+    except Exception:
+        return False
+    return True
+
+
 def postgres_connection_kwargs() -> PostgresTarget:
     """从环境变量读取 TPC-DS 连接参数。不记录密码。"""
 

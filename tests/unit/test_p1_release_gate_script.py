@@ -44,6 +44,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_p0_post_billing_acceptance_script.py",
         "test_wait_for_billing_and_run_p0_script.py",
         "test_external_gold_runbook_docs.py",
+        "test_tpcds_postgres_reachable.py",
     ):
         assert module in script
 

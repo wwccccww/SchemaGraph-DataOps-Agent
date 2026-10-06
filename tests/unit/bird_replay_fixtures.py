@@ -24,4 +24,6 @@ def peak_case_path(case_id: str) -> Path:
 
 def postgres_replay_ready() -> bool:
     """TPC-DS `--replay-run` 需要 Postgres catalog（与 verify-tpcds 相同）。"""
-    return bool(os.environ.get("POSTGRES_USER") and os.environ.get("POSTGRES_PASSWORD"))
+    from app.evaluation.external_data import tpcds_postgres_catalog_reachable
+
+    return tpcds_postgres_catalog_reachable()
