@@ -73,9 +73,7 @@ def test_magnet_sat_amend_makes_0006_match_gold() -> None:
         ("bird_0119", "financial_1993_poplatek", FINANCIAL_DB),
     ],
 )
-def test_gold_overlay_amend_makes_profile_cases_match(
-    case_id: str, profile: str, db: Path
-) -> None:
+def test_gold_overlay_amend_makes_profile_cases_match(case_id: str, profile: str, db: Path) -> None:
     case_file, conn = _require_peak(case_id, db=db)
     payload = json.loads(case_file.read_text())
     sql = payload["prediction"]["sql"]

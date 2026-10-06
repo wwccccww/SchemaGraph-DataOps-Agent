@@ -217,7 +217,7 @@ def check_frozen_semantic_contract(
                 r"FRPM Count \(K-12\)\s*>\s*500|Enrollment \(K-12\)\s*<\s*700",
                 sql,
                 re.I,
-            ) and not re.search(r'FRPM Count \(K-12\)\s*<\s*700', sql, re.I):
+            ) and not re.search(r"FRPM Count \(K-12\)\s*<\s*700", sql, re.I):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",

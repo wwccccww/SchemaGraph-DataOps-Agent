@@ -32,14 +32,10 @@ def test_coe_charter_autofix_changes_peak_0002_sql() -> None:
     payload = json.loads(case_file.read_text())
     case = next(c for c in load_bird_cases() if c.id == "bird_0002")
     sql = payload["prediction"]["sql"]
-    patched = try_deterministic_profile_patch(
-        "bird_0002", sql, contract_for(case)
-    )
+    patched = try_deterministic_profile_patch("bird_0002", sql, contract_for(case))
     assert patched is not None
     assert patched != sql
     assert "PercentFRPM" in patched
     assert "* 100 AS PercentFRPM" not in patched
-    post_findings = check_frozen_semantic_contract(
-        contract_for(case), patched, dialect="sqlite"
-    )
+    post_findings = check_frozen_semantic_contract(contract_for(case), patched, dialect="sqlite")
     assert not post_findings, post_findings

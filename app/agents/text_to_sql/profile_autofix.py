@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Mapping
+
 from app.evaluation.replay_amend import PATCH_AMEND_PROFILES, apply_replay_amends
 from app.schemas.benchmark import SemanticContract
 
@@ -15,9 +17,7 @@ def patch_profiles_for_contract(contract: SemanticContract | None) -> frozenset[
     if contract is None:
         return frozenset()
     filters = set(contract.filters)
-    chosen = {
-        profile for marker, profile in _PROFILE_BY_FILTER if marker in filters
-    }
+    chosen = {profile for marker, profile in _PROFILE_BY_FILTER if marker in filters}
     return frozenset(chosen & PATCH_AMEND_PROFILES)
 
 
@@ -43,7 +43,7 @@ def autofix_sql_when_frozen_contract_clean(
     sql: str,
     contract: SemanticContract | None,
     dialect: str,
-    frozen_contract_state: dict[str, object],
+    frozen_contract_state: Mapping[str, object],
 ) -> str | None:
     """PATCH 后仅要求冻结契约通过（shape 提示可留给后续轮次）。"""
 
@@ -60,8 +60,6 @@ def autofix_sql_when_frozen_contract_clean(
     if payload is None or frozen_contract_state.get("profile") == "ecommerce":
         return decision.sql
     frozen = SemanticContract.model_validate(payload)
-    if check_frozen_semantic_contract(
-        frozen, decision.sql, dialect=dialect
-    ):
+    if check_frozen_semantic_contract(frozen, decision.sql, dialect=dialect):
         return None
     return decision.sql

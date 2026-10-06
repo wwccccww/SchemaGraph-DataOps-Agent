@@ -125,7 +125,12 @@ uv run python -m app.evaluation.external_data freeze-external-gold --source bird
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
 uv run python -m app.evaluation.external_data check-external-release
+./scripts/p1_release_gate.sh          # Oracle + P0/P1 单测（无 LLM）
+./scripts/replay_bird_baseline.sh     # 模型实测基线复分（需 reports 快照）
+./scripts/replay_tpcds_baseline.sh
 ```
+
+Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。详见 `docs/benchmark.md` 外部 P0/P1 清单。
 
 外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
 
