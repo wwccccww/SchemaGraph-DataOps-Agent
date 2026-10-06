@@ -94,6 +94,13 @@ def test_bird_0061_contract_includes_hickman_elementary_charter_profile() -> Non
     assert "hickman_elementary_charter_profile=true" in contract_for(case).filters
 
 
+def test_bird_0104_contract_includes_transaction_840_19981014_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0104")
+    assert "transaction_840_19981014_profile=true" in contract_for(case).filters
+
+
 def test_bird_0096_contract_includes_weekly_statement_owners_demographics_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

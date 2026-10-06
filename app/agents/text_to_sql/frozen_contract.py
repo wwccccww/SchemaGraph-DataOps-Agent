@@ -428,6 +428,42 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "transaction_840_19981014_profile=true" in contract.filters:
+            if re.search(r"840", sql) and re.search(r"1998-10-14", sql):
+                if re.search(
+                    r"JULIANDAY\s*\([^)]+\)\s*/\s*365\.25|"
+                    r"JULIANDAY\s*\(\s*[^)]*transaction[^)]*\)\s*-\s*JULIANDAY\s*\(\s*[^)]*birth",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "age_at_transaction 用 strftime 年差并校正月日（锚点 1998-10-14）",
+                        )
+                    )
+                if re.search(
+                    r"FROM\s+loan[\s\S]{0,160}date\s*<(?!=)",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "has_loan_before_transaction：loan.date<=transaction_date（含当日）",
+                        )
+                    )
+                if (
+                    re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE)
+                    and re.search(r"JOIN\s+owner\s+ON", sql, re.IGNORECASE)
+                    and not re.search(r"LEFT\s+JOIN\s+AccountOwners", sql, re.IGNORECASE)
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "AccountOwners 用 LEFT JOIN（不是 INNER JOIN owner CTE）",
+                        )
+                    )
         if "weekly_statement_owners_demographics_profile=true" in contract.filters:
             if re.search(
                 r"frequency\s*=\s*'weekly'|weekly statement",
@@ -2581,6 +2617,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
                 "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
                 "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
+            )
+        if item == "transaction_840_19981014_profile=true":
+            hints.append(
+                "840@1998-10-14：TransactionDetails CTE trans JOIN account JOIN district；"
+                "AccountOwners LEFT JOIN disp OWNER→client；age strftime 年差+月日校正；"
+                "loan EXISTS date<=transaction_date；cards 子查询 card JOIN disp。"
             )
         if item == "weekly_statement_owners_demographics_profile=true":
             hints.append(

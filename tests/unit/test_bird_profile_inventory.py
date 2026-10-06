@@ -23,8 +23,8 @@ def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
         profiles = [item for item in contract.filters if item.endswith("_profile=true")]
         if profiles:
             with_profile += 1
-    # 44 条显式 profile（其余依赖 generic shape + 投影列契约）
-    assert with_profile >= 44
+    # 45 条显式 profile（其余依赖 generic shape + 投影列契约）
+    assert with_profile >= 45
 
 
 def test_bird_explicit_profile_case_ids() -> None:
@@ -63,6 +63,7 @@ def test_bird_explicit_profile_case_ids() -> None:
             "bird_0097",
             "bird_0100",
             "bird_0103",
+            "bird_0104",
             "bird_0105",
             "bird_0106",
             "bird_0111",
@@ -87,7 +88,7 @@ def test_bird_explicit_profile_case_ids() -> None:
 
 
 def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
-    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v53 自愈口径）。"""
+    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v54 自愈口径）。"""
     if not PEAK_V15_RUN.is_dir():
         import pytest
 
