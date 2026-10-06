@@ -25,6 +25,8 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "p0_acceptance_gate=pass" in body
     assert "p0_measured_manifest.tsv" in body
     assert "tpcds_postgres_catalog_reachable" in body
+    assert "bird_sqlite=" in body
+    assert "fetch_bird_dev_databases.sh" in body
 
 
 def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
