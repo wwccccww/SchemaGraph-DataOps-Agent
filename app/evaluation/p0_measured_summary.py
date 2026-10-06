@@ -116,6 +116,26 @@ def load_manifest(manifest_path: Path) -> tuple[list[Path], list[Path]]:
     return tpcds, bird
 
 
+def baseline_followup_hint(
+    bird_runs: list[RunMeasured],
+    *,
+    documented_bird_min: int = 7,
+) -> str | None:
+    """When new measured runs beat the documented replay baseline, remind to update tests/env."""
+    if not bird_runs:
+        return None
+    stable_matched = bird_runs[0].matched
+    if len(bird_runs) == 2 and stability_label(bird_runs[0], bird_runs[1]) != "stable":
+        return None
+    if stable_matched <= documented_bird_min:
+        return None
+    return (
+        f"p0_baseline_followup=bird_stable_matched={stable_matched}/50 "
+        f"update test_p0_external_measured_baseline.py peak replay asserts and "
+        f"P0_BIRD_MIN_MATCHED={stable_matched} (documented floor was {documented_bird_min})"
+    )
+
+
 def validate_p0_acceptance_gate(
     tpcds_runs: list[RunMeasured],
     bird_runs: list[RunMeasured],
@@ -197,6 +217,9 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"p0_acceptance_gate=fail reason={item}", file=sys.stderr)
             raise SystemExit(3)
         print("p0_acceptance_gate=pass")
+        followup = baseline_followup_hint(bird, documented_bird_min=args.bird_min_matched)
+        if followup is not None:
+            print(followup)
         if args.write_benchmark is not None:
             write_benchmark_measured_section(args.write_benchmark, report)
             print(f"p0_benchmark_docs=updated path={args.write_benchmark}")

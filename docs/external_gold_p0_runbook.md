@@ -95,7 +95,7 @@ p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
 
-若 BIRD 稳定高于 **7/50**，同步更新 `test_p0_external_measured_baseline.py` 与 **`P0_BIRD_MIN_MATCHED`**。
+若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **7/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
 
 ### Measured manifest（2×2 全量）
 
