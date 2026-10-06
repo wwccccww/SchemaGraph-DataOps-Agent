@@ -115,6 +115,13 @@ def test_bird_0092_contract_includes_female_top3_salary_district_profile() -> No
     assert "female_top3_salary_district_profile=true" in contract_for(case).filters
 
 
+def test_bird_0105_contract_includes_loan_approved_19940825_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0105")
+    assert "loan_approved_19940825_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

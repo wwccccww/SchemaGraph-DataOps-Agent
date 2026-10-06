@@ -369,6 +369,53 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "loan_approved_19940825_profile=true" in contract.filters:
+            if re.search(
+                r"A13\s+AS\s+salary_rank|A14\s+AS\s+unemployment_rank",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "salary_rank/unemployment_rank 用 RANK() OVER (ORDER BY A11/A12)，"
+                        "不要 district.A13/A14 列",
+                    )
+                )
+            if re.search(r"salary_rank|unemployment_rank", sql, re.IGNORECASE) and not re.search(
+                r"RANK\s*\(\s*\)\s*OVER",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "DistrictInfo：RANK() OVER (ORDER BY avg_salary DESC) 与 "
+                        "RANK() OVER (ORDER BY unemployment_rate_1995)",
+                    )
+                )
+            if re.search(r"avg_client_age", sql, re.IGNORECASE) and re.search(
+                r"2026-10-01[\s\S]{0,80}avg_client_age|avg_client_age[\s\S]{0,80}2026-10-01",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "avg_client_age 用贷款日 '1994-08-25' 与 birth_date 的 JULIANDAY 差/365.25",
+                    )
+                )
+            if re.search(r"total_income_before_loan", sql, re.IGNORECASE) and re.search(
+                r"SUM\s*\(\s*t\.amount\s*\)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"type\s*=\s*'PRIJEM'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_income_before_loan 仅 SUM PRIJEM 交易（t.date<贷款日）",
+                    )
+                )
         if "female_top3_salary_district_profile=true" in contract.filters:
             if re.search(
                 r"ROW_NUMBER\s*\(\s*\)[\s\S]{0,120}rn\s*<=\s*3",
@@ -1820,6 +1867,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "女 client 区县聚合：DistrictStats+AccountActivity 两 CTE JOIN district_id；"
                 "A11 BETWEEN 6000 AND 10000；salary_rank_in_region<=3；female_clients>=5；"
                 "total_loans>0；最终单行 SUM/AVG 聚合。"
+            )
+        if item == "loan_approved_19940825_profile=true":
+            hints.append(
+                "1994-08-25 loan：LoanAccounts+DistrictInfo+ClientsInDistrict；"
+                "RANK salary/unemployment；ClientsInDistrict 按 district_id；"
+                "trans 子查询 PRIJEM + date<贷款日。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

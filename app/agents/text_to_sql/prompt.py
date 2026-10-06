@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v42"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v43"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -92,6 +92,8 @@ _GENERIC_SHAPE_TAIL = (
     "女 client 区县 Top3 薪资：DistrictStats 按 district GROUP BY 女 client；"
     "RANK() salary_rank_in_region<=3；AccountActivity 按 account.district_id；"
     "loan 计数 A=active/B=completed/C=defaulted；regions_represented=GROUP_CONCAT(DISTINCT region)。"
+    "1994-08-25 贷款：loan.date 过滤；DistrictInfo 用 RANK() 得 salary/unemployment rank（勿用 A13/A14）；"
+    "avg_client_age 以贷款日 JULIANDAY；total_income_before_loan 仅 trans.type='PRIJEM'。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
