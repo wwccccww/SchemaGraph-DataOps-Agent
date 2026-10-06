@@ -7,8 +7,8 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v39_includes_hickman_charter_and_adelanto() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v39"
+def test_generic_prompt_v40_includes_sokolov_financial_loan_status() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v40"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
@@ -24,6 +24,8 @@ def test_generic_prompt_v39_includes_hickman_charter_and_adelanto() -> None:
     assert "grade_span_rank" in sqlite_system
     assert "DOC='52'" in sqlite_system
     assert "High Performing" in sqlite_system or "Performing" in sqlite_system
+    assert "A2='Sokolov'" in sqlite_system
+    assert "status'D'" in sqlite_system or "status='D'" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:

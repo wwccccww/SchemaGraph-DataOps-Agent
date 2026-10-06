@@ -369,6 +369,49 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "sokolov_pre1950_female_owner_profile=true" in contract.filters:
+            if re.search(r"A3\s*=\s*'Sokolov'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Sokolov 区县名用 district.A2='Sokolov'（A3 是 region）",
+                    )
+                )
+            if re.search(r"clients_with_good_loans|Contract Finished/No Problems", sql, re.I):
+                if re.search(
+                    r"status\s*=\s*'C'[\s\S]{0,80}(good|finished|n_good)",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "clients_with_good_loans：loan status='A'（Contract Finished/No Problems）",
+                        )
+                    )
+            if re.search(r"clients_with_debt|Client in Debt", sql, re.I):
+                if re.search(
+                    r"status\s*=\s*'B'[\s\S]{0,80}(debt|n_debt)",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "clients_with_debt：loan status='D'（Running Contract/Client in Debt）",
+                        )
+                    )
+            if re.search(r"clients_with_good_loans", sql, re.I) and not re.search(
+                r"type\s*=\s*'OWNER'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Sokolov 女 client 账户须 disp.type='OWNER'",
+                    )
+                )
         if "hickman_elementary_charter_profile=true" in contract.filters:
             if re.search(
                 r'"Free Meal Count \(K-12\)"\s+AS\s+FRPMCount',
@@ -1602,6 +1645,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "FRPM 列与 High/Medium/Low FRPM；SizeRank ROW_NUMBER PARTITION BY City；"
                 "SATPerformance rtype=S；PercentOver1500=NumGE1500/NumTstTakr；"
                 "SATPerformanceCategory 三档 Performing + No SAT Data。"
+            )
+        if item == "sokolov_pre1950_female_owner_profile=true":
+            hints.append(
+                "Sokolov 女 client：gender F、birth_year<1950、district A2='Sokolov'；"
+                "client_accounts 经 disp OWNER→account；age_at_opening=开户年−出生年；"
+                "loan_details：A=Contract Finished/No Problems，D=Running Contract/Client in Debt。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
