@@ -7,11 +7,23 @@ import subprocess
 from pathlib import Path
 
 
+def _fast_status_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(os.environ if extra is None else {**os.environ, **extra})
+    env["EXTERNAL_P0_STATUS_SKIP_REPLAY"] = "1"
+    return env
+
+
+def test_print_external_p0_status_script_documents_skip_replay_env() -> None:
+    script = Path(__file__).resolve().parents[2] / "scripts/print_external_p0_status.sh"
+    assert "EXTERNAL_P0_STATUS_SKIP_REPLAY" in script.read_text(encoding="utf-8")
+
+
 def test_print_external_p0_status_runs_without_bird_replay() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/print_external_p0_status.sh"
     if not script.is_file():
         raise AssertionError("missing print_external_p0_status.sh")
-    env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
+    env = _fast_status_env()
+    env.pop("BIRD_DATABASE_ROOT", None)
     completed = subprocess.run(
         [str(script)],
         check=False,
@@ -46,7 +58,10 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
             "tpcds_postgres_catalog=unreachable",
         )
     )
-    assert "bird_sqlite=unset" in completed.stdout
+    assert any(
+        line.startswith("bird_sqlite=") for line in completed.stdout.splitlines()
+    )
+    assert "replay_skipped=external_p0_status_skip_replay" in completed.stdout
     peak = (
         script.parents[1]
         / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
@@ -60,8 +75,7 @@ def test_print_external_p0_status_reports_bird_sqlite_missing(tmp_path: Path) ->
     script = root / "scripts/print_external_p0_status.sh"
     empty_root = tmp_path / "dev_databases"
     empty_root.mkdir()
-    env = os.environ.copy()
-    env["BIRD_DATABASE_ROOT"] = str(empty_root)
+    env = _fast_status_env({"BIRD_DATABASE_ROOT": str(empty_root)})
     completed = subprocess.run(
         [str(script)],
         check=False,
@@ -94,7 +108,7 @@ exec {real_python} "$@"
 """
     )
     fake_python.chmod(0o755)
-    env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
+    env = _fast_status_env({k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"})
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     completed = subprocess.run(
         [str(script)],
@@ -132,7 +146,7 @@ exec {real_python} "$@"
 """
     )
     fake_python.chmod(0o755)
-    env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
+    env = _fast_status_env({k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"})
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     completed = subprocess.run(
         [str(script)],

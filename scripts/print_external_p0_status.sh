@@ -42,22 +42,26 @@ else
   echo "bird_sqlite=missing fetch=./scripts/fetch_bird_dev_databases.sh"
 fi
 PEAK="${BIRD_PEAK_RUN:-$ROOT/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
-if [[ -n "${BIRD_DATABASE_ROOT:-}" && -f "$BIRD_SQLITE" && -d "$PEAK/cases" ]]; then
-  echo "== BIRD replay (raw) =="
-  python3 -m app.evaluation.external_model --source bird \
-    --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" 2>&1 | grep "replay EX:" || true
-  echo "== BIRD replay (PATCH autofix) =="
-  python3 -m app.evaluation.external_model --source bird \
-    --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" --replay-patch-autofix 2>&1 \
-    | grep "replay EX:" || true
-else
-  echo "skip BIRD replay: set BIRD_DATABASE_ROOT and ensure peak run at $PEAK" >&2
-fi
 TPCDS_PEAK="${TPCDS_PEAK_RUN:-$ROOT/reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74}"
-if [[ -d "$TPCDS_PEAK/cases" ]]; then
-  echo "== TPC-DS replay =="
-  python3 -m app.evaluation.external_model --source tpcds-derived --replay-run "$TPCDS_PEAK" 2>&1 \
-    | grep "replay EX:" || true
+if [[ "${EXTERNAL_P0_STATUS_SKIP_REPLAY:-0}" == "1" ]]; then
+  echo "replay_skipped=external_p0_status_skip_replay"
+else
+  if [[ -n "${BIRD_DATABASE_ROOT:-}" && -f "$BIRD_SQLITE" && -d "$PEAK/cases" ]]; then
+    echo "== BIRD replay (raw) =="
+    python3 -m app.evaluation.external_model --source bird \
+      --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" 2>&1 | grep "replay EX:" || true
+    echo "== BIRD replay (PATCH autofix) =="
+    python3 -m app.evaluation.external_model --source bird \
+      --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" --replay-patch-autofix 2>&1 \
+      | grep "replay EX:" || true
+  else
+    echo "skip BIRD replay: set BIRD_DATABASE_ROOT and ensure peak run at $PEAK" >&2
+  fi
+  if [[ -d "$TPCDS_PEAK/cases" ]]; then
+    echo "== TPC-DS replay =="
+    python3 -m app.evaluation.external_model --source tpcds-derived --replay-run "$TPCDS_PEAK" 2>&1 \
+      | grep "replay EX:" || true
+  fi
 fi
 if [[ -d "$PEAK/cases" ]]; then
   echo "== peak EX=0 frozen semantic bar (≥3 findings) =="

@@ -48,7 +48,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 
 分步：`./scripts/p1_release_gate.sh`（pytest 子集 + `./scripts/verify_external_gold.sh`）。
 
-**耗时（本地，含 replay 单测 + Oracle verify）**：约 **20–25 分钟**；402 窗口用 `./scripts/print_external_p0_status.sh` 可更快扫一遍 release + replay 摘要。
+**耗时（本地，含 replay 单测 + Oracle verify）**：约 **20–25 分钟**（`p1_release_gate` 内 `test_print_external_p0_status` 设 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 跳过脚本内 replay，门禁约 **5–8 分钟**）；402 运维用 `./scripts/print_external_p0_status.sh` 默认**含** BIRD/TPC-DS replay 摘要（须 **`bird_sqlite=ready`** + Postgres catalog）。
 
 ## 计费恢复后（P0 产品条）
 
