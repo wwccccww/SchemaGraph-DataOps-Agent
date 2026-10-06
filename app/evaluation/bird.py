@@ -107,7 +107,10 @@ def load_bird_cases(path: Path | None = None) -> list[BenchmarkCase]:
     cases = payload.get("cases")
     if not isinstance(cases, list):
         raise ValueError("bird case file must contain a cases list")
-    return [BenchmarkCase.model_validate(case) for case in cases]
+    loaded = [BenchmarkCase.model_validate(case) for case in cases]
+    return [
+        item.model_copy(update={"semantic_contract": bird_contract_for(item)}) for item in loaded
+    ]
 
 
 def build_bird_cases(
