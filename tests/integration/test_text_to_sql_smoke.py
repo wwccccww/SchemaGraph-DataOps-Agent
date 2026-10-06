@@ -211,10 +211,10 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
     assert first.status == "failed"
     assert first.attempts == 3
     assert first.error is not None
-    assert first.error.category == "circuit_breaker"
+    assert first.error.category == "no_progress"
     assert second.attempts == 3
     assert second.error is not None
-    assert second.error.category == "circuit_breaker"
+    assert second.error.category == "no_progress"
     assert len(breaker_model.prompts) == 6
 
 
