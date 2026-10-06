@@ -25,6 +25,7 @@ async def probe_llm_gateway(*, timeout_seconds: float = 30.0) -> None:
 def main() -> None:
     try:
         asyncio.run(probe_llm_gateway())
+        print("llm_preflight=ready")
     except RuntimeError as exc:
         message = str(exc)
         print(message, file=sys.stderr)

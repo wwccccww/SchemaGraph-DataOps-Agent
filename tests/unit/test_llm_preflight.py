@@ -22,6 +22,17 @@ async def test_probe_raises_on_402() -> None:
             await gateway.complete([{"role": "user", "content": "ping"}], temperature=0)
 
 
+def test_main_exits_0_and_prints_ready_on_success(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    async def ok_probe() -> None:
+        return None
+
+    monkeypatch.setattr(llm_preflight, "probe_llm_gateway", ok_probe)
+    llm_preflight.main()
+    assert "llm_preflight=ready" in capsys.readouterr().out
+
+
 def test_main_exits_2_on_402(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fail_probe() -> None:
         raise RuntimeError("model gateway failed with status 402 (Payment Required)")
