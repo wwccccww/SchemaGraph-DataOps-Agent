@@ -106,7 +106,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`** → `llm_preflight` → gate → 2× 全量（402→exit 2） |
 | LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT` |
-| 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | **43/43** 绑定 profile（v56） |
+| 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | **43/43** 绑定 profile（v58） |
+| 峰值 EX=0 frozen 可纠偏 | `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings` | **43/43** 保存 SQL ≥1 finding（v58） |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **7/7** ex=1 题绑定 profile（v56） |
 | P1 脚本冒烟 | `test_p1_release_gate_script.py` | pytest 子集与 `p1_release_gate.sh` 前几步一致 |
 

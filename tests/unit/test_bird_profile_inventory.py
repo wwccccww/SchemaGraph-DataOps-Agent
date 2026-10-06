@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
+from app.agents.text_to_sql.frozen_contract import check_frozen_semantic_contract
 from app.evaluation.bird import BIRD_CASE_COUNT, load_bird_cases
 from app.evaluation.bird_contracts import contract_for
-
-PEAK_V15_RUN = Path(
-    "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
-)
+from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN as PEAK_V15_RUN
 
 
 def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
@@ -112,8 +109,32 @@ def test_peak_v15_ex1_cases_all_have_explicit_profile() -> None:
     assert missing == []
 
 
+def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
+    """峰值 EX=0 保存 SQL 须触发至少一条冻结语义 finding（self-healing 可纠偏，v58 回归）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak v15 run fixture missing")
+    silent: list[str] = []
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if payload.get("ex"):
+            continue
+        sql = (payload.get("prediction") or {}).get("sql") or ""
+        if not sql.strip():
+            silent.append(case.id)
+            continue
+        contract = contract_for(case)
+        if not check_frozen_semantic_contract(contract, sql, dialect="sqlite"):
+            silent.append(case.id)
+    assert silent == [], f"ex=0 cases with zero frozen findings: {silent}"
+
+
 def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
-    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v56 自愈口径）。"""
+    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v58 自愈口径）。"""
     if not PEAK_V15_RUN.is_dir():
         import pytest
 
