@@ -101,7 +101,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | 模型 BIRD 实测 | 峰值 `31113b6` replay | **7/50**（`test_p0_*`）；**80 例综合未完成** |
 | BIRD PATCH 复分上界 | `--replay-patch-autofix` | **9/50**（`test_p0_*` / `test_p1_*`；非发布 EX） |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
-| 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（需 `BIRD_DATABASE_ROOT` 与 TPC-DS 用 `POSTGRES_*`；无 `POSTGRES_*` 时 TPC-DS replay 单测 **skip**；可选 `.env` 自动加载） |
+| 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（需 `BIRD_DATABASE_ROOT` 与 TPC-DS 用 `POSTGRES_*`；无 `POSTGRES_*` 时 TPC-DS replay 单测 **skip**）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | release + `generic_prompt=` + `llm_preflight=` + replay EX + 峰值 **`peak_ex0_frozen_findings=pass_min_3`**（有 `reports/` 快照时） |
 | P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`** → `llm_preflight` → gate → 2× 全量（402→exit 2） |
 | LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |

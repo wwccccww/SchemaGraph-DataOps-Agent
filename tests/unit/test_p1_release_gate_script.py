@@ -30,6 +30,12 @@ def test_p1_release_gate_script_documents_postgres_and_bird_env_notes() -> None:
     assert "skip" in script.lower()
 
 
+def test_env_example_documents_bird_database_root_for_p1_gate() -> None:
+    root = Path(__file__).resolve().parents[2]
+    example = (root / ".env.example").read_text(encoding="utf-8")
+    assert "BIRD_DATABASE_ROOT=" in example
+
+
 def test_p1_release_gate_fast_pytest_subset_passes() -> None:
     """与 gate 同源模块中的快路径（无全量 replay）。"""
     root = Path(__file__).resolve().parents[2]
