@@ -9,6 +9,14 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
+if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
+  echo "BIRD_DATABASE_ROOT is required before unattended P0 acceptance" >&2
+  exit 1
+fi
+if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "POSTGRES_USER and POSTGRES_PASSWORD are required (TPC-DS 2× full eval after billing)" >&2
+  exit 1
+fi
 INTERVAL="${P0_BILLING_POLL_SECONDS:-300}"
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"

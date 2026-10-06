@@ -18,6 +18,27 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "P0_BILLING_POLL_SECONDS" in text
     assert "p0_post_billing_acceptance.sh" in text
     assert "P0_WAIT_STUB_ACCEPTANCE" in text
+    assert "BIRD_DATABASE_ROOT is required" in text
+    assert "POSTGRES_USER" in text
+
+
+def test_wait_for_billing_requires_bird_database_root() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/wait_for_billing_and_run_p0.sh"
+    env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+        timeout=10,
+    )
+    assert completed.returncode == 1
+    assert "BIRD_DATABASE_ROOT" in completed.stderr
 
 
 def test_wait_for_billing_non_402_preflight_exits_without_poll(tmp_path: Path) -> None:
@@ -43,6 +64,11 @@ exec {real_python} "$@"
     env = os.environ.copy()
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
+    env["BIRD_DATABASE_ROOT"] = env.get(
+        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
+    )
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     completed = subprocess.run(
         [str(script)],
         check=False,
@@ -88,6 +114,11 @@ exec {real_python} "$@"
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
     env["P0_WAIT_STUB_ACCEPTANCE"] = "1"
+    env["BIRD_DATABASE_ROOT"] = env.get(
+        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
+    )
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     completed = subprocess.run(
         [str(script)],
         check=False,

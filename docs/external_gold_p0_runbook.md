@@ -54,6 +54,8 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 ./scripts/wait_for_billing_and_run_p0.sh
 ```
 
+须已配置 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（与全量 acceptance 相同），否则**立即 exit 1**，避免空轮询。
+
 非 402 的 preflight 失败会**立即 exit 2**（不无限轮询）。
 
 **退出码**（`p0_post_billing_acceptance.sh` 全量）：**0** 成功；**1** 环境缺失；**2** `llm_preflight`（含 402）；**3** acceptance gate 未 pass（`set -e` 自 `run_external_p0_full_eval_twice.sh` 传播）。
