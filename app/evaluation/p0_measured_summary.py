@@ -114,11 +114,40 @@ def load_manifest(manifest_path: Path) -> tuple[list[Path], list[Path]]:
     return tpcds, bird
 
 
+def validate_p0_acceptance_gate(
+    tpcds_runs: list[RunMeasured],
+    bird_runs: list[RunMeasured],
+    *,
+    tpcds_cases: int = 30,
+) -> list[str]:
+    """Return human-readable failure reasons; empty list means gate passed."""
+    failures: list[str] = []
+    if len(tpcds_runs) != 2:
+        failures.append(f"expected 2 tpcds runs, got {len(tpcds_runs)}")
+    if len(bird_runs) != 2:
+        failures.append(f"expected 2 bird runs, got {len(bird_runs)}")
+    for index, run in enumerate(tpcds_runs, start=1):
+        if run.case_count != tpcds_cases or run.matched != tpcds_cases:
+            failures.append(
+                f"tpcds run{index} need {tpcds_cases}/{tpcds_cases}, got {run.fraction_label}"
+            )
+    if len(tpcds_runs) == 2 and stability_label(tpcds_runs[0], tpcds_runs[1]) != "stable":
+        failures.append("tpcds 2× runs are not stable (matched or ex differ)")
+    if len(bird_runs) == 2 and stability_label(bird_runs[0], bird_runs[1]) != "stable":
+        failures.append("bird 2× runs are not stable (matched or ex differ)")
+    return failures
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Summarize P0 2× full measured run directories")
     parser.add_argument("--manifest", type=Path, help="TSV from run_external_p0_full_eval_twice.sh")
     parser.add_argument("--tpcds-run", type=Path, action="append", default=[], dest="tpcds_runs")
     parser.add_argument("--bird-run", type=Path, action="append", default=[], dest="bird_runs")
+    parser.add_argument(
+        "--acceptance-gate",
+        action="store_true",
+        help="Exit 3 if TPC-DS not 30/30×2 stable or BIRD 2× not stable",
+    )
     args = parser.parse_args(argv)
     tpcds_paths = list(args.tpcds_runs)
     bird_paths = list(args.bird_runs)
@@ -140,6 +169,13 @@ def main(argv: list[str] | None = None) -> None:
             print(f"expected bird run, got {run.benchmark_source}: {run.run_dir}", file=sys.stderr)
             raise SystemExit(1)
     print(format_report(tpcds, bird))
+    if args.acceptance_gate:
+        failures = validate_p0_acceptance_gate(tpcds, bird)
+        if failures:
+            for item in failures:
+                print(f"p0_acceptance_gate=fail reason={item}", file=sys.stderr)
+            raise SystemExit(3)
+        print("p0_acceptance_gate=pass")
 
 
 if __name__ == "__main__":

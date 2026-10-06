@@ -13,6 +13,7 @@ from app.evaluation.p0_measured_summary import (
     load_manifest,
     load_run_measured,
     stability_label,
+    validate_p0_acceptance_gate,
 )
 
 
@@ -100,6 +101,57 @@ def test_load_manifest_tsv(tmp_path: Path) -> None:
     tpcds, bird = load_manifest(manifest)
     assert bird == []
     assert tpcds == [t1]
+
+
+def test_acceptance_gate_passes_on_stable_full_band(tmp_path: Path) -> None:
+    t1 = tmp_path / "t1"
+    t2 = tmp_path / "t2"
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(b1, source="bird", matched=8, case_count=50, accuracy=0.16)
+    _write_summary(b2, source="bird", matched=8, case_count=50, accuracy=0.16)
+    assert validate_p0_acceptance_gate(
+        [load_run_measured(t1), load_run_measured(t2)],
+        [load_run_measured(b1), load_run_measured(b2)],
+    ) == []
+
+
+def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
+    t1 = tmp_path / "t1"
+    t2 = tmp_path / "t2"
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(t2, source="tpcds-derived", matched=29, case_count=30, accuracy=29 / 30)
+    _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
+    _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
+    failures = validate_p0_acceptance_gate(
+        [load_run_measured(t1), load_run_measured(t2)],
+        [load_run_measured(b1), load_run_measured(b2)],
+    )
+    assert any("tpcds" in item for item in failures)
+
+
+def test_cli_acceptance_gate_exit_code(tmp_path: Path) -> None:
+    t1 = tmp_path / "t1"
+    _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.p0_measured_summary",
+            "--tpcds-run",
+            str(t1),
+            "--acceptance-gate",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 3
+    assert "p0_acceptance_gate=fail" in completed.stderr
 
 
 def test_cli_on_peak_bird_fixture() -> None:
