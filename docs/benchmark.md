@@ -110,6 +110,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | 峰值 EX=0 frozen 可纠偏 | `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings` | **43/43** 保存 SQL **≥3** findings（v59） |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **7/7** ex=1 题绑定 profile（v56） |
 | P1 脚本冒烟 | `test_p1_release_gate_script.py` | pytest 子集与 `p1_release_gate.sh` 前几步一致 |
+| P0 acceptance 离线 | `test_peak_documented_runs_pass_full_acceptance_gate_cli` | 文档峰值 run 各 2× 喂 `--acceptance-gate` 得 **`pass`**；校验 gate 逻辑，**不能替代** billing 后新 2× LLM 实测 |
 
 **P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；**PATCH 复分**：`./scripts/replay_bird_patch_autofix.sh`；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
 
