@@ -290,6 +290,27 @@ def test_bird_0005_contract_includes_virtual_sat_f_profile() -> None:
     assert "virtual_sat_f_profile=true" in contract_for(case).filters
 
 
+def test_bird_0000_contract_includes_alameda_highest_free_rate_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0000")
+    assert "alameda_highest_free_rate_profile=true" in contract_for(case).filters
+
+
+def test_bird_0028_contract_includes_locally_funded_enrollment_gap_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0028")
+    assert "locally_funded_enrollment_gap_profile=true" in contract_for(case).filters
+
+
+def test_bird_0036_contract_includes_top_numge1500_admin_names_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0036")
+    assert "top_numge1500_admin_names_profile=true" in contract_for(case).filters
+
+
 def test_bird_0002_contract_includes_coe_charter_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

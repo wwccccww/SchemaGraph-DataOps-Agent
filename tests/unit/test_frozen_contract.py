@@ -550,6 +550,58 @@ def test_check_requires_item_when_item_category_projected() -> None:
     assert any(item.category == "missing_entity" for item in findings)
 
 
+def test_alameda_highest_free_rate_profile_flags_order_by_limit_without_rank() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0000")
+    contract = contract_for(case)
+    gold_findings = check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
+    assert not any("CountyRank" in item.message for item in gold_findings)
+    bad = (
+        "SELECT * FROM frpm f WHERE f.`County Name` = 'Alameda' "
+        "ORDER BY CAST(f.`Free Meal Count (K-12)` AS REAL) / f.`Enrollment (K-12)` DESC LIMIT 1"
+    )
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("CountyRank" in m or "RANK" in m for m in messages)
+
+
+def test_locally_funded_enrollment_gap_profile_flags_charter_funding_type() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0028")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    bad = (
+        "SELECT f.`School Name`, f.`Charter Funding Type` FROM frpm f "
+        "WHERE f.`Charter Funding Type` = 'Locally funded'"
+    )
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("FundingType" in m for m in messages)
+
+
+def test_top_numge1500_admin_names_profile_gold_passes_and_flags_rate_sort() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0036")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    bad = (
+        "SELECT s.AdmFName1 FROM satscores t JOIN schools s ON t.cds = s.CDSCode "
+        "ORDER BY CAST(t.NumGE1500 AS REAL) / t.NumTstTakr DESC LIMIT 1"
+    )
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("NumGE1500 DESC" in m or "比率" in m for m in messages)
+
+
 def test_first_loan_19930705_balance_rate_profile_gold_passes_and_flags_client_subquery() -> None:
     from app.evaluation.bird import load_bird_cases
     from app.evaluation.bird_contracts import contract_for
@@ -570,8 +622,7 @@ def test_first_loan_19930705_balance_rate_profile_gold_passes_and_flags_client_s
         "JOIN (SELECT balance AS end_bal FROM trans WHERE date = '1998-12-27' LIMIT 1)"
     )
     messages = [
-        item.message
-        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
     ]
     assert any("IIF" in m or "1993-07-05" in m for m in messages)
 
@@ -588,8 +639,7 @@ def test_magnet_k8_multiple_provision_profile_gold_passes_and_flags_gsserved() -
         "WHERE T2.Magnet = 1 AND T2.GSserved = 'K-8'"
     )
     messages = [
-        item.message
-        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
     ]
     assert any("GSoffered" in m for m in messages)
     assert any("Multiple Provision" in m for m in messages)

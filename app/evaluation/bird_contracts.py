@@ -17,6 +17,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
     if case.required_tables:
         # 仅作 Prompt 提示；硬校验由投影列推导的表承担，避免一次报 8 条缺表导致熔断。
         filters.append(f"core_tables={','.join(sorted(case.required_tables))}")
+    if case.id == "bird_0000":
+        filters.append("alameda_highest_free_rate_profile=true")
     if case.id == "bird_0002":
         filters.append("coe_charter_profile=true")
     if case.id == "bird_0118":
@@ -27,8 +29,12 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("top_reading_sat_profile=true")
     if case.id == "bird_0032":
         filters.append("top_frpm_soc66_profile=true")
+    if case.id == "bird_0036":
+        filters.append("top_numge1500_admin_names_profile=true")
     if case.id == "bird_0021":
         filters.append("la_meal_stats_aggregate_profile=true")
+    if case.id == "bird_0028":
+        filters.append("locally_funded_enrollment_gap_profile=true")
     if case.id == "bird_0066":
         filters.append("directly_funded_stanislaus_profile=true")
     if case.id == "bird_0069":

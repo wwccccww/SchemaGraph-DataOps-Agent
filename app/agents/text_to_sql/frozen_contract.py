@@ -428,9 +428,155 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "financial_running_ok_profile=true" in contract.filters:
+            if re.search(r"running_ok|percentage_running|loan_size_category", sql, re.IGNORECASE):
+                if (
+                    re.search(r"status\s*=\s*'A'", sql, re.IGNORECASE)
+                    and re.search(r"status\s*=\s*'C'", sql, re.IGNORECASE) is None
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "running OK 用 loan.status='C'（不是 status='A'）",
+                        )
+                    )
+                if re.search(r"count\s*\(\s*\*\s*\)", sql, re.IGNORECASE) and not re.search(
+                    r"count\s*\(\s*status\s*\)",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "running OK 占比分母用 COUNT(status)",
+                        )
+                    )
+                if re.search(r"round\s*\(\s*avg\s*\(\s*duration", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "avg_duration 中间 CTE 不要 ROUND",
+                        )
+                    )
+                if re.search(r"avg_loan_amount", sql, re.IGNORECASE) and not re.search(
+                    r"round\s*\(\s*r\.avg_loan_amount|round\s*\(\s*[^)]*avg_loan_amount",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "最终 SELECT ROUND(avg_loan_amount, 2)",
+                        )
+                    )
+        if "alameda_highest_free_rate_profile=true" in contract.filters:
+            if re.search(r"Alameda|FreeRate|HighestFree|free meal", sql, re.IGNORECASE):
+                if re.search(r"County\s*=\s*'Alameda'", sql, re.IGNORECASE) and not re.search(
+                    r"County Name", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "Alameda 县过滤用 frpm.`County Name`='Alameda'",
+                        )
+                    )
+                if (
+                    re.search(r"ORDER BY[\s\S]{0,160}LIMIT\s+1", sql, re.IGNORECASE)
+                    and not re.search(r"CountyRank\s*=\s*1", sql, re.IGNORECASE)
+                    and not re.search(r"RANK\s*\(", sql, re.IGNORECASE)
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "最高 free rate 用 RANK()…CountyRank=1（勿仅 ORDER BY LIMIT）",
+                        )
+                    )
+                if re.search(r"Charter School \(Y/N\)", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "IsCharterSchool 用 schools.Charter 1/0→Yes/No",
+                        )
+                    )
+                if re.search(r"Percent \(.*\) Eligible Free", sql, re.IGNORECASE) and not re.search(
+                    r"Free Meal Count \(K-12\)|FreeRate",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "HighestFreeRate=Free Meal Count (K-12)/Enrollment (K-12)",
+                        )
+                    )
+        if "locally_funded_enrollment_gap_profile=true" in contract.filters:
+            if re.search(r"Locally funded|Enrollment \(K-12\)", sql, re.IGNORECASE):
+                if not re.search(r"FundingType\s*=\s*'Locally funded'", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "Locally funded 用 schools.FundingType='Locally funded'",
+                        )
+                    )
+                if re.search(r"Charter Funding Type", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "FundingType 在 schools 表（不是 frpm Charter Funding Type）",
+                        )
+                    )
+                if re.search(r"Enrollment \(Ages 5-17\)", sql, re.IGNORECASE) is None:
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "差值=Enrollment (K-12)−Enrollment (Ages 5-17)",
+                        )
+                    )
+                if re.search(r"`School Name`", sql, re.IGNORECASE) and not re.search(
+                    r"\bT2\.School\b|\bschools\.School\b|SELECT\s+T2\.School\b",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "输出 schools.School 与 schools.DOC（不是 frpm School Name）",
+                        )
+                    )
+        if "top_numge1500_admin_names_profile=true" in contract.filters:
+            if re.search(r"NumGE1500|AdmFName|administration|1500", sql, re.IGNORECASE):
+                if re.search(
+                    r"NumGE1500[\s\S]{0,48}/[\s\S]{0,24}NumTstTakr|excellence_rate",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "最高 NumGE1500 校：ORDER BY NumGE1500 DESC LIMIT 1（不是比率）",
+                        )
+                    )
+                if re.search(r"GROUP BY", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "单行管理员姓名：勿 GROUP BY 聚合",
+                        )
+                    )
+                if re.search(r"satscores|NumGE1500", sql, re.IGNORECASE) and not re.search(
+                    r"AdmFName1", sql, re.IGNORECASE
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "投影 AdmFName/LName1–3（schools JOIN satscores ON cds=CDSCode）",
+                        )
+                    )
         if "first_loan_19930705_balance_rate_profile=true" in contract.filters:
             if re.search(r"1993-07-05|1993/7/5|1993-03-22|1998-12-27", sql, re.IGNORECASE):
-                if not re.search(r"T1\.date\s*=\s*'1993-07-05'|loan\.date\s*=\s*'1993-07-05'", sql, re.IGNORECASE):
+                if not re.search(
+                    r"T1\.date\s*=\s*'1993-07-05'|loan\.date\s*=\s*'1993-07-05'", sql, re.IGNORECASE
+                ):
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
@@ -2682,6 +2828,22 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
                 "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
                 "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
+            )
+        if item == "alameda_highest_free_rate_profile=true":
+            hints.append(
+                "Alameda 最高 free rate：CountyStats RANK PARTITION BY County Name ORDER BY FreeRate；"
+                "WHERE CountyRank=1；IsCharterSchool schools.Charter；"
+                "SATPerformance 用 TotalSATScore 三档；CountyAverage 子查询同县 AVG FreeRate。"
+            )
+        if item == "locally_funded_enrollment_gap_profile=true":
+            hints.append(
+                "Locally funded：schools.FundingType；差值 K-12 minus Ages 5-17；"
+                "AVG 差值子查询同 FundingType；SELECT schools.School, schools.DOC。"
+            )
+        if item == "top_numge1500_admin_names_profile=true":
+            hints.append(
+                "最高 NumGE1500：satscores JOIN schools ON cds=CDSCode；"
+                "ORDER BY NumGE1500 DESC LIMIT 1；六列 AdmFName/AdmLName 1–3。"
             )
         if item == "first_loan_19930705_balance_rate_profile=true":
             hints.append(
