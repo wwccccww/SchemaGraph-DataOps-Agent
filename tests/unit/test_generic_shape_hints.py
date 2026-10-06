@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION, system_prompt_for
 from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
+
+
+def test_generic_prompt_v27_includes_sat_rtype_and_no_duplicate_columns() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v27"
+    sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
+    assert "rtype='S'" in sqlite_system
+    assert "PerformanceCategory" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:

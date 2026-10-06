@@ -128,6 +128,7 @@ uv run python -m app.evaluation.external_data check-external-release
 ./scripts/p1_release_gate.sh          # Oracle + P0/P1 单测（无 LLM）
 ./scripts/replay_bird_baseline.sh     # 模型实测基线复分（需 reports 快照）
 ./scripts/replay_bird_patch_autofix.sh  # 峰值 SQL + PATCH autofix 复分（7→9 上界，非新 LLM run）
+./scripts/print_external_p0_status.sh   # 402 时 release + replay 摘要
 ./scripts/replay_tpcds_baseline.sh
 ```
 

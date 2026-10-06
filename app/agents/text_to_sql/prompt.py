@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v26"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v27"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -52,6 +52,8 @@ _GENERIC_SHAPE_TAIL = (
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"
     "窗口函数（RANK/DENSE_RANK/ROW_NUMBER）写在最终 SELECT 中，不要在同一层再对窗口列做 GROUP BY；"
     "可先 CTE 算基础列，再在外层 SELECT 窗口函数并 ORDER BY。"
+    "最终 SELECT 勿输出语义重复的列（如 PerformanceCategory 与 PerformanceClassification 只保留一列）。"
+    "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
     "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
