@@ -11,6 +11,9 @@ def test_run_bird_p0_full_eval_twice_requires_database_root() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/run_bird_p0_full_eval_twice.sh"
     assert script.is_file()
     text = script.read_text(encoding="utf-8")
+    assert "check-external-release" in text
+    assert "llm_preflight" in text
+    assert "--full" in text
     assert "generic_prompt=" in text
     assert 'source "$ROOT/.env"' in text
     completed = subprocess.run(
