@@ -9,6 +9,7 @@ if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   exit 1
 fi
 python3 -m app.evaluation.external_data check-external-release
+python3 -m app.evaluation.llm_preflight
 RUN_DIRS=()
 for run in 1 2; do
   echo "== BIRD full eval run $run/2 =="

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 python3 -m app.evaluation.external_data check-external-release
+python3 -m app.evaluation.llm_preflight
 RUN_DIRS=()
 for run in 1 2; do
   echo "== TPC-DS derived full eval run $run/2 =="
