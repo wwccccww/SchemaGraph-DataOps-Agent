@@ -550,6 +550,24 @@ def test_check_requires_item_when_item_category_projected() -> None:
     assert any(item.category == "missing_entity" for item in findings)
 
 
+def test_enrollment_rank_10_11_profile_gold_passes_and_flags_rank() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0031")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    bad = (
+        "WITH x AS (SELECT RANK() OVER (ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank "
+        "FROM frpm f) SELECT * FROM x WHERE EnrollmentRank IN (10,11)"
+    )
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert any("ROW_NUMBER()" in m for m in messages)
+
+
 def test_amador_high_school_stats_profile_flags_peak_0020_sql() -> None:
     import json
     from pathlib import Path

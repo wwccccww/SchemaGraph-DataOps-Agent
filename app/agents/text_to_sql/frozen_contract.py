@@ -369,6 +369,57 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "enrollment_rank_10_11_profile=true" in contract.filters:
+            if re.search(r"\bRANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "第10/11大校：EnrollmentRank 用 ROW_NUMBER() OVER (ORDER BY Enrollment DESC)",
+                    )
+                )
+            if re.search(
+                r"OFFSET\s+9|LIMIT\s+2[\s\S]*ORDER\s+BY[\s\S]*Enrollment",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "第10/11大校：WHERE EnrollmentRank IN (10,11)，不要用 LIMIT/OFFSET 取第10/11行",
+                    )
+                )
+            if re.search(r"EligibleFreeRate", sql, re.IGNORECASE) and not re.search(
+                r"\|\|\s*'%'",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EligibleFreeRate 输出 ROUND(rate*100,2)||'%'",
+                    )
+                )
+            if re.search(
+                r"Charter\s*=\s*1\s+THEN\s+'Yes'|Charter\s*=\s*0\s+THEN\s+'No'",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"SchoolType", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter School / Regular School（schools.Charter 1/0）",
+                    )
+                )
+            if re.search(r"PercentAbove1500SAT", sql, re.IGNORECASE) and not re.search(
+                r"Percent(?:age)?Above1500[\s\S]{0,120}\|\|\s*'%'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentAbove1500SAT 用 COALESCE(ROUND(PercentAbove1500*100,2),0)||'%'",
+                    )
+                )
         if "amador_high_school_stats_profile=true" in contract.filters:
             if re.search(r"GSserved\s+LIKE", sql, re.IGNORECASE):
                 findings.append(
@@ -1341,6 +1392,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Amador 9-12：SchoolInfo+SATData CTE；聚合 COUNT/AVG/SUM；"
                 "DistrictCount 子查询；LargestSchool EnrollmentRank=1；"
                 "MaxPercentAbove1500 来自 SAT NumGE1500/NumTstTakr×100。"
+            )
+        if item == "enrollment_rank_10_11_profile=true":
+            hints.append(
+                "第10/11大 K-12：EnrollmentRanked 用 ROW_NUMBER() OVER (ORDER BY Enrollment DESC)；"
+                "WHERE EnrollmentRank IN (10,11)；SchoolDetails+SATPerformance LEFT JOIN；"
+                "EligibleFreeRate 与 PercentAbove1500SAT 带 ||'%'；SchoolType Charter/Regular School。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

@@ -66,6 +66,13 @@ def test_bird_0020_contract_includes_amador_high_school_stats_profile() -> None:
     assert "amador_high_school_stats_profile=true" in contract_for(case).filters
 
 
+def test_bird_0031_contract_includes_enrollment_rank_10_11_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0031")
+    assert "enrollment_rank_10_11_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

@@ -7,8 +7,8 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v35_includes_amador_high_school() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v35"
+def test_generic_prompt_v36_includes_amador_and_enrollment_rank() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v36"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
@@ -16,6 +16,8 @@ def test_generic_prompt_v35_includes_amador_high_school() -> None:
     assert "High/Medium/Low" in sqlite_system
     assert "MailStreet" in sqlite_system
     assert "Total Schools Ratio" in sqlite_system
+    assert "ROW_NUMBER()" in sqlite_system
+    assert "IN (10,11)" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:
