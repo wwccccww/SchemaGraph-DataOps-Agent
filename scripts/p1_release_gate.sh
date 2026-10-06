@@ -30,5 +30,6 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_p1_release_gate_script.py \
   tests/unit/test_p0_post_billing_acceptance_script.py \
   tests/unit/test_p0_measured_summary.py \
+  tests/unit/test_external_gold_runbook_docs.py \
   -q
 "$ROOT/scripts/verify_external_gold.sh"

@@ -126,6 +126,8 @@ uv run python -m app.evaluation.external_data verify-bird --database-root /path/
 uv run python -m app.evaluation.external_data verify-tpcds
 uv run python -m app.evaluation.external_data check-external-release
 ./scripts/p1_release_gate.sh          # Oracle + P0/P1 单测（无 LLM）
+./scripts/p0_post_billing_acceptance.sh --gates-only  # 402 期间：仅 P1 门禁（需 BIRD_DATABASE_ROOT + POSTGRES_*）
+./scripts/p0_post_billing_acceptance.sh # 计费恢复后：preflight + 门禁 + 2× 全量 + acceptance gate
 ./scripts/replay_bird_baseline.sh     # 模型实测基线复分（需 reports 快照）
 ./scripts/replay_bird_patch_autofix.sh  # 峰值 SQL + PATCH autofix 复分（7→9 上界，非新 LLM run）
 ./scripts/print_external_p0_status.sh   # 402 时 release、prompt 版本、llm_preflight + replay 摘要
@@ -136,7 +138,7 @@ python3 -m app.evaluation.llm_preflight       # P0 全量前探测（402→exit 
 ./scripts/replay_tpcds_baseline.sh
 ```
 
-Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。详见 `docs/benchmark.md` 外部 P0/P1 清单。
+Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。运维与验收路径见 [`docs/external_gold_p0_runbook.md`](docs/external_gold_p0_runbook.md) 与 [`docs/benchmark.md`](docs/benchmark.md) 外部 P0/P1 清单。
 
 外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
 
