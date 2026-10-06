@@ -7,14 +7,15 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v28_includes_sat_rtype_and_frpm_classification() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v28"
+def test_generic_prompt_v29_includes_sat_rtype_and_county_ratios() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v29"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
     assert "despite high FRPM" in sqlite_system
     assert "High/Medium/Low" in sqlite_system
     assert "MailStreet" in sqlite_system
+    assert "Total Schools Ratio" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:

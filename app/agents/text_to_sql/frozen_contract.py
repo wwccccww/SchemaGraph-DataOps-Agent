@@ -369,6 +369,44 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "colusa_humboldt_ratio_profile=true" in contract.filters:
+            if re.search(
+                r"High Free Meal|free meal eligibility|free_meal.*0\.75",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "High FRPM 校计数用 Percent (%) Eligible FRPM (K-12) > 0.5，"
+                        "不要用 free meal rate 0.75 或 High Free Meal 文案",
+                    )
+                )
+            if re.search(
+                r"SUM\s*\(\s*f\.[\"']Free Meal Count \(K-12\)[\"']",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPM 学生总量用 SUM(FRPM Count (K-12))，不要用 Free Meal Count",
+                    )
+                )
+            for metric in re.findall(
+                r"SELECT\s+'([^']+)'\s*(?:AS\s+Metric)?\s*,",
+                sql,
+                re.IGNORECASE,
+            ):
+                if metric and not metric.strip().endswith("Ratio"):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            f"Metric 文案须以 Ratio 结尾（如 Total Schools Ratio），"
+                            f"不要用 '{metric}'",
+                        )
+                    )
+                    break
         if "high_frpm_unexpected_performance_profile=true" in contract.filters:
             if re.search(r"PerformanceCategory", sql, re.IGNORECASE) and re.search(
                 r"Below Average|Above Average|'Average'",
@@ -1070,6 +1108,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "colusa_humboldt_ratio_profile=true":
+            hints.append(
+                "Colusa vs Humboldt：两 CTE 分别 County='Colusa'/'Humboldt'；"
+                "6 行 UNION ALL，Metric 如 Total Schools Ratio；Ratio=Colusa/Humboldt；"
+                "High FRPM 校 Percent FRPM>0.5；FRPM 学生 SUM(FRPM Count (K-12))。"
             )
         if item == "high_frpm_unexpected_performance_profile=true":
             hints.append(

@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v28"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v29"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -57,6 +57,8 @@ _GENERIC_SHAPE_TAIL = (
     "问句含 unexpectedly well/poorly given FRPM：PerformanceCategory 用 High/Medium/Low（≥1500/≥1200）；"
     "PerformanceClassification 用 FRPM 小数阈值与 despite high/low FRPM 文案；"
     "UnabbreviatedMailingAddress 投影 schools.MailStreet；非 charter 用 frpm Charter School (Y/N)=0。"
+    "两县指标比值：Metric 列文案以 Ratio 结尾（如 Total Schools Ratio）；High FRPM 校用 Percent FRPM>0.5；"
+    "FRPM 学生总量用 SUM(FRPM Count (K-12))，勿用 Free Meal Count。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
