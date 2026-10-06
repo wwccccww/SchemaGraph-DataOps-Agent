@@ -24,6 +24,9 @@ _PROJECTION_COLUMNS: dict[str, str] = {
     "return_reason": "reason.r_reason_desc",
     "sales_year": "date_dim.d_year",
     "return_year": "date_dim.d_year",
+    "CharterSchoolName": 'frpm."School Name"',
+    "PercentFRPM": 'frpm."Percent (%) Eligible FRPM (K-12)"',
+    "YearOpened": "STRFTIME('%Y', schools.OpenDate)",
 }
 _PROJECTION_TABLES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("item_category", ("item",)),
@@ -579,6 +582,17 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
             hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+        if item == "coe_charter_profile=true":
+            hints.append(
+                "Fresno COE charter：frpm.`District Name` + `Charter School (Y/N)`=1；"
+                "CharterSchoolName=frpm.`School Name`；PercentFRPM 用小数列（不×100）；"
+                "FRPMCategory 严格 >0.75/>0.50；YearOpened 文本年。"
+            )
+        if item == "financial_running_ok_profile=true":
+            hints.append(
+                "running OK：COUNT(status) 分母；CTE percentage 不 ROUND；"
+                "最终 ROUND(percentage_running_ok,2) 与 ROUND(avg_loan_amount,2)；avg_duration 不 ROUND。"
+            )
         if item == "returns_vs_sales=separate_cte":
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"

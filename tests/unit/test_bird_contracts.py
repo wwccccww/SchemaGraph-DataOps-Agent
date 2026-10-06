@@ -37,6 +37,18 @@ def test_bird_contract_lists_core_tables_and_projections() -> None:
     assert contract.projections[-1] == "FreeRate"
 
 
+def test_bird_0002_contract_includes_coe_charter_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0002")
+    contract = contract_for(case)
+    assert "coe_charter_profile=true" in contract.filters
+    text = __import__(
+        "app.agents.text_to_sql.frozen_contract", fromlist=["format_frozen_semantic_contract"]
+    ).format_frozen_semantic_contract(contract)
+    assert "PercentFRPM 用小数列" in text
+
+
 def test_bird_contract_does_not_treat_last_column_as_measure() -> None:
     case = BenchmarkCase.model_validate(
         {

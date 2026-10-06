@@ -95,6 +95,16 @@ def test_coe_charter_flags_percent_frpm_times_100() -> None:
     assert any("不要 ×100" in item.message for item in findings)
 
 
+def test_top_n_cte_order_limit_flagged() -> None:
+    question = "For the top 5 schools with the highest FRPM count, list details."
+    sql = (
+        "WITH base AS (SELECT 1 AS x FROM frpm ORDER BY x DESC LIMIT 5) "
+        "SELECT * FROM base"
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    assert any("RANK()" in item.message for item in findings)
+
+
 def test_charter_prefers_schools_table() -> None:
     question = "Is it a charter school?"
     sql = (
