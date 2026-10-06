@@ -33,7 +33,9 @@ def test_main_exits_0_and_prints_ready_on_success(
     assert "llm_preflight=ready" in capsys.readouterr().out
 
 
-def test_main_exits_2_on_402(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_exits_2_on_402(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     async def fail_probe() -> None:
         raise RuntimeError("model gateway failed with status 402 (Payment Required)")
 
@@ -41,3 +43,6 @@ def test_main_exits_2_on_402(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit) as exc:
         llm_preflight.main()
     assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "external_gold_p0_runbook.md" in err
+    assert "--gates-only" in err

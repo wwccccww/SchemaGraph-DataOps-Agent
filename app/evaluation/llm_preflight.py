@@ -35,6 +35,11 @@ def main() -> None:
                 "and --replay-run until billing is restored.",
                 file=sys.stderr,
             )
+            print(
+                "P0/P1 ops: docs/external_gold_p0_runbook.md; "
+                "./scripts/p0_post_billing_acceptance.sh --gates-only",
+                file=sys.stderr,
+            )
             raise SystemExit(2) from exc
         raise SystemExit(1) from exc
 
