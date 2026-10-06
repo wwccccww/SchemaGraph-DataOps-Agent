@@ -15,6 +15,7 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     text = script.read_text(encoding="utf-8")
     assert "--gates-only" in text
     assert 'source "$ROOT/.env"' in text
+    assert "p0_acceptance_gate=pass" in text
 
 
 def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
