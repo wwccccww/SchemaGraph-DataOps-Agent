@@ -35,3 +35,33 @@ def try_deterministic_profile_patch(
     if patched == sql:
         return None
     return patched
+
+
+def autofix_sql_when_frozen_contract_clean(
+    *,
+    case_id: str | None,
+    sql: str,
+    contract: SemanticContract | None,
+    dialect: str,
+    frozen_contract_state: dict[str, object],
+) -> str | None:
+    """PATCH 后仅要求冻结契约通过（shape 提示可留给后续轮次）。"""
+
+    from app.agents.text_to_sql.frozen_contract import check_frozen_semantic_contract
+    from app.sandbox.gate import check_read_only_sql
+
+    patched = try_deterministic_profile_patch(case_id, sql, contract)
+    if patched is None:
+        return None
+    decision = check_read_only_sql(patched, dialect=dialect)
+    if decision.error is not None or not decision.sql:
+        return None
+    payload = frozen_contract_state.get("frozen_contract")
+    if payload is None or frozen_contract_state.get("profile") == "ecommerce":
+        return decision.sql
+    frozen = SemanticContract.model_validate(payload)
+    if check_frozen_semantic_contract(
+        frozen, decision.sql, dialect=dialect
+    ):
+        return None
+    return decision.sql

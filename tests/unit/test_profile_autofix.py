@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.agents.text_to_sql.frozen_contract import check_frozen_semantic_contract
 from app.agents.text_to_sql.profile_autofix import (
     patch_profiles_for_contract,
     try_deterministic_profile_patch,
@@ -38,3 +39,7 @@ def test_coe_charter_autofix_changes_peak_0002_sql() -> None:
     assert patched != sql
     assert "PercentFRPM" in patched
     assert "* 100 AS PercentFRPM" not in patched
+    post_findings = check_frozen_semantic_contract(
+        contract_for(case), patched, dialect="sqlite"
+    )
+    assert not post_findings, post_findings

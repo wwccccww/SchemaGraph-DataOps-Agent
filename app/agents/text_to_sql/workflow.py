@@ -19,7 +19,7 @@ from app.agents.text_to_sql.frozen_contract import (
     check_frozen_semantic_contract,
     format_frozen_semantic_contract,
 )
-from app.agents.text_to_sql.profile_autofix import try_deterministic_profile_patch
+from app.agents.text_to_sql.profile_autofix import autofix_sql_when_frozen_contract_clean
 from app.agents.text_to_sql.prompt import (
     extract_sql,
     render_generation_prompt,
@@ -600,25 +600,28 @@ def _validate_sql(
             documents, _edges = await services.load_catalog()
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
+        payload = state.get("frozen_contract")
+        contract = SemanticContract.model_validate(payload) if payload else None
+        case_id = state.get("benchmark_case_id")
+
+        def _autofix(sql: str) -> str | None:
+            return autofix_sql_when_frozen_contract_clean(
+                case_id=case_id,
+                sql=sql,
+                contract=contract,
+                dialect=state["dialect"],
+                frozen_contract_state=state,
+            )
+
         findings = await _validation_findings_for_sql(services, state, decision.sql)
         if findings:
-            payload = state.get("frozen_contract")
-            contract = SemanticContract.model_validate(payload) if payload else None
-            patched = try_deterministic_profile_patch(
-                state.get("benchmark_case_id"), decision.sql, contract
-            )
-            if patched is not None:
-                patched_decision = check_read_only_sql(patched, dialect=state["dialect"])
-                if patched_decision.error is None:
-                    patched_findings = await _validation_findings_for_sql(
-                        services, state, patched_decision.sql
-                    )
-                    if not patched_findings:
-                        return {
-                            "status": "validated",
-                            "generated_sql": patched_decision.sql,
-                        }
+            fixed = _autofix(sql)
+            if fixed is not None:
+                return {"status": "validated", "generated_sql": fixed}
             return _fail_or_restore(state, _review_error(findings))
+        fixed = _autofix(sql)
+        if fixed is not None and fixed != decision.sql:
+            return {"status": "validated", "generated_sql": fixed}
         return {"status": "validated", "generated_sql": decision.sql}
 
     return validate_sql

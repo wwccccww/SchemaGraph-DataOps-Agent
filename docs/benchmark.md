@@ -103,7 +103,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
-- 外部模型 **`self_healing`** 在校验失败时会尝试 **PATCH 级确定性口径补丁**（如 `coe_charter`、`running_ok`），不含 Gold 覆盖；需传入 `benchmark_case_id`（`external_model` 已注入）。
+- 外部模型 **`self_healing`** 在校验失败时会尝试 **PATCH 级确定性口径补丁**（如 `coe_charter`、`running_ok`），对**原始生成 SQL** 做替换后再过只读门禁（避免 gate 规范化导致补丁失配）；不含 Gold 覆盖；`external_model` 注入 `benchmark_case_id`。
 - Generic Prompt 当前 **`text-to-sql-generic-v26`**（v25：**0011/0021/0066**；v26：**0069/0119** State Special + 1993 POPLATEK）。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 已可执行）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
 - **P1 本地 verify（Gold Oracle，无模型）**：
   ```bash
