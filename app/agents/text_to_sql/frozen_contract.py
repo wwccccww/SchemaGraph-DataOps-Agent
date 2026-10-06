@@ -233,6 +233,17 @@ def check_frozen_semantic_contract(
                         "FreeMealCategory 按 Free Meal Count：Very High (>600)/High (>500)/Moderate",
                     )
                 )
+            if re.search(r"High FRPM|Medium FRPM", sql) and re.search(
+                r"FreeMealCategoryBreakdown|frpm_category",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "餐食分档按 Free Meal Count（Very High/High/Moderate），不要用 FRPM 占比 High FRPM 标签",
+                    )
+                )
         if "financial_salary_gap_profile=true" in contract.filters:
             if re.search(
                 r'AS\s+["\']?\(\s*SELECT\s+MAX\s*\(\s*A11\s*\)',
@@ -269,6 +280,13 @@ def check_frozen_semantic_contract(
                         "ORDER BY district.A11 DESC LIMIT 1 取 account_id（勿 ORDER BY birth_date+相关 AVG）",
                     )
                 )
+            if re.search(r"ORDER BY\s+c\.birth_date", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ORDER BY district.A11 DESC LIMIT 1 取 account_id，不要 ORDER BY client.birth_date",
+                    )
+                )
         if "schools_admin_doc_soc_profile=true" in contract.filters:
             if re.search(r"District\s+LIKE|GSserved\s+LIKE|GSoffered\s+LIKE", sql, re.IGNORECASE):
                 findings.append(
@@ -283,6 +301,20 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "开业年份用 strftime('%Y', OpenDate) BETWEEN '2009' AND '2010'",
+                    )
+                )
+            if not re.search(r"\bDOC\s*=\s*54", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Unified School District 过滤用 schools.DOC=54",
+                    )
+                )
+            if not re.search(r"\bSOC\s*=\s*62", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Intermediate/Middle 公立校过滤用 schools.SOC=62",
                     )
                 )
         if "la_k9_frpm_sat_profile=true" in contract.filters:
@@ -1606,6 +1638,18 @@ def check_frozen_semantic_contract(
                         "Adelanto 题须 StatusType='Active'",
                     )
                 )
+            if re.search(
+                r"SUM\s*\(\s*CASE\s+WHEN\s+frpm_pct\s*>=",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "poverty 计数：SchoolStats 中 CASE→High/Medium/Low Poverty，"
+                        "外层 COUNT(CASE WHEN poverty_level=…)，不要 SUM(CASE frpm_pct>=75)",
+                    )
+                )
         if "ricci_ulrich_admin_sat_profile=true" in contract.filters:
             if not re.search(
                 r"AdmFName1\s*=\s*'Ricci'[\s\S]*AdmLName1\s*=\s*'Ulrich'",
@@ -1652,6 +1696,17 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "WriteScoreRank/TotalScoreRank 用 RANK() OVER (ORDER BY … DESC)",
+                    )
+                )
+            if re.search(
+                r"AdmFName1\s*=\s*'Ricci'",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"LEFT\s+JOIN\s+satscores", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Ricci Ulrich 题 satscores 用 INNER JOIN（有 SAT 的校才纳入）",
                     )
                 )
         if "enrollment_rank_10_11_profile=true" in contract.filters:
@@ -1703,6 +1758,38 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "PercentAbove1500SAT 用 COALESCE(ROUND(PercentAbove1500*100,2),0)||'%'",
+                    )
+                )
+            if re.search(r'School Type"', sql, re.IGNORECASE) and not re.search(
+                r"Charter School",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 schools.Charter→Charter School / Regular School，不要用 frpm.`School Type`",
+                    )
+                )
+            if re.search(r'"Low Grade"|low_grade\s*\|\|', sql, re.IGNORECASE) and re.search(
+                r"GradeSpan",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "GradeSpan 用 schools.GSoffered，不要用 Low/High Grade 拼接",
+                    )
+                )
+            if re.search(r"\brn\s+IN\s*\(\s*10", sql, re.IGNORECASE) and not re.search(
+                r"EnrollmentRank\s+IN\s*\(\s*10",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "WHERE EnrollmentRank IN (10, 11)（CTE 列名 EnrollmentRank，不要 rn IN）",
                     )
                 )
         if "amador_high_school_stats_profile=true" in contract.filters:
