@@ -107,11 +107,12 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | 自动 `source` 项目根 `.env`（若有）；release + `llm_preflight=blocked_billing_402` 时打印 **`while_billing_blocked=… --gates-only`** + replay + **`peak_ex0_frozen_findings=pass_min_3`** |
 | P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`，与 `p1_release_gate.sh` 一致）→ `llm_preflight` → gate → 2× 全量（402→exit 2）；结束 **`p0_measured_summary --acceptance-gate`**（TPC-DS **30/30×2 stable** + BIRD **2× stable** 且每轮 **≥7/50** 实测基线，失败 exit **3**；调高目标用 `--bird-min-matched N` 或 export **`P0_BIRD_MIN_MATCHED=N`**（与 `test_p0_external_measured_baseline` 同步））；402 期间 **`--gates-only`** 仅跑 P1 门禁 |
 | LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |
-| CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT` |
+| CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT`；**`p1_release_gate.sh` pytest 模块**须为 fingerprints 子集（`test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints`） |
 | 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | **43/43** 绑定 profile（v58） |
 | 峰值 EX=0 frozen 可纠偏 | `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings` | **43/43** 保存 SQL **≥3** findings（v59） |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **7/7** ex=1 题绑定 profile（v56） |
-| P1 脚本冒烟 | `test_p1_release_gate_script.py` | pytest 子集与 `p1_release_gate.sh` 前几步一致 |
+| P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
+| P0/P1 runbook 交叉引用 | `test_external_gold_runbook_docs.py` | runbook 存在且 `benchmark.md` / `README.md` / `external-gold.yml` 路径一致 |
 | P0 acceptance 离线 | `test_peak_documented_runs_pass_full_acceptance_gate_cli` | 文档峰值 run 各 2× 喂 `--acceptance-gate` 得 **`pass`**；校验 gate 逻辑，**不能替代** billing 后新 2× LLM 实测 |
 
 **P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；**PATCH 复分**：`./scripts/replay_bird_patch_autofix.sh`；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
