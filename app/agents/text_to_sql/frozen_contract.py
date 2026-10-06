@@ -369,6 +369,38 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "la_low_free_meal_profile=true" in contract.filters:
+            if re.search(r"Low FRPM|'Low FRPM'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeCategory 按 free meal 百分比分 Very Low/Low/Medium/High，"
+                        "不要用 Low FRPM",
+                    )
+                )
+            if re.search(
+                r"RANK\s*\(\s*\)\s+OVER\s*\(\s*ORDER\s+BY[\s\S]*CountyRank",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CountyRank 用 ROW_NUMBER() OVER (PARTITION BY County ORDER BY FreePercent)",
+                    )
+                )
+            if re.search(r"<\s*0\.0018", sql) and not re.search(
+                r"\*\s*100[\s\S]*<\s*0\.18",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "free meal 率用 Free Meal Count/Enrollment×100 得 FreePercent，"
+                        "过滤 FreePercent < 0.18（不要用小数 0.0018 口径混用）",
+                    )
+                )
         if "fresno_direct_funded_charter_profile=true" in contract.filters:
             if re.search(r"\bFundingType\b", sql, re.IGNORECASE) and not re.search(
                 r"Charter Funding Type",
@@ -1154,6 +1186,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "la_low_free_meal_profile=true":
+            hints.append(
+                "LA 非 charter 低 free meal：schools.Charter=0、County='Los Angeles'；"
+                "FreePercent=free/enrollment×100，WHERE FreePercent<0.18；"
+                "CountyStats 聚合；CountyRank=ROW_NUMBER；PctLowFreeInCounty 带 %。"
             )
         if item == "fresno_direct_funded_charter_profile=true":
             hints.append(
