@@ -34,6 +34,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`while_billing_blocked=… --gates-only`** | `print_external_p0_status.sh`（402 时） |
 | **`llm_preflight=ready`** | `python3 -m app.evaluation.llm_preflight` 成功 stdout |
 | **`tpcds_postgres_catalog=ready\|unreachable`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`；`wait_for_billing_and_run_p0.sh`（`tpcds_postgres_catalog_reachable`） |
+| **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |
 
 402 时 **`llm_preflight`** stderr 亦指向本 runbook 与 **`--gates-only`**。
 

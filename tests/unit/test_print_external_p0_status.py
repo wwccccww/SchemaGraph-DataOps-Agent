@@ -46,12 +46,32 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
             "tpcds_postgres_catalog=unreachable",
         )
     )
+    assert "bird_sqlite=unset" in completed.stdout
     peak = (
         script.parents[1]
         / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
     )
     if peak.is_dir():
         assert "peak_ex0_frozen_findings=pass_min_3" in completed.stdout
+
+
+def test_print_external_p0_status_reports_bird_sqlite_missing(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/print_external_p0_status.sh"
+    empty_root = tmp_path / "dev_databases"
+    empty_root.mkdir()
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = str(empty_root)
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=root,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "bird_sqlite=missing fetch=./scripts/fetch_bird_dev_databases.sh" in completed.stdout
 
 
 def test_print_external_p0_status_reports_billing_402_with_stub(tmp_path: Path) -> None:

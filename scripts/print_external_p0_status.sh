@@ -31,8 +31,18 @@ if python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_r
 else
   echo "tpcds_postgres_catalog=unreachable"
 fi
+BIRD_SQLITE="${BIRD_DATABASE_ROOT:-}/california_schools/california_schools.sqlite"
+if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
+  echo "bird_sqlite=unset"
+elif [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
+  echo "bird_sqlite=invalid_root"
+elif [[ -f "$BIRD_SQLITE" ]]; then
+  echo "bird_sqlite=ready"
+else
+  echo "bird_sqlite=missing fetch=./scripts/fetch_bird_dev_databases.sh"
+fi
 PEAK="${BIRD_PEAK_RUN:-$ROOT/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
-if [[ -n "${BIRD_DATABASE_ROOT:-}" && -d "$PEAK/cases" ]]; then
+if [[ -n "${BIRD_DATABASE_ROOT:-}" && -f "$BIRD_SQLITE" && -d "$PEAK/cases" ]]; then
   echo "== BIRD replay (raw) =="
   python3 -m app.evaluation.external_model --source bird \
     --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" 2>&1 | grep "replay EX:" || true
