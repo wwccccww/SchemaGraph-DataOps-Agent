@@ -9,6 +9,12 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
+if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "note: POSTGRES_USER/POSTGRES_PASSWORD unset — TPC-DS replay pytest will skip; verify-tpcds needs them" >&2
+fi
+if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
+  echo "note: BIRD_DATABASE_ROOT unset — BIRD replay pytest will skip; verify-bird needs it" >&2
+fi
 uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_covers_every_case \
   tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_p1_replay_gate.py \

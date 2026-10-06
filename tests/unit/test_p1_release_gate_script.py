@@ -22,6 +22,14 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         assert module in script
 
 
+def test_p1_release_gate_script_documents_postgres_and_bird_env_notes() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = (root / "scripts/p1_release_gate.sh").read_text()
+    assert "POSTGRES_USER" in script
+    assert "BIRD_DATABASE_ROOT" in script
+    assert "skip" in script.lower()
+
+
 def test_p1_release_gate_fast_pytest_subset_passes() -> None:
     """与 gate 同源模块中的快路径（无全量 replay）。"""
     root = Path(__file__).resolve().parents[2]
