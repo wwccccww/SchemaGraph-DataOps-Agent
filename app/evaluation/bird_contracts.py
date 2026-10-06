@@ -27,8 +27,14 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("top_reading_sat_profile=true")
     if case.id == "bird_0032":
         filters.append("top_frpm_soc66_profile=true")
+    if case.id == "bird_0021":
+        filters.append("la_meal_stats_aggregate_profile=true")
     if case.id == "bird_0066":
         filters.append("directly_funded_stanislaus_profile=true")
+    if case.id == "bird_0069":
+        filters.append("state_special_soc3_profile=true")
+    if case.id == "bird_0119":
+        filters.append("financial_1993_poplatek_profile=true")
     if case.id == "bird_0077":
         filters.append("la_k9_frpm_sat_profile=true")
     if case.id == "bird_0087":

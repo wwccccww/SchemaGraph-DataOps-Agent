@@ -137,6 +137,83 @@ def check_frozen_semantic_contract(
                     "冻结 core_tables 不含 client，不要 JOIN client",
                 )
             )
+        if "financial_1993_poplatek_profile=true" in contract.filters:
+            if re.search(r"status\s*=\s*['\"]C['\"].*running|running_loans.*status\s*=\s*['\"]C['\"]", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "BIRD financial：loan status A=running、B=finished、C=defaulted（不要用 C 表示 running）",
+                    )
+                )
+            if re.search(r"type\s*=\s*['\"]credit['\"]|type\s*=\s*['\"]debit['\"]", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "trans.type 用 PRIJEM（收入）与 VYDAJ（支出），不要用 credit/debit",
+                    )
+                )
+            if "POPLATEK PO OBRATU" not in sql.upper() and re.search(
+                r"strftime\s*\(\s*'%Y'.*1993", sql, re.I
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "1993 账户用 frequency='POPLATEK PO OBRATU' 且 STRFTIME('%Y',date)='1993'",
+                    )
+                )
+        if "state_special_soc3_profile=true" in contract.filters:
+            if re.search(r"SOC\s+LIKE\s+'3%'", sql, re.I) and "State Special Schools" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "State Special Schools 用 schools.DOCType='State Special Schools'，"
+                        "SOC 31 或 3% 在 JOIN 后过滤",
+                    )
+                )
+            if re.search(r"THEN 'Yes'|THEN 'No'", sql) and "Charter" in sql and "Non-Charter" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter / Non-Charter，不要用 Yes/No",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 用 High/Medium/Low/Very Low Poverty（frpm 小数阈值）",
+                    )
+                )
+            if re.search(r"AvgTotalScore|Avg.*Read.*\+.*Write", sql, re.I) and "/3" not in sql and "/ 3" not in sql:
+                if "AvgTotalScore" in " ".join(contract.projections) and re.search(
+                    r"\+.*AvgScrWrite\s*\)\s+AS\s+[\"']?AvgTotalScore",
+                    sql,
+                    re.I,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "AvgTotalScore=ROUND((Read+Math+Write)/3.0, 2)，不要直接用三科之和",
+                        )
+                    )
+        if "la_meal_stats_aggregate_profile=true" in contract.filters:
+            if re.search(r"count\s*\(\s*\*\s*\)\s+over\s*\(\s*partition\s+by\s+frpm", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeMealCategoryBreakdown 用 CategoryBreakdown CTE + GROUP_CONCAT 子查询，"
+                        "不要窗口 COUNT OVER frpm_category",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql) and "FreeMealCategory" in " ".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeMealCategory 按 Free Meal Count：Very High (>600)/High (>500)/Moderate",
+                    )
+                )
         if "financial_salary_gap_profile=true" in contract.filters:
             if "(SELECT MAX(A11) - MIN(A11) FROM district)" not in sql:
                 findings.append(
@@ -831,6 +908,21 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
             hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+        if item == "financial_1993_poplatek_profile=true":
+            hints.append(
+                "1993 POPLATEK PO OBRATU 账户：AccountsIn1993 CTE；trans PRIJEM/VYDAJ；"
+                "loan status A/B/C=running/finished/defaulted；risk High/Low/No Loans。"
+            )
+        if item == "state_special_soc3_profile=true":
+            hints.append(
+                "State Special Schools：DOCType 过滤；SchoolType Charter/Non-Charter；"
+                "OpeningDate=date(OpenDate)；AvgTotalScore 三科均值/3；SOC 31 或 3%。"
+            )
+        if item == "la_meal_stats_aggregate_profile=true":
+            hints.append(
+                "LA free>500 FRPM<700：SchoolMealStats+CategoryBreakdown CTE；"
+                "标量子查询 SchoolsWithoutSAT 与 GROUP_CONCAT breakdown；FreeMealCategory 按 free meal count。"
+            )
         if item == "financial_salary_gap_profile=true":
             hints.append(
                 "最年长女性 client→district_id 子查询；JOIN account/disp/client/district；"

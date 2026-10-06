@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v22"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v23"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -22,7 +22,8 @@ _GENERIC_SHAPE_TAIL = (
     "标签用 No SAT Data、Below Average（<1200）、Average（1200–1500）、Above Average（>1500）；"
     "satscores 用 LEFT JOIN 保留无 SAT 学校。free meal rate 分母需 Enrollment (K-12) > 0。"
     "IsCharterSchool 用 schools.Charter：1→Yes、0→No、NULL→Unknown。"
-    "Financial：region 用 district.A3；loan 正常进行/无问题 status='C'；disp.type='OWNER' 取账户持有人；"
+    "Financial：region 用 district.A3；running OK / 正常贷款计数 status='C'；disp.type='OWNER' 取账户持有人；"
+    "1993 POPLATEK PO OBRATU 账户：trans PRIJEM/VYDAJ；loan 聚合 status A/B/C=running/finished/defaulted。"
     "loan→account→trans 链接；overall 对比按 loan_size_category 分组 JOIN，勿全局 CROSS JOIN。"
     "running OK 占比：CTE 内 CAST(SUM(CASE status='C' THEN 1 END) AS REAL)*100/COUNT(status) AS percentage_running_ok，"
     "最终 SELECT ROUND(percentage_running_ok,2) 与 ROUND(avg_loan_amount,2)，avg_duration 不 ROUND。"
