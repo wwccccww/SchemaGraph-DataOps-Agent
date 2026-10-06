@@ -369,6 +369,66 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "female_top3_salary_district_profile=true" in contract.filters:
+            if re.search(
+                r"ROW_NUMBER\s*\(\s*\)[\s\S]{0,120}rn\s*<=\s*3",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"salary_rank_in_region", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "区县薪资 Top3：DistrictStats 中 RANK() 得 salary_rank_in_region<=3",
+                    )
+                )
+            if re.search(
+                r"COUNT\s*\(\s*DISTINCT[\s\S]{0,40}region\s*\)\s+AS\s+regions_represented",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "regions_represented 用 GROUP_CONCAT(DISTINCT ds.region)",
+                    )
+                )
+            if re.search(
+                r"status\s*=\s*'C'[\s\S]{0,60}active_loans",
+                sql,
+                re.IGNORECASE,
+            ) or re.search(
+                r"active_loans[\s\S]{0,40}status\s*=\s*'C'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "本聚合题 active_loans 计 loan status='A'（completed=B，defaulted=C）",
+                    )
+                )
+            if re.search(r"female_accounts", sql, re.IGNORECASE) and re.search(
+                r"type\s*=\s*'OWNER'",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"AccountActivity", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "AccountActivity：account→disp→client(gender F)，按 account.district_id 聚合",
+                    )
+                )
+            if re.search(
+                r"JOIN\s+female_clients\s+AS\s+fc\s+ON\s+fc\.district_id\s*=\s*ds\.district_id",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"average_female_age", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "average_female_age 用 AVG(ds.avg_age)，不要在最终 SELECT 再 JOIN 全部 female_clients",
+                    )
+                )
         if "card_issued_19940303_profile=true" in contract.filters:
             if re.search(r"JULIANDAY\s*\(\s*cd\.issued\s*\)", sql, re.IGNORECASE):
                 findings.append(
@@ -1535,6 +1595,42 @@ def _sk_heavy_cte_without_dimensions(
     return None
 
 
+def _window_order_matches_group_by(select: exp.Select, window: exp.Window) -> bool:
+    group_exprs = select.args.get("group")
+    if not group_exprs:
+        return False
+    grouped_names: set[str] = set()
+    for g in group_exprs.expressions:
+        for col in g.find_all(exp.Column):
+            grouped_names.add(col.name.lower())
+    if not grouped_names:
+        return False
+    partition = window.args.get("partition_by")
+    if partition is not None:
+        part_items = (
+            partition.expressions
+            if hasattr(partition, "expressions")
+            else partition
+            if isinstance(partition, list)
+            else [partition]
+        )
+        for item in part_items:
+            cols = list(item.find_all(exp.Column))
+            if cols and not all(c.name.lower() in grouped_names for c in cols):
+                return False
+    order = window.args.get("order")
+    if order is None:
+        return False
+    for item in order.expressions:
+        expr = item.this if isinstance(item, exp.Ordered) else item
+        cols = list(expr.find_all(exp.Column))
+        if not cols:
+            return False
+        if not all(c.name.lower() in grouped_names for c in cols):
+            return False
+    return True
+
+
 def _window_order_uses_only_aggregates(window: exp.Window) -> bool:
     order = window.args.get("order")
     if order is None:
@@ -1564,6 +1660,10 @@ def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
             if window is None:
                 continue
             if _window_order_uses_only_aggregates(window):
+                continue
+            grouped = select.args.get("group")
+            group_count = len(grouped.expressions) if grouped else 0
+            if group_count >= 3 and _window_order_matches_group_by(select, window):
                 continue
             return True
     return False
@@ -1714,6 +1814,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "1994-03-03 card：ClientCardInfo client→disp→card；age 年差；"
                 "ClientAccountInfo account+loan；ClientDistrictInfo client.district_id→A11；"
                 "borrower_category 三档；RANK() age_rank_by_gender。"
+            )
+        if item == "female_top3_salary_district_profile=true":
+            hints.append(
+                "女 client 区县聚合：DistrictStats+AccountActivity 两 CTE JOIN district_id；"
+                "A11 BETWEEN 6000 AND 10000；salary_rank_in_region<=3；female_clients>=5；"
+                "total_loans>0；最终单行 SUM/AVG 聚合。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

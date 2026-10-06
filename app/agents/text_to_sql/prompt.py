@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v41"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v42"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -89,6 +89,9 @@ _GENERIC_SHAPE_TAIL = (
     "开户年龄=开户年−出生年；good loan=status'A'，in debt=status'D'（勿用 C/B 通用口径）。"
     "1994-03-03 发卡 client：cd.issued 过滤；age_at_card_issue=发卡年−出生年（勿 JULIANDAY）；"
     "avg_salary=district.A11；active_loans 计 status'A'；borrower 用 loan_count 与 Young/Mature borrower。"
+    "女 client 区县 Top3 薪资：DistrictStats 按 district GROUP BY 女 client；"
+    "RANK() salary_rank_in_region<=3；AccountActivity 按 account.district_id；"
+    "loan 计数 A=active/B=completed/C=defaulted；regions_represented=GROUP_CONCAT(DISTINCT region)。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
