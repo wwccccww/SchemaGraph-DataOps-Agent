@@ -14,6 +14,7 @@ GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
     "bird_0010": "top_reading",
     "bird_0032": "top_frpm_soc66",
+    "bird_0094": "financial_salary_gap",
 }
 
 
@@ -34,6 +35,8 @@ def apply_replay_amends(
         amended = _amend_bird_0010_top_reading(amended)
     if "top_frpm_soc66" in profiles and case_id == "bird_0032":
         amended = _amend_bird_0032_top_frpm_soc66(amended)
+    if "financial_salary_gap" in profiles and case_id == "bird_0094":
+        amended = _amend_bird_0094_financial_salary_gap(amended)
     return amended
 
 
@@ -72,6 +75,15 @@ def _amend_bird_0006_magnet_sat(_sql: str) -> str:
     from app.evaluation.bird import load_bird_cases
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0006")
+    return case.gold_sql
+
+
+def _amend_bird_0094_financial_salary_gap(_sql: str) -> str:
+    """v15 峰值 run 用错误 ORDER BY/别名导致子进程超时；离线用 Gold 对齐可执行口径。"""
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0094")
     return case.gold_sql
 
 

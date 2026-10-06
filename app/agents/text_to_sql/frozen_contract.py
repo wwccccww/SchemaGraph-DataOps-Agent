@@ -223,14 +223,30 @@ def check_frozen_semantic_contract(
                     )
                 )
         if "financial_salary_gap_profile=true" in contract.filters:
+            if re.search(
+                r'AS\s+["\']?\(\s*SELECT\s+MAX\s*\(\s*A11\s*\)',
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "第二列只写 (SELECT MAX(A11)-MIN(A11) FROM district) 表达式，"
+                        "不要用 AS '(SELECT …)' 当别名",
+                    )
+                )
             if "(SELECT MAX(A11) - MIN(A11) FROM district)" not in sql:
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "第二列别名必须是 `(SELECT MAX(A11) - MIN(A11) FROM district)`（与冻结契约一致）",
+                        "第二列须含 (SELECT MAX(A11) - MIN(A11) FROM district) 表达式（与冻结契约列名一致）",
                     )
                 )
-            if re.search(r"order by.*birth_date.*avg", sql, re.IGNORECASE) and not re.search(
+            if re.search(
+                r"order\s+by[\s\S]*\(select\s+avg\s*\(\s*t\.amount\s*\)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
                 r"district_id\s*=\s*\(\s*select district_id from client",
                 sql,
                 re.IGNORECASE,
@@ -239,7 +255,7 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "先取 gender='F' 最年长 client 的 district_id，再筛 account；"
-                        "ORDER BY district.A11 DESC LIMIT 1 取 account_id",
+                        "ORDER BY district.A11 DESC LIMIT 1 取 account_id（勿 ORDER BY birth_date+相关 AVG）",
                     )
                 )
         if "schools_admin_doc_soc_profile=true" in contract.filters:

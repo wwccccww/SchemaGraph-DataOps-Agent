@@ -533,7 +533,8 @@ def main(argv: list[str] | None = None) -> None:
         action="append",
         default=[],
         metavar="PROFILE",
-        help="With --replay-run: amend saved SQL (coe_charter, running_ok, magnet_sat, top_reading)",
+        help="With --replay-run: amend saved SQL (coe_charter, running_ok, magnet_sat, top_reading, "
+        "top_frpm_soc66, financial_salary_gap)",
     )
     args = parser.parse_args(argv)
     if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:

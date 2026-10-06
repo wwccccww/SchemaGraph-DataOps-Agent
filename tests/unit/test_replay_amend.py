@@ -61,6 +61,19 @@ def test_magnet_sat_amend_makes_0006_match_gold() -> None:
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
 
 
+def test_financial_salary_gap_amend_makes_0094_match_gold() -> None:
+    case_file, conn = _require_peak("bird_0094", db=FINANCIAL_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0094")
+    amended = apply_replay_amends(
+        "bird_0094", sql, profiles=frozenset({"financial_salary_gap"})
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+
+
 def test_running_ok_amend_for_0118_on_prior_run() -> None:
     run = BIRD_PEAK_RUN.parent / "run_20261005T235214Z_5410f5c1e4ca744b3e534dc2ff8e195b2d9cde35"
     if not (run / "cases" / "bird_0118.json").is_file():

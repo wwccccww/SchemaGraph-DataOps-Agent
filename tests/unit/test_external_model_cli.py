@@ -70,3 +70,30 @@ def test_replay_amend_coe_charter_lifts_peak_run_to_eight() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "matched 7 -> 8" in completed.stderr or "matched 7 -> 8" in completed.stdout
+
+
+def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
+    run = BIRD_PEAK_RUN
+    db_root = BIRD_DB_ROOT
+    if not run.is_dir() or not db_root.is_dir():
+        pytest.skip("saved run or bird databases missing")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.external_model",
+            "--source",
+            "bird",
+            "--database-root",
+            str(db_root),
+            "--replay-run",
+            str(run),
+            "--replay-amend",
+            "financial_salary_gap",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "matched 7 -> 8" in completed.stderr or "matched 7 -> 8" in completed.stdout
