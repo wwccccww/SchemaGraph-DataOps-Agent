@@ -610,7 +610,7 @@ def _validate_sql(
                 sql=sql,
                 contract=contract,
                 dialect=state["dialect"],
-                frozen_contract_state=state,
+                frozen_contract_state=cast(Mapping[str, object], state),
             )
 
         findings = await _validation_findings_for_sql(services, state, decision.sql)

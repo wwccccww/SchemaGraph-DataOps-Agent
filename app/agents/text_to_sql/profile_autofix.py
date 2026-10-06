@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from app.evaluation.replay_amend import PATCH_AMEND_PROFILES, apply_replay_amends
 from app.schemas.benchmark import SemanticContract
