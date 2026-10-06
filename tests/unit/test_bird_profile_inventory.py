@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from app.evaluation.bird import BIRD_CASE_COUNT, load_bird_cases
 from app.evaluation.bird_contracts import contract_for
+
+PEAK_V15_RUN = Path(
+    "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+)
 
 
 def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
@@ -77,3 +84,27 @@ def test_bird_explicit_profile_case_ids() -> None:
         if any(item.endswith("_profile=true") for item in contract_for(case).filters)
     )
     assert actual == expected
+
+
+def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
+    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v53 自愈口径）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak v15 run fixture missing")
+    missing: list[str] = []
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if payload.get("ex"):
+            continue
+        profiles = [
+            item
+            for item in contract_for(case).filters
+            if item.endswith("_profile=true")
+        ]
+        if not profiles:
+            missing.append(case.id)
+    assert missing == []
