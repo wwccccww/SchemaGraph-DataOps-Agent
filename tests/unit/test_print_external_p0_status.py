@@ -22,6 +22,6 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "release_ready=True" in completed.stdout
-    assert "next_after_billing=./scripts/run_external_p0_full_eval_twice.sh" in completed.stdout
+    assert "next_after_billing=./scripts/p0_post_billing_acceptance.sh" in completed.stdout
     assert "generic_prompt=text-to-sql-generic-v" in completed.stdout
     assert "llm_preflight=blocked" in completed.stdout or "llm_preflight=ready" in completed.stdout
