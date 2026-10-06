@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v51"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v52"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -115,6 +115,11 @@ _GENERIC_SHAPE_TAIL = (
     "loan_status Has Default/No Default/No Loans；customer_category High Activity 等四档；"
     "balance_rank=ROW_NUMBER() OVER (ORDER BY net_balance DESC)；ORDER BY balance_rank。"
     "client_age 用 anchor 年 strftime 差（勿 JULIANDAY）。"
+    "大额贷款>30万且 A11 高于全国均值：LoanStatistics HAVING MAX(amount)>300000；"
+    "district_name=A2、region_name=A3；PRIJEM/VYDAJ；"
+    "保留 total_income>total_expense 或 total_income IS NULL；"
+    "income_category High/Medium/Low Income；savings_ratio=(income-expense)/income；"
+    "region_loan_rank=RANK() PARTITION BY region；LIMIT 100。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

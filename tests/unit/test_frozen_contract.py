@@ -550,6 +550,34 @@ def test_check_requires_item_when_item_category_projected() -> None:
     assert any(item.category == "missing_entity" for item in findings)
 
 
+def test_large_loan_high_salary_district_profile_gold_passes_and_flags_peak_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0123")
+    contract = contract_for(case)
+    assert check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite") == ()
+    peak_file = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+        "/cases/bird_0123.json"
+    )
+    if not peak_file.is_file():
+        pytest.skip("peak bird_0123 fixture missing")
+    peak_sql = json.loads(peak_file.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, peak_sql, dialect="sqlite")
+    ]
+    assert any("PRIJEM" in m for m in messages)
+    assert any("A2" in m for m in messages)
+    assert any("High/Medium/Low Income" in m for m in messages)
+    assert any("savings_ratio" in m for m in messages)
+    assert any("total_income IS NULL" in m for m in messages)
+
+
 def test_prachatice_accounts_financial_profile_gold_passes_and_flags_peak_sql() -> None:
     import json
     from pathlib import Path

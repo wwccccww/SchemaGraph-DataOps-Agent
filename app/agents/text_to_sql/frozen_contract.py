@@ -418,6 +418,74 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "large_loan_high_salary_district_profile=true" in contract.filters:
+            if re.search(
+                r"type\s*=\s*'credit'|type\s*=\s*'debit'|total_credit|total_debit",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "交易汇总用 trans.type PRIJEM/VYDAJ（不是 credit/debit）",
+                    )
+                )
+            if re.search(
+                r"A3\s+AS\s+district_name|\.A3\s+AS\s+district_name",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "district_name 用 district.A2（region 用 A3）",
+                    )
+                )
+            if re.search(
+                r"Positive|Non-Positive|No Transactions",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"income_category", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "income_category 用 High/Medium/Low Income（按 total_income 阈值）",
+                    )
+                )
+            if re.search(r"savings_ratio", sql, re.IGNORECASE) and re.search(
+                r"total_debit[\s\S]{0,50}/[\s\S]{0,30}total_credit",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "savings_ratio=(total_income-total_expense)/total_income",
+                    )
+                )
+            if re.search(r"300000|300,000", sql) and re.search(
+                r"total_credit[\s\S]{0,40}-\s*[\s\S]{0,40}total_debit|"
+                r"credit[\s\S]{0,30}-\s*[\s\S]{0,30}debit",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "净收入过滤：total_income>total_expense OR total_income IS NULL",
+                    )
+                )
+            if re.search(r"max_loan_amount", sql, re.IGNORECASE) and re.search(
+                r"JULIANDAY\s*\(\s*['\"]2026-10-01",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age 用 strftime 年差（anchor 2026-10-01）",
+                    )
+                )
         if "prachatice_accounts_financial_profile=true" in contract.filters:
             if re.search(r"Prachatice|prachatice", sql) and re.search(
                 r"JOIN\s+disp", sql, re.IGNORECASE
@@ -2299,6 +2367,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
                 "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
                 "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
+            )
+        if item == "large_loan_high_salary_district_profile=true":
+            hints.append(
+                "大额贷款：LoanStatistics HAVING MAX>300000；A11>AVG(A11)；"
+                "TransactionSummary PRIJEM/VYDAJ；A2/A3 区县与 region；"
+                "WHERE income>expense OR income IS NULL；RANK region_loan_rank LIMIT 100。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

@@ -171,6 +171,13 @@ def test_bird_0121_contract_includes_prachatice_accounts_financial_profile() -> 
     assert "prachatice_accounts_financial_profile=true" in contract_for(case).filters
 
 
+def test_bird_0123_contract_includes_large_loan_high_salary_district_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0123")
+    assert "large_loan_high_salary_district_profile=true" in contract_for(case).filters
+
+
 def test_bird_0122_contract_includes_loan_id_4990_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 
