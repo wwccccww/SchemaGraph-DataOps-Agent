@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# P0：Billing 恢复后连续 2× 全量 BIRD 模型实测（v49 + self_healing，需 gold_matched）。
+# P0：Billing 恢复后连续 2× 全量 BIRD 模型实测（v50 + self_healing，需 gold_matched）。
 # 402 时在 generate_sql 失败；可先 ./scripts/print_external_p0_status.sh。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -16,8 +16,8 @@ def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
         profiles = [item for item in contract.filters if item.endswith("_profile=true")]
         if profiles:
             with_profile += 1
-    # 26 条显式 profile（其余依赖 generic shape + 投影列契约）
-    assert with_profile >= 39
+    # 40 条显式 profile（其余依赖 generic shape + 投影列契约）
+    assert with_profile >= 40
 
 
 def test_bird_explicit_profile_case_ids() -> None:
@@ -60,6 +60,7 @@ def test_bird_explicit_profile_case_ids() -> None:
             "bird_0112",
             "bird_0113",
             "bird_0115",
+            "bird_0117",
             "bird_0118",
             "bird_0119",
             "bird_0122",

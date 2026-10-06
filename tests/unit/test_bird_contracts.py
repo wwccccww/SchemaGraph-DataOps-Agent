@@ -157,6 +157,13 @@ def test_bird_0115_contract_includes_south_bohemia_top_population_profile() -> N
     assert "south_bohemia_top_population_profile=true" in contract_for(case).filters
 
 
+def test_bird_0117_contract_includes_region_loan_success_stats_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0117")
+    assert "region_loan_success_stats_profile=true" in contract_for(case).filters
+
+
 def test_bird_0122_contract_includes_loan_id_4990_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

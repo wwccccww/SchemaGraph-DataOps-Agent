@@ -369,6 +369,55 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "region_loan_success_stats_profile=true" in contract.filters:
+            if re.search(
+                r"status\s*=\s*'C'[\s\S]{0,80}(paid_amount|successful_loans)",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "region 贷款成功：paid/successful 用 status='A'（不是 C）",
+                    )
+                )
+            if re.search(r"avg_interest_paid", sql, re.IGNORECASE) and re.search(
+                r"AVG\s*\(\s*CASE\s+WHEN[\s\S]*payments\s*\)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"payments\s*\*\s*l\.duration|payments\s*\*\s*duration",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "interest_paid=(payments*duration)-amount；AVG 分别算 successful 与 all",
+                    )
+                )
+            if re.search(r"overall_percentage", sql, re.IGNORECASE) and re.search(
+                r"SUM\s*\(\s*paid_amount\s*\)\s+OVER\s*\(\s*\)",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "overall_percentage 用 (SELECT … FROM loan) 全表占比子查询",
+                    )
+                )
+            if re.search(r"paid_amount_percentage", sql, re.IGNORECASE) and re.search(
+                r"ORDER BY\s+region\b",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"ORDER BY[\s\S]*paid_amount_percentage\s+DESC", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "结果 ORDER BY paid_amount_percentage DESC",
+                    )
+                )
         if "loan_id_4990_profile=true" in contract.filters:
             if re.search(
                 r"Running contract|Contract finished|client in debt|loan not paid",
@@ -2165,6 +2214,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Loan 4990：LoanStats+DistrictStats CTE；status_description 四档 Running/Finished；"
                 "problematic_loans B/D；RANK district_loan_rank；OWNER disp→client。"
+            )
+        if item == "region_loan_success_stats_profile=true":
+            hints.append(
+                "Region 贷款：LoansByDistrict OWNER+interest_paid；RegionSummary GROUP BY region；"
+                "successful/paid 用 status A；overall_percentage 子查询全表 loan。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

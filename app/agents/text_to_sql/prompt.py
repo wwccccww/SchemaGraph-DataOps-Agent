@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v49"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v50"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -107,6 +107,8 @@ _GENERIC_SHAPE_TAIL = (
     "total_clients=COUNT(DISTINCT client_id)。"
     "loan_id 4990：status A Running-OK、B Running-Issues、C Finished-No Issues、D Finished-Issues；"
     "problematic=B+D；"
+    "按 region 贷款成功：status='A' 计 paid/successful；interest_paid=payments×duration-amount；"
+    "overall_percentage 用 loan 全表子查询；ORDER BY paid_amount_percentage DESC。"
     "district_loan_rank=RANK()；borrower 经 disp OWNER。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
