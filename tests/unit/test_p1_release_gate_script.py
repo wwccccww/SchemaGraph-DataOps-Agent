@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
+
+
+def _pytest_unit_modules(text: str) -> set[str]:
+    collapsed = re.sub(r"\\\s*\n", " ", text)
+    return set(re.findall(r"tests/unit/(test_[\w.]+\.py)", collapsed))
 
 
 def test_verify_external_gold_script_sources_env() -> None:
@@ -38,6 +44,20 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_external_gold_runbook_docs.py",
     ):
         assert module in script
+
+
+def test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints() -> None:
+    """本地 p1_release_gate 的 pytest 须被 nightly fingerprints job 覆盖（超集）。"""
+    root = Path(__file__).resolve().parents[2]
+    gate = (root / "scripts/p1_release_gate.sh").read_text(encoding="utf-8")
+    workflow = (root / ".github/workflows/external-gold.yml").read_text(encoding="utf-8")
+    gate_modules = _pytest_unit_modules(gate)
+    ci_modules = _pytest_unit_modules(workflow)
+    assert gate_modules, "expected pytest modules in p1_release_gate.sh"
+    missing = gate_modules - ci_modules
+    assert not missing, (
+        f"p1 gate modules missing from external-gold fingerprints: {sorted(missing)}"
+    )
 
 
 def test_p1_release_gate_script_documents_postgres_and_bird_env_notes() -> None:

@@ -4,7 +4,7 @@
 
 ## 环境
 
-1. 复制 [`.env.example`](../.env.example) 为项目根 `.env`（勿提交）。
+1. 复制 [`.env.example`](../.env.example) 为项目根 `.env`（勿提交）；tmux/CI 无 `.env` 时须 **export** 同名变量（各 gate 脚本会 `source .env` 若存在）。
 2. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量）、计费后 **`DEEPSEEK_API_KEY`**。
 3. 可选：**`P0_BIRD_MIN_MATCHED=7`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步）。
 
@@ -17,6 +17,8 @@
 ```
 
 分步：`./scripts/p1_release_gate.sh`（pytest 子集 + `./scripts/verify_external_gold.sh`）。
+
+**耗时（本地，含 replay 单测 + Oracle verify）**：约 **20–25 分钟**；402 窗口用 `./scripts/print_external_p0_status.sh` 可更快扫一遍 release + replay 摘要。
 
 ## 计费恢复后（P0 产品条）
 
