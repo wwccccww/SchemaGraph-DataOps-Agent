@@ -36,4 +36,4 @@ fi
 python3 -m app.evaluation.llm_preflight
 "$ROOT/scripts/p1_release_gate.sh"
 "$ROOT/scripts/run_external_p0_full_eval_twice.sh"
-echo "P0 acceptance: record both TPC-DS and BIRD runs' execution_accuracy in docs/benchmark.md and update test_p0_external_measured_baseline if stable."
+echo "P0 acceptance: copy p0_measured_* lines above into docs/benchmark.md; update test_p0_external_measured_baseline when BIRD/TPC-DS fractions stabilize."
