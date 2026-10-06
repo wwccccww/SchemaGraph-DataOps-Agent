@@ -16,6 +16,9 @@ def test_run_external_p0_full_eval_twice_requires_bird_root() -> None:
     assert "--acceptance-gate" in text
     assert "P0_BIRD_MIN_MATCHED" in text
     assert "--bird-min-matched" in text
+    assert "run_tpcds_p0_full_eval_twice.sh" in text
+    assert "run_bird_p0_full_eval_twice.sh" in text
+    assert "P0_MEASURED_MANIFEST" in text
     env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
     completed = subprocess.run(
         [str(script)],
