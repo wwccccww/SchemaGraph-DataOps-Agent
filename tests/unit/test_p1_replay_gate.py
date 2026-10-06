@@ -19,6 +19,7 @@ def test_release_gate_ready() -> None:
 
 def test_replay_profile_catalog() -> None:
     assert "coe_charter" in PATCH_AMEND_PROFILES
+    assert "financial_salary_gap" in PATCH_AMEND_PROFILES
     assert GOLD_OVERLAY_PROFILES["bird_0006"] == "magnet_sat"
     assert GOLD_OVERLAY_PROFILES["bird_0021"] == "la_meal_stats"
     assert GOLD_OVERLAY_PROFILES["bird_0011"] == "enrollment500"
@@ -47,6 +48,30 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
+
+
+def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
+    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+        pytest.skip("bird replay fixtures unavailable")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.external_model",
+            "--source",
+            "bird",
+            "--database-root",
+            str(BIRD_DB_ROOT),
+            "--replay-run",
+            str(BIRD_PEAK_RUN),
+            "--replay-patch-autofix",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "matched 7 -> 9" in completed.stderr or "matched 7 -> 9" in completed.stdout
 
 
 def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:

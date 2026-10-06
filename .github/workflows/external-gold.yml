@@ -15,6 +15,7 @@ on:
       - "benchmarks/tpcds_derived/**"
       - "scripts/verify_external_gold.sh"
       - "scripts/replay_bird_*.sh"
+      - "app/llm/gateway.py"
       - "scripts/replay_tpcds_baseline.sh"
       - "scripts/p1_release_gate.sh"
       - "tests/unit/test_external_*.py"

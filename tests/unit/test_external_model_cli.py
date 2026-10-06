@@ -18,6 +18,7 @@ def test_cli_documents_max_repair_rounds() -> None:
     )
     assert "--max-repair-rounds" in completed.stdout
     assert "--replay-run" in completed.stdout
+    assert "--replay-patch-autofix" in completed.stdout
 
 
 def test_replay_run_rescores_v15_peak_without_llm() -> None:
@@ -97,3 +98,29 @@ def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "matched 7 -> 8" in completed.stderr or "matched 7 -> 8" in completed.stdout
+
+
+def test_replay_patch_autofix_lifts_peak_run_to_nine() -> None:
+    run = BIRD_PEAK_RUN
+    db_root = BIRD_DB_ROOT
+    if not run.is_dir() or not db_root.is_dir():
+        pytest.skip("saved run or bird databases missing")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.external_model",
+            "--source",
+            "bird",
+            "--database-root",
+            str(db_root),
+            "--replay-run",
+            str(run),
+            "--replay-patch-autofix",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "matched 7 -> 9" in completed.stderr or "matched 7 -> 9" in completed.stdout

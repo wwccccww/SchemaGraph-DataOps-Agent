@@ -97,7 +97,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT` |
 | 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
 | 模型 BIRD 实测 | 峰值 `31113b6` replay | **7/50**（`test_p0_*`）；**80 例综合未完成** |
-| Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + PATCH autofix 单测 |
+| Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`（7→9） |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | Oracle + P0/P1 单测子集 |
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | PR 上 **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT` |
 

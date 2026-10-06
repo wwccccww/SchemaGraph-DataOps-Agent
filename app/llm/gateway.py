@@ -83,7 +83,13 @@ class DeepSeekGateway:
             headers=headers,
         )
         if response.status_code >= 400:
-            raise RuntimeError(f"model gateway failed with status {response.status_code}")
+            hint = ""
+            if response.status_code == 402:
+                hint = (
+                    " (Payment Required — 全量模型评测需有效计费；"
+                    "可先 verify-* 与 external_model --replay-run / --replay-patch-autofix)"
+                )
+            raise RuntimeError(f"model gateway failed with status {response.status_code}{hint}")
         body = response.json()
         try:
             content = body["choices"][0]["message"]["content"]
