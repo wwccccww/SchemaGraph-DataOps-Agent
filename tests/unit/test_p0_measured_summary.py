@@ -112,10 +112,13 @@ def test_acceptance_gate_passes_on_stable_full_band(tmp_path: Path) -> None:
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(b1, source="bird", matched=8, case_count=50, accuracy=0.16)
     _write_summary(b2, source="bird", matched=8, case_count=50, accuracy=0.16)
-    assert validate_p0_acceptance_gate(
-        [load_run_measured(t1), load_run_measured(t2)],
-        [load_run_measured(b1), load_run_measured(b2)],
-    ) == []
+    assert (
+        validate_p0_acceptance_gate(
+            [load_run_measured(t1), load_run_measured(t2)],
+            [load_run_measured(b1), load_run_measured(b2)],
+        )
+        == []
+    )
 
 
 def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
