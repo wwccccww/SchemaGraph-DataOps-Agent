@@ -79,6 +79,7 @@ def test_env_example_documents_bird_database_root_for_p1_gate() -> None:
     assert "wait_for_billing_and_run_p0.sh" in example
     assert "P0_BIRD_MIN_MATCHED" in example
     assert "external_gold_p0_runbook.md" in example
+    assert "TPCDS_POSTGRES_DB" in example or "tpcds" in example
 
 
 def test_p1_release_gate_fast_pytest_subset_passes() -> None:

@@ -8,6 +8,14 @@
 2. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
 3. 可选：**`P0_BIRD_MIN_MATCHED=7`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步）。
 
+**探测 TPC-DS catalog（门禁前）**：
+
+```bash
+python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reachable as ok; raise SystemExit(0 if ok() else 1)"
+```
+
+失败时修正 **`POSTGRES_*`** / **`TPCDS_POSTGRES_*`**，确保能连上 **`tpcds`** 库（见 [`.env.example`](../.env.example) 注释）。
+
 ## 脚本 stdout 键（运维/自动化）
 
 | 键 | 典型来源 |
