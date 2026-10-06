@@ -58,9 +58,7 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
             "tpcds_postgres_catalog=unreachable",
         )
     )
-    assert any(
-        line.startswith("bird_sqlite=") for line in completed.stdout.splitlines()
-    )
+    assert any(line.startswith("bird_sqlite=") for line in completed.stdout.splitlines())
     assert "replay_skipped=external_p0_status_skip_replay" in completed.stdout
     peak = (
         script.parents[1]
