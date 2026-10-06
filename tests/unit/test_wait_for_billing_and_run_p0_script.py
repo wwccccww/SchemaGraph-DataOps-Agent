@@ -43,6 +43,26 @@ def test_wait_for_billing_requires_postgres_env() -> None:
     assert "POSTGRES_USER" in completed.stderr
 
 
+def test_wait_for_billing_requires_bird_root_directory() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/wait_for_billing_and_run_p0.sh"
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = "/tmp/nonexistent_bird_dev_databases_wait_test"
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+        timeout=10,
+    )
+    assert completed.returncode == 1
+    assert "not a directory" in completed.stderr
+
+
 def test_wait_for_billing_requires_bird_database_root() -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/wait_for_billing_and_run_p0.sh"

@@ -54,7 +54,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 ./scripts/wait_for_billing_and_run_p0.sh
 ```
 
-须已配置 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（与全量 acceptance 相同），否则**立即 exit 1**，避免空轮询。
+须已配置 **`BIRD_DATABASE_ROOT`**（须为存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（与全量 acceptance 相同），否则**立即 exit 1**，避免空轮询或 verify 跑错路径。
 
 非 402 的 preflight 失败会**立即 exit 2**（不无限轮询）。
 

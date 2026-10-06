@@ -21,6 +21,26 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "acceptance-gate" in text or "Exit:" in text
 
 
+def test_p0_post_billing_acceptance_requires_bird_root_directory() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/p0_post_billing_acceptance.sh"
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = "/tmp/nonexistent_bird_dev_databases_p0_test"
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    completed = subprocess.run(
+        [str(script), "--gates-only"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+    )
+    assert completed.returncode == 1
+    assert "not a directory" in completed.stderr
+    assert env["BIRD_DATABASE_ROOT"] in completed.stderr
+
+
 def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/p0_post_billing_acceptance.sh"
