@@ -59,6 +59,13 @@ def test_bird_0006_contract_includes_magnet_sat_profile() -> None:
     assert "magnet_sat_profile=true" in contract.filters
 
 
+def test_bird_0003_contract_includes_high_frpm_unexpected_performance_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0003")
+    assert "high_frpm_unexpected_performance_profile=true" in contract_for(case).filters
+
+
 def test_bird_0008_contract_includes_top10_high_frpm_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

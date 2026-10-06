@@ -369,6 +369,35 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "high_frpm_unexpected_performance_profile=true" in contract.filters:
+            if re.search(r"PerformanceCategory", sql, re.IGNORECASE) and re.search(
+                r"Below Average|Above Average|'Average'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PerformanceCategory 用 High/Medium/Low（SAT 总分 ≥1500/≥1200），"
+                        "不要用 Below/Average/Above Average 标签",
+                    )
+                )
+            if "UnabbreviatedMailingAddress" in contract.projections and re.search(
+                r"\|\|",
+                sql,
+            ):
+                if re.search(
+                    r"UnabbreviatedMailingAddress|MailingAddress",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "UnabbreviatedMailingAddress 用 schools.MailStreet（或 sch.MailStreet），"
+                            "不要拼接 MailStreet/City/Zip",
+                        )
+                    )
         if "top10_high_frpm_profile=true" in contract.filters:
             if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and not re.search(
                 r"frpm_rank\s*<=",
@@ -1041,6 +1070,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "high_frpm_unexpected_performance_profile=true":
+            hints.append(
+                "最高 FRPM Count 非 charter 校：frpm Charter School (Y/N)=0、Enrollment>100；"
+                "PerformanceCategory=High/Medium/Low（SAT 总分）；PerformanceClassification 对比 FRPM 与 PercentHighScorers；"
+                "MailStreet AS UnabbreviatedMailingAddress；PercentHighScorers=NumGE1500/NumTstTakr×100。"
             )
         if item == "top10_high_frpm_profile=true":
             hints.append(

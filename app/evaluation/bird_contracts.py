@@ -41,6 +41,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("schools_admin_doc_soc_profile=true")
     if case.id == "bird_0094":
         filters.append("financial_salary_gap_profile=true")
+    if case.id == "bird_0003":
+        filters.append("high_frpm_unexpected_performance_profile=true")
     if case.id == "bird_0008":
         filters.append("top10_high_frpm_profile=true")
     if case.id == "bird_0011":

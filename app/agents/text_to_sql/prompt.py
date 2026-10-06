@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v27"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v28"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -54,6 +54,9 @@ _GENERIC_SHAPE_TAIL = (
     "可先 CTE 算基础列，再在外层 SELECT 窗口函数并 ORDER BY。"
     "PerformanceCategory 为 SAT 分档；PerformanceClassification 为 FRPM 与 SAT 对比"
     "（Expected performance / despite high FRPM 等），勿把两列都写成 SAT Below/Average/Above 标签。"
+    "问句含 unexpectedly well/poorly given FRPM：PerformanceCategory 用 High/Medium/Low（≥1500/≥1200）；"
+    "PerformanceClassification 用 FRPM 小数阈值与 despite high/low FRPM 文案；"
+    "UnabbreviatedMailingAddress 投影 schools.MailStreet；非 charter 用 frpm Charter School (Y/N)=0。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
