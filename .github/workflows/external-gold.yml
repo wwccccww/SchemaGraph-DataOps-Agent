@@ -19,6 +19,7 @@ on:
       - "scripts/replay_tpcds_baseline.sh"
       - "scripts/p1_release_gate.sh"
       - "scripts/print_external_p0_status.sh"
+      - "scripts/run_bird_p0_full_eval_twice.sh"
       - "tests/unit/test_external_*.py"
       - "tests/unit/test_p0_external_measured_baseline.py"
       - "tests/unit/test_p1_replay_gate.py"
