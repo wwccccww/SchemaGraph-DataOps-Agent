@@ -154,6 +154,25 @@ def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
     assert any("tpcds" in item for item in failures)
 
 
+def test_acceptance_gate_bird_min_zero_skips_floor(tmp_path: Path) -> None:
+    t1 = tmp_path / "t1"
+    t2 = tmp_path / "t2"
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(b1, source="bird", matched=6, case_count=50, accuracy=0.12)
+    _write_summary(b2, source="bird", matched=6, case_count=50, accuracy=0.12)
+    assert (
+        validate_p0_acceptance_gate(
+            [load_run_measured(t1), load_run_measured(t2)],
+            [load_run_measured(b1), load_run_measured(b2)],
+            bird_min_matched=0,
+        )
+        == []
+    )
+
+
 def test_cli_acceptance_gate_passes(tmp_path: Path) -> None:
     t1 = tmp_path / "t1"
     t2 = tmp_path / "t2"
