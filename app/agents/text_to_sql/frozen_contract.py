@@ -369,6 +369,33 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "female_birth_19760129_accounts_profile=true" in contract.filters:
+            if re.search(
+                r"SELECT\s+A3\s+FROM\s+district[\s\S]{0,120}AS\s+residence_district|"
+                r"SELECT\s+A3\s+FROM\s+district[\s\S]{0,120}AS\s+account_district",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "residence_district/account_district 用 district.A2 名称（不是 A3 region）",
+                    )
+                )
+            if re.search(r"type\s*=\s*'credit'|type\s*=\s*'debit'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_income/total_expense 用 PRIJEM/VYDAJ（不是 credit/debit）",
+                    )
+                )
+            if re.search(r"Same District|Different District", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "district_comparison 文案 Same as residence / Different from residence",
+                    )
+                )
         if "litomerice_1996_accounts_profile=true" in contract.filters:
             if re.search(r"A3\s*=\s*'Litomerice'", sql, re.IGNORECASE):
                 findings.append(
@@ -1978,6 +2005,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Litomerice 1996：AccountsInLitomerice1996 用 A2；ClientInfo/AccountActivity/LoanStatus CTE；"
                 "trans 1996 年 PRIJEM 存款；最终单行聚合 AVG 季度占比。"
+            )
+        if item == "female_birth_19760129_accounts_profile=true":
+            hints.append(
+                "1976-01-29 女 client：female_client+client_accounts OWNER；"
+                "account_transactions PRIJEM/VYDAJ；loan/card 子查询；"
+                "JOIN district ON account_district=A2 取 region/A10/A11/A14。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

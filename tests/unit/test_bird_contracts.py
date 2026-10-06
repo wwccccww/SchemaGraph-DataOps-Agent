@@ -136,6 +136,13 @@ def test_bird_0111_contract_includes_litomerice_1996_accounts_profile() -> None:
     assert "litomerice_1996_accounts_profile=true" in contract_for(case).filters
 
 
+def test_bird_0112_contract_includes_female_birth_19760129_accounts_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0112")
+    assert "female_birth_19760129_accounts_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v45"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v46"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -98,6 +98,8 @@ _GENERIC_SHAPE_TAIL = (
     "transaction_category=High/Medium/Low Value；loan_status Has/No Loan；district 用 client.district_id。"
     "Litomerice 1996 开户：district.A2='Litomerice'（非 A3）；ClientInfo 全 disp；"
     "1996 交易 PRIJEM/VYDAJ；avg_client_age 以 1996 年；季度占比 AVG(CASE month)%。"
+    "1976-01-29 女 client：residence/account_district 用 A2 县名；"
+    "district_comparison Same as residence；trans PRIJEM/VYDAJ；区县指标 JOIN A2。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
