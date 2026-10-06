@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v33"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v34"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -69,6 +69,8 @@ _GENERIC_SHAPE_TAIL = (
     "free_meal_category 用 High/Medium/Low Free Meal Rate；StatusType='Active'。"
     "Top-3 SAT excellence：excellence=NumGE1500/NumTstTakr，RANK() 得 rank，WHERE rank<=3；"
     "Poverty Rate/Category 用 Percent FRPM 小数与 High/Medium/Low/Very Low Poverty。"
+    "最高 Math SAT 活跃校：RANK() 得 MathRank=1；NumTstTakr>=10、StatusType Active；"
+    "frpm Academic Year='2014-2015'；IsCharter 用 Y/N；% FRPM=ROUND(Percent FRPM*100,2)||'%'。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

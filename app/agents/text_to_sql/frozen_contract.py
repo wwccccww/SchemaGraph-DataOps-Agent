@@ -369,6 +369,43 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "top_math_sat_active_profile=true" in contract.filters:
+            if re.search(
+                r"ORDER BY[\s\S]*AvgScrMath\s+DESC[\s\S]*LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"MathRank\s*=\s*1", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最高 Math SAT：SchoolRankings 中 RANK() 得 MathRank，"
+                        "外层 WHERE MathRank=1；不要 ORDER BY AvgScrMath LIMIT 1",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)[\s\S]*% Free/Reduced",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "% Free/Reduced Price Meals 用 "
+                        "ROUND(Percent (%) Eligible FRPM (K-12)*100,2)||'%'",
+                    )
+                )
+            if re.search(r"\bsc\.Charter\b|\bs\.Charter\b", sql) and re.search(
+                r"Is Charter School",
+                sql,
+                re.IGNORECASE,
+            ):
+                if not re.search(r"Charter School \(Y/N\)", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "Is Charter 用 frpm `Charter School (Y/N)`（Academic Year='2014-2015'）",
+                        )
+                    )
         if "top3_sat_excellence_profile=true" in contract.filters:
             if re.search(r"ROW_NUMBER\s*\(\s*\).*SAT Excellence Rank", sql, re.IGNORECASE):
                 findings.append(
@@ -1264,6 +1301,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "top_math_sat_active_profile=true":
+            hints.append(
+                "Top Math SAT Active：StatusType Active、NumTstTakr>=10；"
+                "RANK MathRank=1；CharterAnalysis frpm 2014-2015；"
+                "PercentFRPM 输出 ROUND×100||'%'；子查询 COUNT(DISTINCT cds) 与 AVG(Math)。"
             )
         if item == "top3_sat_excellence_profile=true":
             hints.append(
