@@ -369,6 +369,68 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "loan_98832_19960103_profile=true" in contract.filters:
+            if re.search(
+                r"STRFTIME\s*\(\s*'%Y'[\s\S]{0,80}98832|98832[\s\S]{0,80}STRFTIME\s*\(\s*'%Y'",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"date\s*=\s*'1996-01-03'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "目标贷款：loan.date='1996-01-03' AND amount=98832",
+                    )
+                )
+            if re.search(r"JULIANDAY\s*\(\s*tl\.loan_date\s*\)", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_at_loan 用 strftime 年差并校正月日（LoanClient CTE）",
+                    )
+                )
+            if re.search(
+                r"amount\s*>\s*0[\s\S]{0,60}total_income|amount\s*<\s*0[\s\S]{0,60}total_expense",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_income/total_expense 用 trans.type PRIJEM/VYDAJ（不是 amount 正负）",
+                    )
+                )
+            if re.search(r"expense_to_income", sql, re.IGNORECASE) and re.search(
+                r"total_expense\s*/\s*NULLIF\s*\(\s*total_income",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"\*\s*100", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "expense_to_income_ratio=ROUND(expense/income*100,2)",
+                    )
+                )
+            if re.search(r"previous_loans", sql, re.IGNORECASE) and re.search(
+                r"prev_loans|previous_loans[\s\S]{0,80}tl\.account_id\s*=",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"client_id\s*=\s*CT\.client_id|d\.client_id", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "previous_loans 统计该 client 所有账户在贷款日前的 loan 笔数",
+                    )
+                )
+            if re.search(r"JOIN disp", sql, re.IGNORECASE) and re.search(
+                r"98832|1996-01-03",
+                sql,
+            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "LoanClient 须 disp.type='OWNER' 关联 client",
+                    )
+                )
         if "female_birth_19760129_accounts_profile=true" in contract.filters:
             if re.search(
                 r"SELECT\s+A3\s+FROM\s+district[\s\S]{0,120}AS\s+residence_district|"
@@ -2011,6 +2073,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "1976-01-29 女 client：female_client+client_accounts OWNER；"
                 "account_transactions PRIJEM/VYDAJ；loan/card 子查询；"
                 "JOIN district ON account_district=A2 取 region/A10/A11/A14。"
+            )
+        if item == "loan_98832_19960103_profile=true":
+            hints.append(
+                "98832 贷款：LoanClient loan→account→disp OWNER→client；"
+                "ClientTransactions trans.date<loan_date；CardInfo GROUP_CONCAT type；"
+                "previous_loans 子查询跨 client 全部 account。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

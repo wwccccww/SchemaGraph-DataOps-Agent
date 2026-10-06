@@ -143,6 +143,13 @@ def test_bird_0112_contract_includes_female_birth_19760129_accounts_profile() ->
     assert "female_birth_19760129_accounts_profile=true" in contract_for(case).filters
 
 
+def test_bird_0113_contract_includes_loan_98832_19960103_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0113")
+    assert "loan_98832_19960103_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 
