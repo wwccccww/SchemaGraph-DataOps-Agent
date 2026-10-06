@@ -369,6 +369,46 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "top3_sat_excellence_profile=true" in contract.filters:
+            if re.search(r"ROW_NUMBER\s*\(\s*\).*SAT Excellence Rank", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SAT Excellence Rank 用 RANK() OVER (ORDER BY excellence_rate DESC)，"
+                        "不要用 ROW_NUMBER",
+                    )
+                )
+            if re.search(r"LIMIT\s+3", sql, re.IGNORECASE) and not re.search(
+                r"rank\s*<=\s*3",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Top-3 excellence：CTE 中 RANK()，外层 WHERE rank<=3；不要 ORDER BY LIMIT 3",
+                    )
+                )
+            if re.search(r"Free Meal Count \(K-12\)", sql) and re.search(
+                r"Poverty Rate|Poverty Category",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Poverty Rate/Category 用 frpm Percent (%) Eligible FRPM (K-12) 小数分档",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql) and "Poverty Category" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Poverty Category 用 High/Medium/Low/Very Low Poverty",
+                    )
+                )
         if "sat_excellence_county_free_meal_profile=true" in contract.filters:
             if re.search(r"/\s*2400|sat_total\s*\*\s*1\.0\s*/\s*2400", sql, re.IGNORECASE):
                 findings.append(
@@ -1221,6 +1261,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "top3_sat_excellence_profile=true":
+            hints.append(
+                "Top-3 SAT excellence：NumGE1500/NumTstTakr；RANK 得 rank；"
+                "WHERE rank<=3；Phone/City/Charter Yes/No；"
+                "poverty_rate=Percent FRPM；poverty_category 四档 Poverty 标签。"
             )
         if item == "sat_excellence_county_free_meal_profile=true":
             hints.append(
