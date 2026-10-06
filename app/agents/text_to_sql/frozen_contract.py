@@ -369,6 +369,63 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "card_issued_19940303_profile=true" in contract.filters:
+            if re.search(r"JULIANDAY\s*\(\s*cd\.issued\s*\)", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_at_card_issue 用 STRFTIME 年差（issued 年 − birth 年），不要用 JULIANDAY/365.25",
+                    )
+                )
+            if re.search(r"avg_salary", sql, re.IGNORECASE) and re.search(
+                r"k_symbol\s*=\s*'SALARY'|trans.*avg_salary",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "avg_salary 用 district.A11（client.district_id→district），不是 trans SALARY 平均",
+                    )
+                )
+            if re.search(r"active_loans", sql, re.IGNORECASE) and re.search(
+                r"status\s*=\s*'C'[\s\S]{0,40}active_loans",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "active_loans 计数 loan status='A'（不是 C）",
+                    )
+                )
+            if re.search(r"borrower_category", sql, re.IGNORECASE):
+                if re.search(r"Young Active Borrower|Middle-aged|Senior Active", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "borrower_category：loan_count>0 且 age<30→Young borrower，"
+                            ">=30→Mature borrower，否则 Non-borrower",
+                        )
+                    )
+                if re.search(r"active_loans\s*>\s*0[\s\S]{0,80}borrower", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "borrower_category 基于 loan_count（不是 active_loans）",
+                        )
+                    )
+            if re.search(r"age_rank_by_gender", sql, re.IGNORECASE) and re.search(
+                r"ORDER BY[\s\S]*age_at_card_issue\s+DESC",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_rank_by_gender：RANK() PARTITION BY gender ORDER BY age_at_card_issue（升序）",
+                    )
+                )
         if "sokolov_pre1950_female_owner_profile=true" in contract.filters:
             if re.search(r"A3\s*=\s*'Sokolov'", sql, re.IGNORECASE):
                 findings.append(
@@ -1651,6 +1708,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Sokolov 女 client：gender F、birth_year<1950、district A2='Sokolov'；"
                 "client_accounts 经 disp OWNER→account；age_at_opening=开户年−出生年；"
                 "loan_details：A=Contract Finished/No Problems，D=Running Contract/Client in Debt。"
+            )
+        if item == "card_issued_19940303_profile=true":
+            hints.append(
+                "1994-03-03 card：ClientCardInfo client→disp→card；age 年差；"
+                "ClientAccountInfo account+loan；ClientDistrictInfo client.district_id→A11；"
+                "borrower_category 三档；RANK() age_rank_by_gender。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
