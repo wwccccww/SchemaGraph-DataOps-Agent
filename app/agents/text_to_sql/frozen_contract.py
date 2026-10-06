@@ -418,6 +418,144 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "weekly_statement_owners_demographics_profile=true" in contract.filters:
+            if re.search(
+                r"frequency\s*=\s*'weekly'|weekly statement",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "weekly 对账单账户 frequency='POPLATEK TYDNE'",
+                    )
+                )
+            if re.search(r"age_group", sql, re.IGNORECASE) and re.search(
+                r"THEN\s+'Middle'|'Old'\s+END|AS\s+age_group[\s\S]{0,200}'Middle'",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"Middle-aged|'Senior'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_group 标签用 Middle-aged 与 Senior（不是 Middle/Old）",
+                    )
+                )
+            if re.search(r"avg_net_balance|net_balance", sql, re.IGNORECASE) and re.search(
+                r"SUM\s*\(\s*t\.balance\s*\)|AVG\s*\(\s*ta\.net_balance\s*\)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"total_income\s*-\s*total_expense|income\s*-\s*expense",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "avg_net_balance 用 PRIJEM−VYDAJ（不是 SUM(trans.balance)）",
+                    )
+                )
+            if re.search(r"POPLATEK TYDNE|weekly", sql, re.IGNORECASE) and re.search(
+                r"JULIANDAY\s*\(\s*['\"]2026-10-01",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_group 用 strftime 年差与生日校正（anchor 2026-10-01）",
+                    )
+                )
+            if re.search(r"total_weekly_owners", sql, re.IGNORECASE) and re.search(
+                r"ORDER BY\s+oi\.gender|ORDER BY\s+gender\s*,\s*age_group",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"ORDER BY\s+total_weekly_owners", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ORDER BY total_weekly_owners DESC",
+                    )
+                )
+        if "disponent_po_obratu_client_profile=true" in contract.filters:
+            if re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE) and not re.search(
+                r"type\s*=\s*'DISPONENT'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "post-obratu 题用 disp.type='DISPONENT'（不是 OWNER）",
+                    )
+                )
+            if re.search(r"POPLATEK PO OBRATU", sql, re.IGNORECASE) is None and re.search(
+                r"disponent|post-transaction|eligible_accounts",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "账户 frequency 须 POPLATEK PO OBRATU",
+                    )
+                )
+            if re.search(
+                r"type\s*=\s*'credit'|type\s*=\s*'debit'|total_credit|total_debit",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "交易汇总用 PRIJEM/VYDAJ（不是 credit/debit）",
+                    )
+                )
+            if re.search(
+                r"status\s*=\s*'C'[\s\S]{0,40}completed|completed_loans[\s\S]{0,80}status\s*=\s*'C'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "completed_loans 计 status='B'（active 为 A）",
+                    )
+                )
+            if re.search(r"client_category", sql, re.IGNORECASE) and re.search(
+                r"High Usage|Medium Usage|Low Usage",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "client_category 用 Full Service/Loan Only/Card Only/Basic",
+                    )
+                )
+            if re.search(
+                r"t\.date\s*>\s*\(\s*SELECT\s+a\.date",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "勿用 trans.date>开户日代替 POPLATEK PO OBRATU+DISPONENT 过滤",
+                    )
+                )
+            if re.search(r"transaction_rank", sql, re.IGNORECASE) and re.search(
+                r"ORDER BY\s+transaction_count\s+DESC",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"ORDER BY\s+transaction_rank", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ORDER BY transaction_rank, client_id",
+                    )
+                )
         if "large_loan_high_salary_district_profile=true" in contract.filters:
             if re.search(
                 r"type\s*=\s*'credit'|type\s*=\s*'debit'|total_credit|total_debit",
@@ -2367,6 +2505,17 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
                 "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
                 "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
+            )
+        if item == "weekly_statement_owners_demographics_profile=true":
+            hints.append(
+                "Weekly 对账单：POPLATEK TYDNE+OWNER；CustomerWeeklyStatements CTE；"
+                "ClientInfo 经 client.district_id；LoanAndTransactionData 按 client PRIJEM/VYDAJ。"
+            )
+        if item == "disponent_po_obratu_client_profile=true":
+            hints.append(
+                "Disponent PO OBRATU：ClientLoanInfo/Transactions/Cards CTE；"
+                "frequency POPLATEK PO OBRATU；loan A active/B completed；"
+                "client_category 四档服务类型；RANK transaction_rank。"
             )
         if item == "large_loan_high_salary_district_profile=true":
             hints.append(

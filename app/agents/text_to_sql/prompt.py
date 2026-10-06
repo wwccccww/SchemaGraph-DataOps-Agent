@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v52"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v53"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -120,6 +120,13 @@ _GENERIC_SHAPE_TAIL = (
     "保留 total_income>total_expense 或 total_income IS NULL；"
     "income_category High/Medium/Low Income；savings_ratio=(income-expense)/income；"
     "region_loan_rank=RANK() PARTITION BY region；LIMIT 100。"
+    "weekly 对账单：frequency='POPLATEK TYDNE'（不是 weekly 英文）；"
+    "age_group Young/Middle-aged/Senior；ClientInfo 用 client.district_id→district；"
+    "LoanAndTransactionData 按 client 聚合 PRIJEM/VYDAJ；avg_net_balance=income−expense；"
+    "ORDER BY total_weekly_owners DESC。"
+    "POPLATEK PO OBRATU disponent：disp.type='DISPONENT'；loan active A/completed B；"
+    "client_category Full Service/Loan Only/Card Only/Basic；"
+    "ORDER BY transaction_rank, client_id。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
