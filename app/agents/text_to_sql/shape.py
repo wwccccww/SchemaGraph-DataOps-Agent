@@ -283,6 +283,49 @@ def check_answer_shape(
                 )
             )
     if re.search(
+        r"highest average SAT Reading|highest.*Reading score",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"Enrollment \(K-12\)|FRPM Count \(K-12\)", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SAT Reading 榜首题 frpm 用 Ages 5-17 列（Enrollment/FRPM Count/Percent FRPM），"
+                    "不要用 K-12 列",
+                )
+            )
+        if re.search(r"NumGE1500.*100\s*/\s*Enrollment|/ Enrollment", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PercentScoring1500Plus 用 NumGE1500*100/NumTstTakr，不要除以 Enrollment",
+                )
+            )
+        if re.search(r"order by.*limit\s+1", sql, re.IGNORECASE) and "readingrank\s*=\s*1" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "最高 Reading 用 RANK() OVER (ORDER BY AvgScrRead DESC) 后 WHERE ReadingRank=1，"
+                    "不要仅 ORDER BY … LIMIT 1",
+                )
+            )
+        if re.search(r"GSserved", sql) and "gsoffered" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "GradeSpan 投影 schools.GSoffered，不要用 GSserved",
+                )
+            )
+        if re.search(r"High FRPM|School Type", sql) and "Non-Charter School" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SchoolType 用 Charter/Non-Charter School CASE；PovertyLevel 用 "
+                    "High/Moderate/Low/Very Low Poverty (>75%…) 基于 Ages 5-17 FRPM 小数",
+                )
+            )
+    if re.search(
         r"magnet schools.*(500|SAT test takers)|over 500 SAT",
         question,
         re.IGNORECASE,

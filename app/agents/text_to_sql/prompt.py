@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v17"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v18"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -30,6 +30,7 @@ _GENERIC_SHAPE_TAIL = (
     "FRPM 分档严格 >0.75/>0.50；YearOpened 文本年；PercentageAbove1500=NumGE1500/NumTstTakr（rtype=S）。"
     "Magnet+SAT>500：SOCType/EdOpsName 来自 schools；FRPM  poverty 用小数列与 High/Moderate/Low/Very Low Poverty；"
     "SAT 分类 Excellent/Good/Average/Below Average；CountyRank 用 DENSE_RANK。"
+    "最高 Reading：RANK+ReadingRank=1；frpm Ages 5-17；Percent1500+=NumGE1500/NumTstTakr；GSoffered。"
     "California schools：县名/学区/学校名与 free meal、NSLP、Enrollment 等优先用 frpm 带空格列名；"
     "Magnet、GSserved、Charter 等在 schools；问句同时涉及 magnet/grade span 与 NSLP/Provision 时必须 JOIN frpm 与 schools。"
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"

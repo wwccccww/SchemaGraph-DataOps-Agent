@@ -95,6 +95,21 @@ def test_coe_charter_flags_percent_frpm_times_100() -> None:
     assert any("不要 ×100" in item.message for item in findings)
 
 
+def test_top_reading_sat_flags_k12_frpm_and_limit_one() -> None:
+    question = (
+        "For the school with the highest average SAT Reading score among schools "
+        "with more than 10 test takers, provide poverty indicators."
+    )
+    sql = (
+        'SELECT f."Enrollment (K-12)" FROM schools s JOIN satscores ss ON ss.cds=s.CDSCode '
+        "JOIN frpm f ON f.CDSCode=s.CDSCode ORDER BY ss.AvgScrRead DESC LIMIT 1"
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert any("Ages 5-17" in m for m in messages)
+    assert any("ReadingRank=1" in m for m in messages)
+
+
 def test_magnet_sat_flags_frpm_school_type_and_poverty_labels() -> None:
     question = (
         "For magnet schools with over 500 SAT test takers, provide poverty levels "

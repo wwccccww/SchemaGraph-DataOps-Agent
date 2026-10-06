@@ -23,6 +23,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("financial_running_ok_profile=true")
     if case.id == "bird_0006":
         filters.append("magnet_sat_profile=true")
+    if case.id == "bird_0010":
+        filters.append("top_reading_sat_profile=true")
     filters.append(f"anchor_date={case.anchor_date.isoformat()}")
     return SemanticContract(
         projections=projections,

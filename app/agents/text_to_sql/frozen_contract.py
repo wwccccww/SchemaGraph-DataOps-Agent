@@ -624,6 +624,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "PerformanceCategory 用 Excellent/Good/Average/Below Average（1800/1500/1200）；"
                 "CountyRank 用 DENSE_RANK；外层 WHERE Magnet=1。"
             )
+        if item == "top_reading_sat_profile=true":
+            hints.append(
+                "最高 Reading：satscores 上 RANK()，WHERE ReadingRank=1（勿仅用 ORDER BY LIMIT 1）；"
+                "frpm 用 Ages 5-17 列；PercentScoring1500Plus=NumGE1500*100/NumTstTakr；"
+                "GradeSpan=GSoffered；Charter 标签 Charter/Non-Charter School。"
+            )
         if item == "returns_vs_sales=separate_cte":
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"
