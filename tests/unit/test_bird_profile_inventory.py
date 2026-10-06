@@ -18,3 +18,40 @@ def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
             with_profile += 1
     # 22 条显式 profile（其余依赖 generic shape + 投影列契约）
     assert with_profile >= 22
+
+
+def test_bird_explicit_profile_case_ids() -> None:
+    """按题 profile 清单（新增 profile 时同步更新）。"""
+    expected = frozenset(
+        {
+            "bird_0002",
+            "bird_0003",
+            "bird_0005",
+            "bird_0006",
+            "bird_0008",
+            "bird_0010",
+            "bird_0011",
+            "bird_0012",
+            "bird_0018",
+            "bird_0021",
+            "bird_0032",
+            "bird_0055",
+            "bird_0060",
+            "bird_0062",
+            "bird_0066",
+            "bird_0069",
+            "bird_0077",
+            "bird_0079",
+            "bird_0087",
+            "bird_0094",
+            "bird_0118",
+            "bird_0119",
+        }
+    )
+    cases = load_bird_cases()
+    actual = frozenset(
+        case.id
+        for case in cases
+        if any(item.endswith("_profile=true") for item in contract_for(case).filters)
+    )
+    assert actual == expected
