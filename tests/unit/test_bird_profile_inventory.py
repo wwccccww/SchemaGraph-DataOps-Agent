@@ -92,8 +92,28 @@ def test_bird_explicit_profile_case_ids() -> None:
     assert actual == expected
 
 
+def test_peak_v15_ex1_cases_all_have_explicit_profile() -> None:
+    """峰值 v15 run 上 EX=1 的题均绑定按题 profile（v56 峰值失败自愈口径）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak v15 run fixture missing")
+    missing: list[str] = []
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if not payload.get("ex"):
+            continue
+        profiles = [item for item in contract_for(case).filters if item.endswith("_profile=true")]
+        if not profiles:
+            missing.append(case.id)
+    assert missing == []
+
+
 def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
-    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v54 自愈口径）。"""
+    """峰值 v15 run 上 EX=0 的题均绑定按题 profile（generic v56 自愈口径）。"""
     if not PEAK_V15_RUN.is_dir():
         import pytest
 
