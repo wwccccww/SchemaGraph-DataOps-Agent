@@ -25,6 +25,8 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "tpcds_postgres_catalog=" in text
     assert "P0_WAIT_LOG" in text
     assert "wait_log=" in text
+    assert "P0_WAIT_CONFIRM_POLLS" in text
+    assert "confirm_polls=" in text
 
 
 def test_wait_for_billing_requires_postgres_env() -> None:
@@ -154,6 +156,8 @@ exec {real_python} "$@"
     env = os.environ.copy()
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
+    env["P0_WAIT_CONFIRM_SECONDS"] = "1"
+    env["P0_WAIT_CONFIRM_POLLS"] = "2"
     env["P0_WAIT_STUB_ACCEPTANCE"] = "1"
     ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
@@ -165,7 +169,7 @@ exec {real_python} "$@"
         text=True,
         cwd=root,
         env=env,
-        timeout=15,
+        timeout=25,
     )
     assert completed.returncode == 0, completed.stderr
     assert "llm_preflight=ready" in completed.stdout

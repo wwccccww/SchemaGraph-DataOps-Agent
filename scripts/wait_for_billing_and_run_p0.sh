@@ -27,6 +27,8 @@ else
   echo "tpcds_postgres_catalog=unreachable"
 fi
 INTERVAL="${P0_BILLING_POLL_SECONDS:-300}"
+CONFIRM_POLLS="${P0_WAIT_CONFIRM_POLLS:-2}"
+CONFIRM_SLEEP="${P0_WAIT_CONFIRM_SECONDS:-15}"
 WAIT_LOG="${P0_WAIT_LOG:-/tmp/p0-wait-billing.log}"
 _p0_wait_log() {
   # shellcheck disable=SC2129
@@ -37,13 +39,24 @@ echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "wait_log=${WAIT_LOG}"
 _p0_wait_log "wait_log=${WAIT_LOG}"
 _p0_wait_log "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"
+_p0_wait_log "confirm_polls=${CONFIRM_POLLS} confirm_sleep_seconds=${CONFIRM_SLEEP}"
 echo "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"
+echo "confirm_polls=${CONFIRM_POLLS}"
+ready_streak=0
 while true; do
   if python3 -m app.evaluation.llm_preflight 2>/tmp/wait_for_billing_preflight.err; then
-    _p0_wait_log "llm_preflight=ready"
-    echo "llm_preflight=ready"
-    break
+    ready_streak=$((ready_streak + 1))
+    _p0_wait_log "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
+    echo "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
+    if [[ "$ready_streak" -ge "$CONFIRM_POLLS" ]]; then
+      _p0_wait_log "llm_preflight=ready"
+      echo "llm_preflight=ready"
+      break
+    fi
+    sleep "$CONFIRM_SLEEP"
+    continue
   fi
+  ready_streak=0
   if ! grep -q "402" /tmp/wait_for_billing_preflight.err 2>/dev/null; then
     cat /tmp/wait_for_billing_preflight.err >&2
     _p0_wait_log "llm_preflight=failed_non_402"
