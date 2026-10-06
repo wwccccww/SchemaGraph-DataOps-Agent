@@ -89,7 +89,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 **P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上十三 profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`；**非 LLM 实测**）；距 80 例综合可信度未完成。当前代码 **`text-to-sql-generic-v26`** + **17 条 BIRD 按题 profile** + SQLite 分号修复（峰值 run 仅 **0094** 仍不可执行）为 API 恢复后的全量复跑准备，**不等于**已提升实测 EX。
 
-**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
+**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
@@ -103,6 +103,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
+- 外部模型 **`self_healing`** 在校验失败时会尝试 **PATCH 级确定性口径补丁**（如 `coe_charter`、`running_ok`），不含 Gold 覆盖；需传入 `benchmark_case_id`（`external_model` 已注入）。
 - Generic Prompt 当前 **`text-to-sql-generic-v26`**（v25：**0011/0021/0066**；v26：**0069/0119** State Special + 1993 POPLATEK）。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 已可执行）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
 - **P1 本地 verify（Gold Oracle，无模型）**：
   ```bash

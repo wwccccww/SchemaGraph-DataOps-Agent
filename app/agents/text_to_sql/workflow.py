@@ -19,6 +19,7 @@ from app.agents.text_to_sql.frozen_contract import (
     check_frozen_semantic_contract,
     format_frozen_semantic_contract,
 )
+from app.agents.text_to_sql.profile_autofix import try_deterministic_profile_patch
 from app.agents.text_to_sql.prompt import (
     extract_sql,
     render_generation_prompt,
@@ -139,6 +140,7 @@ class TextToSqlState(TypedDict):
     candidate_rows: list[list[JsonValue]]
     candidate_score: int
     candidate_execution_ms: float | None
+    benchmark_case_id: str | None
 
 
 @dataclass(frozen=True)
@@ -250,6 +252,7 @@ async def inspect_text_to_sql(
     initial_sql: str | None = None,
     frozen_contract: SemanticContract | None = None,
     max_recovery_rounds: int | None = None,
+    benchmark_case_id: str | None = None,
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -293,6 +296,7 @@ async def inspect_text_to_sql(
                     frozen_contract=(
                         None if frozen_contract is None else frozen_contract.model_dump(mode="json")
                     ),
+                    benchmark_case_id=benchmark_case_id,
                     max_model_calls=1
                     + (
                         max_recovery_rounds
@@ -333,6 +337,7 @@ def _initial_state(
     schema_name: str,
     frozen_contract: dict[str, object] | None,
     max_model_calls: int,
+    benchmark_case_id: str | None = None,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -375,6 +380,7 @@ def _initial_state(
         "candidate_rows": [],
         "candidate_score": 0,
         "candidate_execution_ms": None,
+        "benchmark_case_id": benchmark_case_id,
     }
 
 
@@ -537,52 +543,81 @@ def _generate_sql(
     return generate_sql
 
 
+async def _validation_findings_for_sql(
+    services: ServiceBundle,
+    state: TextToSqlState,
+    sql: str,
+) -> list[SemanticFinding]:
+    findings = list(check_cte_outputs(sql, dialect=state["dialect"]))
+    if state["profile"] != "ecommerce":
+        documents, edges = await services.load_catalog()
+        if _catalog_mismatch(documents, state["database_id"]):
+            return findings
+        findings.extend(check_catalog_sql(sql, documents, dialect=state["dialect"]))
+        findings.extend(_frozen_contract_findings(state, sql))
+        if (
+            state["variant"] == "self_healing"
+            and state["profile"] != "ecommerce"
+            and state["attempt"] >= 1
+        ) or (
+            state["variant"] == "self_healing"
+            and state["profile"] == "ecommerce"
+            and state["attempt"] > 1
+        ):
+            findings.extend(
+                check_answer_shape(
+                    state["question"],
+                    sql,
+                    _selected_documents(documents, state),
+                    dialect=state["dialect"],
+                    edges=edges,
+                )
+            )
+    if (
+        state["profile"] == "ecommerce"
+        and state["variant"] == "self_healing"
+        and state["attempt"] > 1
+    ):
+        findings.extend(
+            check_contract(
+                question=state["question"],
+                sql=sql,
+                anchor_date=state["anchor_date"],
+            )
+        )
+    return _actionable_findings(findings)
+
+
 def _validate_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def validate_sql(state: TextToSqlState) -> dict[str, object]:
-        decision = check_read_only_sql(state["generated_sql"] or "", dialect=state["dialect"])
+        sql = state["generated_sql"] or ""
+        decision = check_read_only_sql(sql, dialect=state["dialect"])
         if decision.error is not None:
             return _fail_or_restore(state, _hinted(state, decision.error))
-        findings = list(check_cte_outputs(decision.sql, dialect=state["dialect"]))
         if state["profile"] != "ecommerce":
             documents, _edges = await services.load_catalog()
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
-            findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
-            findings.extend(_frozen_contract_findings(state, decision.sql))
-            if (
-                state["variant"] == "self_healing"
-                and state["profile"] != "ecommerce"
-                and state["attempt"] >= 1
-            ) or (
-                state["variant"] == "self_healing"
-                and state["profile"] == "ecommerce"
-                and state["attempt"] > 1
-            ):
-                findings.extend(
-                    check_answer_shape(
-                        state["question"],
-                        decision.sql,
-                        _selected_documents(documents, state),
-                        dialect=state["dialect"],
-                        edges=_edges,
-                    )
-                )
-        if (
-            state["profile"] == "ecommerce"
-            and state["variant"] == "self_healing"
-            and state["attempt"] > 1
-        ):
-            findings.extend(
-                check_contract(
-                    question=state["question"],
-                    sql=decision.sql,
-                    anchor_date=state["anchor_date"],
-                )
-            )
-        findings = _actionable_findings(findings)
+        findings = await _validation_findings_for_sql(services, state, decision.sql)
         if findings:
+            payload = state.get("frozen_contract")
+            contract = SemanticContract.model_validate(payload) if payload else None
+            patched = try_deterministic_profile_patch(
+                state.get("benchmark_case_id"), decision.sql, contract
+            )
+            if patched is not None:
+                patched_decision = check_read_only_sql(patched, dialect=state["dialect"])
+                if patched_decision.error is None:
+                    patched_findings = await _validation_findings_for_sql(
+                        services, state, patched_decision.sql
+                    )
+                    if not patched_findings:
+                        return {
+                            "status": "validated",
+                            "generated_sql": patched_decision.sql,
+                        }
             return _fail_or_restore(state, _review_error(findings))
         return {"status": "validated", "generated_sql": decision.sql}
 

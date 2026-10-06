@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# P1：发布前无 LLM 门禁（Oracle + 实测基线 replay + 单元子集）。
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+python3 -m pytest tests/unit/test_p0_external_measured_baseline.py \
+  tests/unit/test_p1_replay_gate.py \
+  tests/unit/test_external_release.py \
+  tests/unit/test_bird_peak_executable.py \
+  -q
+"$ROOT/scripts/verify_external_gold.sh"

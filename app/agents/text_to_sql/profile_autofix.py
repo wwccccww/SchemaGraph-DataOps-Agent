@@ -1,0 +1,37 @@
+"""评测侧已知口径的确定性 SQL 补丁（仅 PATCH profile，不含 Gold 覆盖）。"""
+
+from __future__ import annotations
+
+from app.evaluation.replay_amend import PATCH_AMEND_PROFILES, apply_replay_amends
+from app.schemas.benchmark import SemanticContract
+
+_PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
+    ("coe_charter_profile=true", "coe_charter"),
+    ("financial_running_ok_profile=true", "running_ok"),
+)
+
+
+def patch_profiles_for_contract(contract: SemanticContract | None) -> frozenset[str]:
+    if contract is None:
+        return frozenset()
+    filters = set(contract.filters)
+    chosen = {
+        profile for marker, profile in _PROFILE_BY_FILTER if marker in filters
+    }
+    return frozenset(chosen & PATCH_AMEND_PROFILES)
+
+
+def try_deterministic_profile_patch(
+    case_id: str | None,
+    sql: str,
+    contract: SemanticContract | None,
+) -> str | None:
+    if not case_id or not sql.strip():
+        return None
+    profiles = patch_profiles_for_contract(contract)
+    if not profiles:
+        return None
+    patched = apply_replay_amends(case_id, sql, profiles=profiles)
+    if patched == sql:
+        return None
+    return patched

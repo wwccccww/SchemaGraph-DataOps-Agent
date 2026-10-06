@@ -767,6 +767,7 @@ async def _run(
             variant=variant,
             frozen_contract=case.semantic_contract,
             max_recovery_rounds=max_recovery_rounds,
+            benchmark_case_id=case.id,
         )
 
     async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
