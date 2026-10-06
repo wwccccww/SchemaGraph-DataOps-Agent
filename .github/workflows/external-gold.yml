@@ -13,6 +13,8 @@ on:
       - "app/agents/text_to_sql/**"
       - "benchmarks/bird_complex/**"
       - "benchmarks/tpcds_derived/**"
+      - "benchmarks/custom_ecommerce/**"
+      - "tests/unit/test_custom_cases.py"
       - "scripts/verify_external_gold.sh"
       - "scripts/replay_bird_*.sh"
       - "app/llm/gateway.py"
