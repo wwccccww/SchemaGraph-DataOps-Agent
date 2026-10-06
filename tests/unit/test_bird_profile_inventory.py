@@ -16,5 +16,5 @@ def test_bird_cases_have_semantic_contract_and_profile_tags() -> None:
         profiles = [item for item in contract.filters if item.endswith("_profile=true")]
         if profiles:
             with_profile += 1
-    # 21 条显式 profile（其余依赖 generic shape + 投影列契约）
-    assert with_profile >= 21
+    # 22 条显式 profile（其余依赖 generic shape + 投影列契约）
+    assert with_profile >= 22

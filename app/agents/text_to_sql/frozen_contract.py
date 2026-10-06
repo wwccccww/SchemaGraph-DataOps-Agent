@@ -369,6 +369,41 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "sat_excellence_county_free_meal_profile=true" in contract.filters:
+            if re.search(r"/\s*2400|sat_total\s*\*\s*1\.0\s*/\s*2400", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "excellence_rate 用 NumGE1500/NumTstTakr（过滤 >0.3），"
+                        "不要用 SAT 总分/2400",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)|Enrollment \(K-12\)",
+                sql,
+                re.IGNORECASE,
+            ) and "eligible_free_rate" in sql.lower():
+                if not re.search(r"Ages 5-17", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "eligible_free_rate 用 frpm Ages 5-17 列，不要用 K-12",
+                        )
+                    )
+            if re.search(r"SOCType\s+AS\s+school_type", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "school_type 用 schools.Charter→Charter School/Non-Charter School",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql) and "free_meal_category" in sql.lower():
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "free_meal_category 用 High/Medium/Low Free Meal Rate",
+                    )
+                )
         if "la_low_free_meal_profile=true" in contract.filters:
             if re.search(r"Low FRPM|'Low FRPM'", sql, re.IGNORECASE):
                 findings.append(
@@ -1186,6 +1221,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "sat_excellence_county_free_meal_profile=true":
+            hints.append(
+                "SAT>30%：NumGE1500/NumTstTakr>0.3；Ages 5-17 free rate；"
+                "RANK PARTITION BY County；WHERE county_rank=1 LIMIT 1；"
+                "avg_eligible_free_rate 子查询全 CTE 平均；Active 校 StatusType='Active'。"
             )
         if item == "la_low_free_meal_profile=true":
             hints.append(

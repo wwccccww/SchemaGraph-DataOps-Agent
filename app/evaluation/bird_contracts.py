@@ -53,6 +53,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("fresno_direct_funded_charter_profile=true")
     if case.id == "bird_0062":
         filters.append("la_low_free_meal_profile=true")
+    if case.id == "bird_0012":
+        filters.append("sat_excellence_county_free_meal_profile=true")
     if case.id == "bird_0005":
         filters.append("virtual_sat_f_profile=true")
     if case.id == "bird_0060":
