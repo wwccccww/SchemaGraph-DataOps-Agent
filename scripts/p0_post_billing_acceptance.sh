@@ -19,7 +19,11 @@ fi
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
 if [[ "$GATES_ONLY" -eq 1 ]]; then
   echo "mode=gates_only (skipping llm_preflight and 2× full eval while billing blocked)"
-  "$ROOT/scripts/p1_release_gate.sh"
+  if [[ -n "${P0_GATES_ONLY_STUB:-}" ]]; then
+    echo "p1_release_gate=stub"
+  else
+    "$ROOT/scripts/p1_release_gate.sh"
+  fi
   echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
   exit 0
 fi

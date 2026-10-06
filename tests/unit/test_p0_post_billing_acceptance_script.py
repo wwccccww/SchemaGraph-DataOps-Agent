@@ -73,3 +73,46 @@ exec {real_python} "$@"
     assert completed.returncode == 2
     assert "402" in completed.stdout + completed.stderr
     assert "generic_prompt=text-to-sql-generic-v" in completed.stdout
+
+
+def test_p0_post_billing_gates_only_skips_llm_preflight(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/p0_post_billing_acceptance.sh"
+    real_python = subprocess.run(
+        ["bash", "-lc", "command -v python3"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    fake_python = tmp_path / "python3"
+    fake_python.write_text(
+        f"""#!/usr/bin/env bash
+if [[ "$1" == "-m" && "$2" == "app.evaluation.llm_preflight" ]]; then
+  echo "preflight should not run in --gates-only" >&2
+  exit 99
+fi
+exec {real_python} "$@"
+"""
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = env.get(
+        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
+    )
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
+    env["P0_GATES_ONLY_STUB"] = "1"
+    completed = subprocess.run(
+        [str(script), "--gates-only"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "mode=gates_only" in completed.stdout
+    assert "preflight should not run" not in completed.stderr
+    assert "p1_release_gate=stub" in completed.stdout
+    assert "P0 gates-only OK" in completed.stdout
