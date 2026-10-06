@@ -13,6 +13,17 @@ def test_verify_external_gold_script_sources_env() -> None:
     assert 'source "$ROOT/.env"' in script
 
 
+def test_replay_baseline_scripts_source_env() -> None:
+    root = Path(__file__).resolve().parents[2]
+    for name in (
+        "replay_bird_baseline.sh",
+        "replay_tpcds_baseline.sh",
+        "replay_bird_offline_ceiling.sh",
+    ):
+        text = (root / "scripts" / name).read_text(encoding="utf-8")
+        assert 'source "$ROOT/.env"' in text, name
+
+
 def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text()
@@ -40,6 +51,7 @@ def test_env_example_documents_bird_database_root_for_p1_gate() -> None:
     root = Path(__file__).resolve().parents[2]
     example = (root / ".env.example").read_text(encoding="utf-8")
     assert "BIRD_DATABASE_ROOT=" in example
+    assert "p0_post_billing_acceptance.sh" in example
 
 
 def test_p1_release_gate_fast_pytest_subset_passes() -> None:
