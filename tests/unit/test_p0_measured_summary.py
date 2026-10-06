@@ -233,3 +233,15 @@ def test_cli_on_peak_bird_fixture() -> None:
     loaded = load_run_measured(peak)
     assert loaded.matched == 7
     assert loaded.case_count == 50
+
+
+def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
+    """Peak v15 双跑同目录时 BIRD 侧应 stable 且满足默认 7/50 下限（TPC-DS 仍须另补 2 run）。"""
+    root = Path(__file__).resolve().parents[2]
+    peak = root / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    if not peak.is_dir():
+        pytest.skip("bird peak run fixture unavailable")
+    pair = [load_run_measured(peak), load_run_measured(peak)]
+    failures = validate_p0_acceptance_gate([], pair, bird_min_matched=7)
+    bird_failures = [item for item in failures if "bird" in item.lower()]
+    assert bird_failures == []
