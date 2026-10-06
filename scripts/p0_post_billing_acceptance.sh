@@ -8,6 +8,10 @@ if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required (path to dev_databases)" >&2
   exit 1
 fi
+if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
+  echo "POSTGRES_USER and POSTGRES_PASSWORD are required (TPC-DS catalog + 2× full eval)" >&2
+  exit 1
+fi
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
 python3 -m app.evaluation.llm_preflight
 "$ROOT/scripts/p1_release_gate.sh"
