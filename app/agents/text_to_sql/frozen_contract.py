@@ -875,6 +875,22 @@ def check_frozen_semantic_contract(
                         "问句未要求门店州时不要 JOIN store；收入带/购买潜力走 customer→household_demographics",
                     )
                 )
+    if re.search(r"PerformanceCategory", sql, re.IGNORECASE) and re.search(
+        r"PerformanceClassification", sql, re.IGNORECASE
+    ):
+        sat_label_repeats = len(re.findall(r"Below Average|Above Average", sql, re.IGNORECASE))
+        if sat_label_repeats >= 2 and not re.search(
+            r"Expected performance|despite high FRPM|despite low FRPM",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PerformanceClassification 应基于 FRPM 与 SAT 对比（Expected/despite high FRPM 等），"
+                    "不要重复 PerformanceCategory 的 SAT 分数档标签",
+                )
+            )
     return tuple(findings)
 
 

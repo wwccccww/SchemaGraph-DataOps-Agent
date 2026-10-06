@@ -52,7 +52,8 @@ _GENERIC_SHAPE_TAIL = (
     "SQLite 输出列别名若含空格或括号，必须与冻结契约一致并使用双引号。"
     "窗口函数（RANK/DENSE_RANK/ROW_NUMBER）写在最终 SELECT 中，不要在同一层再对窗口列做 GROUP BY；"
     "可先 CTE 算基础列，再在外层 SELECT 窗口函数并 ORDER BY。"
-    "最终 SELECT 勿输出语义重复的列（如 PerformanceCategory 与 PerformanceClassification 只保留一列）。"
+    "PerformanceCategory 为 SAT 分档；PerformanceClassification 为 FRPM 与 SAT 对比"
+    "（Expected performance / despite high FRPM 等），勿把两列都写成 SAT Below/Average/Above 标签。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

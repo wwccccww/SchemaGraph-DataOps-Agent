@@ -11,7 +11,8 @@ def test_generic_prompt_v27_includes_sat_rtype_and_no_duplicate_columns() -> Non
     assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v27"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
-    assert "PerformanceCategory" in sqlite_system
+    assert "PerformanceClassification" in sqlite_system
+    assert "despite high FRPM" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:

@@ -8,5 +8,6 @@ python3 -m pytest tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_external_release.py \
   tests/unit/test_external_model_cli.py \
   tests/unit/test_bird_peak_executable.py \
+  tests/unit/test_print_external_p0_status.py \
   -q
 "$ROOT/scripts/verify_external_gold.sh"
