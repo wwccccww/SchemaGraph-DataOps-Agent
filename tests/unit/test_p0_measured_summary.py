@@ -236,11 +236,9 @@ def test_cli_on_peak_bird_fixture() -> None:
 
 
 def test_peak_tpcds_pair_satisfies_acceptance_tpcds_rules() -> None:
-    root = Path(__file__).resolve().parents[2]
-    peak = (
-        root
-        / "reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74"
-    )
+    from tests.unit.bird_replay_fixtures import TPCDS_PEAK_RUN
+
+    peak = TPCDS_PEAK_RUN
     if not peak.is_dir():
         pytest.skip("tpcds peak run fixture unavailable")
     pair = [load_run_measured(peak), load_run_measured(peak)]
