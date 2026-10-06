@@ -33,7 +33,10 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
             "llm_preflight=blocked_no_api_key",
         )
     )
-    peak = script.parents[1] / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    peak = (
+        script.parents[1]
+        / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
     if peak.is_dir():
         assert "peak_ex0_frozen_findings=pass_min_3" in completed.stdout
 
