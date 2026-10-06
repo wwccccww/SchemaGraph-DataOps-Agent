@@ -34,6 +34,24 @@ def test_run_external_p0_full_eval_twice_requires_bird_root() -> None:
     assert "BIRD_DATABASE_ROOT" in completed.stderr
 
 
+def test_run_external_p0_full_eval_twice_requires_bird_root_directory() -> None:
+    script = Path(__file__).resolve().parents[2] / "scripts/run_external_p0_full_eval_twice.sh"
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = "/tmp/nonexistent_bird_dev_databases_external_p0_test"
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=script.parents[1],
+    )
+    assert completed.returncode == 1
+    assert "not a directory" in completed.stderr
+
+
 def test_run_external_p0_full_eval_twice_requires_postgres_env() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/run_external_p0_full_eval_twice.sh"
     env = {k: v for k, v in os.environ.items() if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")}

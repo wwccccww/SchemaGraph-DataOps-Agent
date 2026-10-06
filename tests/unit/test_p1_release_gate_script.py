@@ -63,6 +63,26 @@ def test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints(
     )
 
 
+def test_p1_release_gate_rejects_invalid_bird_database_root() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/p1_release_gate.sh"
+    env = os.environ.copy()
+    env["BIRD_DATABASE_ROOT"] = "/tmp/nonexistent_bird_dev_databases_p1_gate_test"
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+        timeout=15,
+    )
+    assert completed.returncode == 1
+    assert "not a directory" in completed.stderr
+
+
 def test_p1_release_gate_script_documents_postgres_and_bird_env_notes() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text()

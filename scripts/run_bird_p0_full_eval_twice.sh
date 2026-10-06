@@ -14,6 +14,10 @@ if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required (path to dev_databases)" >&2
   exit 1
 fi
+if [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
+  echo "BIRD_DATABASE_ROOT is not a directory: ${BIRD_DATABASE_ROOT} (see .env.example minidev/MINIDEV/dev_databases)" >&2
+  exit 1
+fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.llm_preflight
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"

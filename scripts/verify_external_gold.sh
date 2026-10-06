@@ -12,6 +12,10 @@ fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.external_data verify-tpcds
 if [[ -n "${BIRD_DATABASE_ROOT:-}" ]]; then
+  if [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
+    echo "BIRD_DATABASE_ROOT is not a directory: ${BIRD_DATABASE_ROOT} (see .env.example minidev/MINIDEV/dev_databases)" >&2
+    exit 1
+  fi
   python3 -m app.evaluation.external_data verify-bird --database-root "$BIRD_DATABASE_ROOT"
 else
   echo "skip verify-bird: set BIRD_DATABASE_ROOT to dev_databases path" >&2

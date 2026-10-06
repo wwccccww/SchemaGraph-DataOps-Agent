@@ -13,6 +13,10 @@ if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required for the combined P0 80-case run" >&2
   exit 1
 fi
+if [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
+  echo "BIRD_DATABASE_ROOT is not a directory: ${BIRD_DATABASE_ROOT} (see .env.example minidev/MINIDEV/dev_databases)" >&2
+  exit 1
+fi
 if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
   echo "POSTGRES_USER and POSTGRES_PASSWORD are required (TPC-DS 2× full eval runs first)" >&2
   exit 1

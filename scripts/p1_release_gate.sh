@@ -14,6 +14,9 @@ if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
 fi
 if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "note: BIRD_DATABASE_ROOT unset — BIRD replay pytest will skip; verify-bird needs it" >&2
+elif [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
+  echo "BIRD_DATABASE_ROOT is not a directory: ${BIRD_DATABASE_ROOT} (see .env.example minidev/MINIDEV/dev_databases)" >&2
+  exit 1
 fi
 uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_covers_every_case \
   tests/unit/test_p0_external_measured_baseline.py \
