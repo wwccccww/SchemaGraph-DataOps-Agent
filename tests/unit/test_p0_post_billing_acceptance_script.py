@@ -17,11 +17,7 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
 def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/p0_post_billing_acceptance.sh"
-    env = {
-        k: v
-        for k, v in os.environ.items()
-        if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")
-    }
+    env = {k: v for k, v in os.environ.items() if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")}
     env["BIRD_DATABASE_ROOT"] = env.get(
         "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
     )
