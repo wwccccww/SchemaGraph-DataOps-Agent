@@ -137,6 +137,99 @@ def check_frozen_semantic_contract(
                     "冻结 core_tables 不含 client，不要 JOIN client",
                 )
             )
+        if "financial_salary_gap_profile=true" in contract.filters:
+            if "(SELECT MAX(A11) - MIN(A11) FROM district)" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "第二列别名必须是 `(SELECT MAX(A11) - MIN(A11) FROM district)`（与冻结契约一致）",
+                    )
+                )
+            if re.search(r"order by.*birth_date.*avg", sql, re.IGNORECASE) and not re.search(
+                r"district_id\s*=\s*\(\s*select district_id from client",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "先取 gender='F' 最年长 client 的 district_id，再筛 account；"
+                        "ORDER BY district.A11 DESC LIMIT 1 取 account_id",
+                    )
+                )
+        if "schools_admin_doc_soc_profile=true" in contract.filters:
+            if re.search(r"District\s+LIKE|GSserved\s+LIKE|GSoffered\s+LIKE", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Unified School District 用 schools.DOC=54；Intermediate/Middle 用 SOC=62；"
+                        "不要用 District/GSserved LIKE 模糊匹配",
+                    )
+                )
+            if re.search(r"OpenDate\s+BETWEEN\s+'20\d{2}-", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "开业年份用 strftime('%Y', OpenDate) BETWEEN '2009' AND '2010'",
+                    )
+                )
+        if "la_k9_frpm_sat_profile=true" in contract.filters:
+            if re.search(r"County Name", sql) and re.search(r"Los Angeles", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Los Angeles 县过滤用 schools.County = 'Los Angeles'，不要用 frpm County Name",
+                    )
+                )
+            if re.search(r"Eligible FRPM \(K-12\)", sql) and re.search(
+                r"Ages 5-17", " ".join(contract.projections)
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPM 与 Enrollment 用 Ages 5-17 列；Percent 用 FRPM Count/Enrollment×100",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Poverty_Level 用 High/Medium/Low Poverty（百分比阈值 75/50）",
+                    )
+                )
+            if re.search(r"GSserved\s+LIKE", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "K-9 年级跨度用 schools.GSserved = 'K-9'，不要用 LIKE",
+                    )
+                )
+        if "directly_funded_stanislaus_profile=true" in contract.filters:
+            if re.search(r"cast\s*\(\s*strftime\s*\(\s*'%Y'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "OpenYear 用 STRFTIME('%Y', OpenDate) 文本，不要 CAST INTEGER",
+                    )
+                )
+            if re.search(r"directly funded", sql, re.I) and not re.search(
+                r"FundingType\s*=\s*'Directly funded'", sql, re.I
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Directly funded 学校用 schools.FundingType = 'Directly funded'",
+                    )
+                )
+            if re.search(r"Stanislaus", sql, re.I) and not re.search(
+                r"County\s*=\s*'Stanislaus'", sql, re.I
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Stanislaus 过滤用 schools.County = 'Stanislaus'",
+                    )
+                )
         if "top10_high_frpm_profile=true" in contract.filters:
             if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and not re.search(
                 r"frpm_rank\s*<=",
@@ -738,6 +831,26 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
             hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+        if item == "financial_salary_gap_profile=true":
+            hints.append(
+                "最年长女性 client→district_id 子查询；JOIN account/disp/client/district；"
+                "ORDER BY A11 DESC LIMIT 1；第二列 `(SELECT MAX(A11)-MIN(A11) FROM district)` 作别名。"
+            )
+        if item == "schools_admin_doc_soc_profile=true":
+            hints.append(
+                "管理员邮箱题：仅 schools 表；DOC=54 Unified；SOC=62 Intermediate/Middle；"
+                "strftime('%Y',OpenDate) BETWEEN '2009' AND '2010'。"
+            )
+        if item == "la_k9_frpm_sat_profile=true":
+            hints.append(
+                "LA K-9：schools.County='Los Angeles'，GSserved='K-9'；frpm Ages 5-17 列；"
+                "Poverty High/Medium/Low Poverty；Charter Yes (num)/No；satscores rtype='S'。"
+            )
+        if item == "directly_funded_stanislaus_profile=true":
+            hints.append(
+                "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
+                "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
         if item == "top10_high_frpm_profile=true":
             hints.append(
                 "Top-10 FRPM Count：RANK() 得 frpm_rank，WHERE frpm_rank<=10；"

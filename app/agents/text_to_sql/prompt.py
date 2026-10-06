@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v21"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v22"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -32,6 +32,7 @@ _GENERIC_SHAPE_TAIL = (
     "SAT 分类 Excellent/Good/Average/Below Average；CountyRank 用 DENSE_RANK。"
     "最高 Reading：RANK+ReadingRank=1；frpm Ages 5-17；Percent1500+=NumGE1500/NumTstTakr；GSoffered。"
     "Top-5 FRPM SOC=66：RANK+FRPMRank<=5；rtype='S'；EligibilityRate 带 % 后缀；Very High FRPM 分档。"
+    "CA 学校过滤：Unified DOC=54，Intermediate/Middle SOC=62；LA 县用 schools.County。"
     "Top-10 FRPM：RANK()+frpm_rank<=10；Enrollment>500 题 TotalEnrollment=K-12+Ages 5-17，"
     "FRPMCategory=High/Medium/Low FRPM（小数>=0.75/0.50），satscores rtype='S'。"
     "Virtual 学校：schools.Virtual 为 F/P/N；fully virtual 过滤 Virtual='F'，partially Virtual='P'；"

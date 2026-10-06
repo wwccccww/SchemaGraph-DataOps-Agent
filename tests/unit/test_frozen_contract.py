@@ -39,6 +39,51 @@ def test_format_includes_projection_order_hint_when_grouped() -> None:
     assert "ORDER BY" in text
 
 
+def test_la_k9_profile_flags_peak_0077_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0077")
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    if not (run / "cases" / "bird_0077.json").is_file():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    sql = json.loads((run / "cases" / "bird_0077.json").read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, sql, dialect="sqlite")
+    ]
+    assert any("County" in message for message in messages)
+    assert any("Poverty" in message or "Ages 5-17" in message for message in messages)
+
+
+def test_admin_doc_soc_profile_flags_peak_0087_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0087")
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    if not (run / "cases" / "bird_0087.json").is_file():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    sql = json.loads((run / "cases" / "bird_0087.json").read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, sql, dialect="sqlite")
+    ]
+    assert any("DOC=54" in message or "SOC=62" in message for message in messages)
+
+
 def test_enrollment500_profile_flags_peak_0011_sql() -> None:
     import json
     from pathlib import Path
