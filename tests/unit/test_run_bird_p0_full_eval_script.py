@@ -10,6 +10,7 @@ from pathlib import Path
 def test_run_bird_p0_full_eval_twice_requires_database_root() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/run_bird_p0_full_eval_twice.sh"
     assert script.is_file()
+    assert "generic_prompt=" in script.read_text(encoding="utf-8")
     completed = subprocess.run(
         [str(script)],
         check=False,

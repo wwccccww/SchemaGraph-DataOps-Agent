@@ -14,3 +14,5 @@ def test_run_tpcds_p0_full_eval_twice_script_contract() -> None:
     assert "check-external-release" in text
     assert "POSTGRES_USER" in text
     assert "POSTGRES_PASSWORD" in text
+    assert "generic_prompt=" in text
+    assert "llm_preflight" in text

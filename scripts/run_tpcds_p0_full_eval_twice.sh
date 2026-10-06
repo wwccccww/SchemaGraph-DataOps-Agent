@@ -9,6 +9,7 @@ if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
 fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.llm_preflight
+echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
 RUN_DIRS=()
 for run in 1 2; do
   echo "== TPC-DS derived full eval run $run/2 =="

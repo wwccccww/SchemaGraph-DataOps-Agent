@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# P0：Billing 恢复后连续 2× 全量 BIRD 模型实测（v56 + self_healing，需 gold_matched）。
+# P0：Billing 恢复后连续 2× 全量 BIRD 模型实测（generic v59 + self_healing，需 gold_matched）。
 # 402 时在 generate_sql 失败；可先 ./scripts/print_external_p0_status.sh。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,6 +10,7 @@ if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
 fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.llm_preflight
+echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
 RUN_DIRS=()
 for run in 1 2; do
   echo "== BIRD full eval run $run/2 =="
