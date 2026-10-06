@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + raw replay **7→7**）；**PATCH autofix 复分**（validate 同款，`--replay-patch-autofix`）峰值 **7→9**（`0002`、`0094`，**非新 LLM run**）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上十三 profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`）；**80 例综合可信度未完成**（需 **2×** 全量 BIRD LLM + 稳定带）。当前 **`text-to-sql-generic-v50`** + **40 条 BIRD 按题 profile**（清单见单测 `test_bird_explicit_profile_case_ids`；含 **0012** SAT excellence + 县内 free meal 等） + SQLite 分号修复 + **0094 PATCH** 为 API 恢复后全量复跑准备；峰值保存 SQL 仅 **0094** 仍 raw 不可执行（`test_bird_peak_executable`），workflow PATCH 可在新 run 内修复。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + raw replay **7→7**）；**PATCH autofix 复分**（validate 同款，`--replay-patch-autofix`）峰值 **7→9**（`0002`、`0094`，**非新 LLM run**）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上十三 profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`）；**80 例综合可信度未完成**（需 **2×** 全量 BIRD LLM + 稳定带）。当前 **`text-to-sql-generic-v51`** + **41 条 BIRD 按题 profile**（清单见单测 `test_bird_explicit_profile_case_ids`；含 **0012** SAT excellence + 县内 free meal 等） + SQLite 分号修复 + **0094 PATCH** 为 API 恢复后全量复跑准备；峰值保存 SQL 仅 **0094** 仍 raw 不可执行（`test_bird_peak_executable`），workflow PATCH 可在新 run 内修复。
 
 **外部 P0/P1 验收清单（证据导向）**
 
@@ -123,7 +123,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
 - 外部模型注入 **`benchmark_case_id`** 时，execute 阶段跳过电商式 **shape** 复核（EX 由 `score_prediction` 与 Gold 比对）；校验阶段仍做冻结契约 + PATCH autofix。
 - 外部模型 **`self_healing`** 在校验失败时会尝试 **PATCH 级确定性口径补丁**（如 `coe_charter`、`running_ok`、`financial_salary_gap`），对**原始生成 SQL** 做替换后再过只读门禁（避免 gate 规范化导致补丁失配）；不含 Gold 文件引用式覆盖；`external_model` 注入 `benchmark_case_id`。**0094** 峰值错误 ORDER BY 经 PATCH 可执行且 EX=1（单测 `test_peak_bird_0094_autofix_*`）；历史 `--replay-run` 仍重放保存 SQL，不含 autofix。
-- Generic Prompt 当前 **`text-to-sql-generic-v50`**（v49：**0122** loan 4990；v50：**0117** region 贷款 status A、interest 公式、overall 子查询、ORDER BY paid_amount_percentage DESC，待 API 后 **2×** 全量 BIRD 验证）。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 已可执行）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
+- Generic Prompt 当前 **`text-to-sql-generic-v51`**（v50：**0117** region 贷款；v51：**0121** Prachatice OWNER/PRIJEM-VYDAJ、四档 customer_category、ROW_NUMBER balance_rank，待 API 后 **2×** 全量 BIRD 验证）。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 已可执行）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
 - **P1 本地 verify（Gold Oracle，无模型）**：
   ```bash
   ./scripts/verify_external_gold.sh   # 需 export BIRD_DATABASE_ROOT=…/dev_databases

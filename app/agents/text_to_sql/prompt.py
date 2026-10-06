@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v50"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v51"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -110,6 +110,11 @@ _GENERIC_SHAPE_TAIL = (
     "按 region 贷款成功：status='A' 计 paid/successful；interest_paid=payments×duration-amount；"
     "overall_percentage 用 loan 全表子查询；ORDER BY paid_amount_percentage DESC。"
     "district_loan_rank=RANK()；borrower 经 disp OWNER。"
+    "Prachatice 账户画像：AccountsInPrachatice CTE；disp.type='OWNER'；"
+    "trans PRIJEM/VYDAJ；net_balance=total_income−total_expense；"
+    "loan_status Has Default/No Default/No Loans；customer_category High Activity 等四档；"
+    "balance_rank=ROW_NUMBER() OVER (ORDER BY net_balance DESC)；ORDER BY balance_rank。"
+    "client_age 用 anchor 年 strftime 差（勿 JULIANDAY）。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

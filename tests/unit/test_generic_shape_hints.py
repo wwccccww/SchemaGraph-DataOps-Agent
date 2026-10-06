@@ -7,8 +7,8 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v50_includes_region_loan_success_and_loan_4990() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v50"
+def test_generic_prompt_v51_includes_prachatice_and_region_loan_success() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v51"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
@@ -46,6 +46,9 @@ def test_generic_prompt_v50_includes_region_loan_success_and_loan_4990() -> None
     assert "Finished-No Issues" in sqlite_system
     assert "paid_amount_percentage DESC" in sqlite_system
     assert "status='A' 计 paid" in sqlite_system or "status='A'" in sqlite_system
+    assert "Prachatice" in sqlite_system
+    assert "ROW_NUMBER" in sqlite_system
+    assert "High Activity" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:

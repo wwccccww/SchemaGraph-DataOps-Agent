@@ -418,6 +418,80 @@ def check_frozen_semantic_contract(
                         "结果 ORDER BY paid_amount_percentage DESC",
                     )
                 )
+        if "prachatice_accounts_financial_profile=true" in contract.filters:
+            if re.search(r"Prachatice|prachatice", sql) and re.search(
+                r"JOIN\s+disp", sql, re.IGNORECASE
+            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Prachatice 账户 owner 须 disp.type='OWNER'（一行一账户）",
+                    )
+                )
+            if re.search(
+                r"amount\s*>\s*0[\s\S]{0,60}total_income|amount\s*<\s*0[\s\S]{0,60}total_expense",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_income/total_expense 用 trans.type PRIJEM/VYDAJ",
+                    )
+                )
+            if re.search(r"customer_category", sql, re.IGNORECASE) and re.search(
+                r"High Value|Medium Value|Low Value",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "customer_category 用 High Activity/Loan Customer/Active/Regular",
+                    )
+                )
+            if re.search(r"balance_rank", sql, re.IGNORECASE) and re.search(
+                r"RANK\s*\(\s*\)\s*OVER\s*\([\s\S]*balance_rank",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "balance_rank 用 ROW_NUMBER() OVER (ORDER BY net_balance DESC)",
+                    )
+                )
+            if re.search(r"ORDER BY\s+net_balance\s+DESC", sql, re.IGNORECASE) and re.search(
+                r"balance_rank",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"ORDER BY\s+balance_rank", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最终 ORDER BY balance_rank（不是 net_balance DESC）",
+                    )
+                )
+            if re.search(r"client_age", sql, re.IGNORECASE) and re.search(
+                r"JULIANDAY\s*\(", sql, re.IGNORECASE
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "client_age 用 strftime 年差与 anchor 生日校正",
+                    )
+                )
+            if re.search(r"loan_status", sql, re.IGNORECASE) and re.search(
+                r"MAX\s*\(\s*l?\.?status\s*\)|MAX\s*\(\s*loan_status\s*\)",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "loan_status 用 Has Default/No Default/No Loans（status B 为违约）",
+                    )
+                )
         if "loan_id_4990_profile=true" in contract.filters:
             if re.search(
                 r"Running contract|Contract finished|client in debt|loan not paid",
@@ -2219,6 +2293,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Region 贷款：LoansByDistrict OWNER+interest_paid；RegionSummary GROUP BY region；"
                 "successful/paid 用 status A；overall_percentage 子查询全表 loan。"
+            )
+        if item == "prachatice_accounts_financial_profile=true":
+            hints.append(
+                "Prachatice：AccountsInPrachatice→TransactionStats/LoanInfo CTE；"
+                "OWNER disp；PRIJEM/VYDAJ；net_balance=income-expense；"
+                "ROW_NUMBER balance_rank；ORDER BY balance_rank。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
