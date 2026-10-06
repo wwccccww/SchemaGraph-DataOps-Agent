@@ -16,7 +16,9 @@ from app.evaluation.p0_measured_summary import (
 )
 
 
-def _write_summary(run_dir: Path, *, source: str, matched: int, case_count: int, accuracy: float) -> None:
+def _write_summary(
+    run_dir: Path, *, source: str, matched: int, case_count: int, accuracy: float
+) -> None:
     run_dir.mkdir(parents=True)
     payload = {
         "git_commit": "abc123",
@@ -67,7 +69,10 @@ def test_format_report_two_by_two(tmp_path: Path) -> None:
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
     _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
-    text = format_report([load_run_measured(t1), load_run_measured(t2)], [load_run_measured(b1), load_run_measured(b2)])
+    text = format_report(
+        [load_run_measured(t1), load_run_measured(t2)],
+        [load_run_measured(b1), load_run_measured(b2)],
+    )
     assert "p0_measured_tpcds_run1=30/30" in text
     assert "p0_stability_tpcds=stable" in text
     assert "p0_measured_bird_run2=7/50" in text

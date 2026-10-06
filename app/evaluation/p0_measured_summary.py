@@ -61,7 +61,10 @@ def load_run_measured(run_dir: Path) -> RunMeasured:
 
 
 def stability_label(first: RunMeasured, second: RunMeasured) -> str:
-    if first.matched != second.matched or abs(first.execution_accuracy - second.execution_accuracy) > 1e-9:
+    if (
+        first.matched != second.matched
+        or abs(first.execution_accuracy - second.execution_accuracy) > 1e-9
+    ):
         return "unstable"
     return "stable"
 
@@ -127,7 +130,10 @@ def main(argv: list[str] | None = None) -> None:
     bird = [load_run_measured(path) for path in bird_paths]
     for run in tpcds:
         if run.benchmark_source != "tpcds-derived":
-            print(f"expected tpcds-derived run, got {run.benchmark_source}: {run.run_dir}", file=sys.stderr)
+            print(
+                f"expected tpcds-derived run, got {run.benchmark_source}: {run.run_dir}",
+                file=sys.stderr,
+            )
             raise SystemExit(1)
     for run in bird:
         if run.benchmark_source != "bird":
