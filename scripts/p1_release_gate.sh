@@ -21,5 +21,6 @@ uv run pytest tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_llm_preflight.py \
   tests/unit/test_bird_profile_inventory.py \
   tests/unit/test_p1_release_gate_script.py \
+  tests/unit/test_p0_post_billing_acceptance_script.py \
   -q
 "$ROOT/scripts/verify_external_gold.sh"

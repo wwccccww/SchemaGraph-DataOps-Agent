@@ -16,6 +16,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_bird_profile_inventory.py",
         "test_p1_release_gate_script.py",
         "test_llm_preflight.py",
+        "test_p0_post_billing_acceptance_script.py",
     ):
         assert module in script
 
