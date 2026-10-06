@@ -213,6 +213,17 @@ def check_frozen_semantic_contract(
                         "不要窗口 COUNT OVER frpm_category",
                     )
                 )
+            if re.search(
+                r"FRPM Count \(K-12\)\s*>\s*500|Enrollment \(K-12\)\s*<\s*700",
+                sql,
+                re.I,
+            ) and not re.search(r'FRPM Count \(K-12\)\s*<\s*700', sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "LA 餐食题：Free Meal Count>500 且 FRPM Count (K-12)<700",
+                    )
+                )
             if re.search(r"High FRPM|Medium FRPM", sql) and "FreeMealCategory" in " ".join(
                 contract.projections
             ):
@@ -331,6 +342,33 @@ def check_frozen_semantic_contract(
                         "Stanislaus 过滤用 schools.County = 'Stanislaus'",
                     )
                 )
+            if re.search(r"cross\s+join\s+county", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "县均值用 CountyStats CTE 再 JOIN County，不要 CROSS JOIN 单行 county",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql) and "FRPMStatus" in " ".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMStatus 与县均值比较：Above/Below/At County Average",
+                    )
+                )
+            if re.search(
+                r"Percent\s*\(\%\)\s*Eligible\s*FRPM[\s\S]*?\*\s*100\s+AS\s+FRPM",
+                sql,
+                re.I,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMPercent 用 frpm 小数列，不要 ×100",
+                    )
+                )
         if "top10_high_frpm_profile=true" in contract.filters:
             if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and not re.search(
                 r"frpm_rank\s*<=",
@@ -382,6 +420,15 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "FRPMCategory 分档用小数列 >=0.75 / >=0.50，不要对 ×100 后的值用 >=75",
+                    )
+                )
+            if re.search(r"satscores", sql, re.I) and not re.search(
+                r"rtype\s*=\s*['\"]S['\"]", sql, re.I
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SAT 题 satscores 需 rtype='S'（学校级记录）",
                     )
                 )
             if (

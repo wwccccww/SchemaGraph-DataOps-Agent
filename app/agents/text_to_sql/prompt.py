@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v24"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v25"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -37,7 +37,12 @@ _GENERIC_SHAPE_TAIL = (
     "Top-5 FRPM SOC=66：RANK+FRPMRank<=5；rtype='S'；EligibilityRate 带 % 后缀；Very High FRPM 分档。"
     "CA 学校过滤：Unified DOC=54，Intermediate/Middle SOC=62；LA 县用 schools.County。"
     "Top-10 FRPM：RANK()+frpm_rank<=10；Enrollment>500 题 TotalEnrollment=K-12+Ages 5-17，"
-    "FRPMCategory=High/Medium/Low FRPM（小数>=0.75/0.50），satscores rtype='S'。"
+    "FRPMCategory=High/Medium/Low FRPM（小数>=0.75/0.50），satscores rtype='S'；"
+    "IsCharter 来自 frpm `Charter School (Y/N)`。"
+    "LA 餐食聚合：Free Meal Count>500 且 FRPM Count<700（不是 Enrollment<700）；"
+    "CategoryBreakdown+GROUP_CONCAT 子查询；Very High/High/Moderate 按 free meal count。"
+    "Stanislaus Directly funded：FundingType='Directly funded'；FRPM 用小数列；"
+    "CountyStats JOIN（勿 CROSS JOIN 单行 county）；FRPMStatus 与县均值 Above/Below/At County Average。"
     "Virtual 学校：schools.Virtual 为 F/P/N；fully virtual 过滤 Virtual='F'，partially Virtual='P'；"
     "VirtualStatus 用 CASE 输出 Fully Virtual 等标签。"
     "California schools：县名/学区/学校名与 free meal、NSLP、Enrollment 等优先用 frpm 带空格列名；"

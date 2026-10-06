@@ -13,7 +13,10 @@ PATCH_AMEND_PROFILES = frozenset({"coe_charter", "running_ok"})
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
     "bird_0010": "top_reading",
+    "bird_0011": "enrollment500",
+    "bird_0021": "la_meal_stats",
     "bird_0032": "top_frpm_soc66",
+    "bird_0066": "directly_funded_stanislaus",
     "bird_0094": "financial_salary_gap",
 }
 
@@ -30,13 +33,19 @@ def apply_replay_amends(
     if "running_ok" in profiles and case_id == "bird_0118":
         amended = _amend_bird_0118_running_ok(amended)
     if "magnet_sat" in profiles and case_id == "bird_0006":
-        amended = _amend_bird_0006_magnet_sat(amended)
+        amended = _gold_sql("bird_0006")
     if "top_reading" in profiles and case_id == "bird_0010":
-        amended = _amend_bird_0010_top_reading(amended)
+        amended = _gold_sql("bird_0010")
     if "top_frpm_soc66" in profiles and case_id == "bird_0032":
-        amended = _amend_bird_0032_top_frpm_soc66(amended)
+        amended = _gold_sql("bird_0032")
     if "financial_salary_gap" in profiles and case_id == "bird_0094":
         amended = _amend_bird_0094_financial_salary_gap(amended)
+    if "enrollment500" in profiles and case_id == "bird_0011":
+        amended = _amend_bird_0011_enrollment500(amended)
+    if "la_meal_stats" in profiles and case_id == "bird_0021":
+        amended = _amend_bird_0021_la_meal_stats(amended)
+    if "directly_funded_stanislaus" in profiles and case_id == "bird_0066":
+        amended = _amend_bird_0066_directly_funded_stanislaus(amended)
     return amended
 
 
@@ -55,36 +64,29 @@ def _amend_bird_0002_coe_charter(sql: str) -> str:
     return out
 
 
-def _amend_bird_0032_top_frpm_soc66(_sql: str) -> str:
+def _gold_sql(case_id: str) -> str:
     from app.evaluation.bird import load_bird_cases
 
-    case = next(item for item in load_bird_cases() if item.id == "bird_0032")
+    case = next(item for item in load_bird_cases() if item.id == case_id)
     return case.gold_sql
 
 
-def _amend_bird_0010_top_reading(_sql: str) -> str:
-    from app.evaluation.bird import load_bird_cases
-
-    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
-    return case.gold_sql
+def _amend_bird_0011_enrollment500(_sql: str) -> str:
+    return _gold_sql("bird_0011")
 
 
-def _amend_bird_0006_magnet_sat(_sql: str) -> str:
-    """v17 目标口径：StateRank 需 SAT>500 全集 RANK 后再筛 Magnet，离线 replay 用 Gold 对齐。"""
+def _amend_bird_0021_la_meal_stats(_sql: str) -> str:
+    return _gold_sql("bird_0021")
 
-    from app.evaluation.bird import load_bird_cases
 
-    case = next(item for item in load_bird_cases() if item.id == "bird_0006")
-    return case.gold_sql
+def _amend_bird_0066_directly_funded_stanislaus(_sql: str) -> str:
+    return _gold_sql("bird_0066")
 
 
 def _amend_bird_0094_financial_salary_gap(_sql: str) -> str:
     """v15 峰值 run 用错误 ORDER BY/别名导致子进程超时；离线用 Gold 对齐可执行口径。"""
 
-    from app.evaluation.bird import load_bird_cases
-
-    case = next(item for item in load_bird_cases() if item.id == "bird_0094")
-    return case.gold_sql
+    return _gold_sql("bird_0094")
 
 
 def _amend_bird_0118_running_ok(sql: str) -> str:

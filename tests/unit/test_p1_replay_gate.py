@@ -18,6 +18,8 @@ def test_release_gate_ready() -> None:
 def test_replay_profile_catalog() -> None:
     assert "coe_charter" in PATCH_AMEND_PROFILES
     assert GOLD_OVERLAY_PROFILES["bird_0006"] == "magnet_sat"
+    assert GOLD_OVERLAY_PROFILES["bird_0021"] == "la_meal_stats"
+    assert GOLD_OVERLAY_PROFILES["bird_0011"] == "enrollment500"
 
 
 def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:

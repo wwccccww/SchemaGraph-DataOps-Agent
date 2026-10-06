@@ -61,14 +61,33 @@ def test_magnet_sat_amend_makes_0006_match_gold() -> None:
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
 
 
+@pytest.mark.parametrize(
+    ("case_id", "profile", "db"),
+    [
+        ("bird_0011", "enrollment500", CA_SCHOOLS_DB),
+        ("bird_0021", "la_meal_stats", CA_SCHOOLS_DB),
+        ("bird_0066", "directly_funded_stanislaus", CA_SCHOOLS_DB),
+    ],
+)
+def test_gold_overlay_amend_makes_profile_cases_match(
+    case_id: str, profile: str, db: Path
+) -> None:
+    case_file, conn = _require_peak(case_id, db=db)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == case_id)
+    amended = apply_replay_amends(case_id, sql, profiles=frozenset({profile}))
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+
+
 def test_financial_salary_gap_amend_makes_0094_match_gold() -> None:
     case_file, conn = _require_peak("bird_0094", db=FINANCIAL_DB)
     payload = json.loads(case_file.read_text())
     sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0094")
-    amended = apply_replay_amends(
-        "bird_0094", sql, profiles=frozenset({"financial_salary_gap"})
-    )
+    amended = apply_replay_amends("bird_0094", sql, profiles=frozenset({"financial_salary_gap"}))
     gold = conn.execute(case.gold_sql).fetchall()
     pred = conn.execute(amended).fetchall()
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
