@@ -369,6 +369,80 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "hickman_elementary_charter_profile=true" in contract.filters:
+            if re.search(
+                r'"Free Meal Count \(K-12\)"\s+AS\s+FRPMCount',
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCount 用 frpm `FRPM Count (K-12)`，不是 Free Meal Count",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)[\s\S]{0,80}/[\s\S]{0,40}Enrollment[\s\S]{0,40}AS\s+FRPMPercent",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMPercent 用 `Percent (%) Eligible FRPM (K-12)` 小数列",
+                    )
+                )
+            if re.search(r"District Type", sql, re.IGNORECASE) and not re.search(
+                r"DOC\s*=\s*'52'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Elementary School District charter 题用 schools.DOC='52'（勿仅用 District Type）",
+                    )
+                )
+            if re.search(r"SizeRank", sql, re.IGNORECASE) and re.search(
+                r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"PARTITION\s+BY[\s\S]*City", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SizeRank 用 ROW_NUMBER() OVER (PARTITION BY City ORDER BY Enrollment DESC)",
+                    )
+                )
+            if re.search(r"COALESCE\s*\(\s*sat\.AvgScrRead\s*,\s*0\s*\)", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "无 SAT 时 SATTotalScore/分项保持 NULL（不要 COALESCE 成 0）",
+                    )
+                )
+            if re.search(r"Below Average|Above Average", sql) and re.search(
+                r"SATPerformanceCategory",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SATPerformanceCategory 用 PercentOver1500：High/Average/Low Performing",
+                    )
+                )
+            if re.search(r"satscores", sql, re.IGNORECASE) and not re.search(
+                r"rtype\s*=\s*'S'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SATPerformance CTE/Join 须 satscores rtype='S'",
+                    )
+                )
         if "adelanto_grade_span_profile=true" in contract.filters:
             if re.search(
                 r"frpm_pct\s*>=\s*75|frpm_pct\s*>=\s*50|Percent \(.*FRPM.*\)\s*>=\s*75",
@@ -1521,6 +1595,13 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Adelanto：SchoolsByGradeSpan GROUP BY GSserved，RANK() grade_span_rank；"
                 "SchoolStats poverty_level 用 Percent FRPM 小数 >0.75/>0.50；"
                 "最终 WHERE grade_span_rank=1；聚合 high/medium/low poverty 校数。"
+            )
+        if item == "hickman_elementary_charter_profile=true":
+            hints.append(
+                "Hickman charter：CharterSchoolStats DOC=52、Charter=1、Active；"
+                "FRPM 列与 High/Medium/Low FRPM；SizeRank ROW_NUMBER PARTITION BY City；"
+                "SATPerformance rtype=S；PercentOver1500=NumGE1500/NumTstTakr；"
+                "SATPerformanceCategory 三档 Performing + No SAT Data。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

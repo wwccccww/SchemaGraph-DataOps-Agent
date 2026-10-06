@@ -87,6 +87,13 @@ def test_bird_0078_contract_includes_adelanto_grade_span_profile() -> None:
     assert "adelanto_grade_span_profile=true" in contract_for(case).filters
 
 
+def test_bird_0061_contract_includes_hickman_elementary_charter_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0061")
+    assert "hickman_elementary_charter_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

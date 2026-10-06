@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v38"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v39"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -82,6 +82,9 @@ _GENERIC_SHAPE_TAIL = (
     "DifferenceFromDistrictAvg=ROUND(写分-学区均值,2)；PercentageTakingSAT=NumTstTakr×100/Enrollment(K-12)。"
     "Adelanto 最常见 GSserved：City='Adelanto'、StatusType Active；"
     "RANK() 得 grade_span_rank=1；poverty 分档用 FRPM 小数 >0.75/>0.50（勿用 75/50）。"
+    "Hickman 小学区 charter：DOC='52'、Charter=1、StatusType Active、City='Hickman'；"
+    "FRPMCount/FRPMPercent 用 FRPM Count 与 Percent FRPM 列；SizeRank=ROW_NUMBER() PARTITION BY City；"
+    "SAT rtype='S'；SATPerformanceCategory 用 PercentOver1500 分档 High/Average/Low Performing。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
