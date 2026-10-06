@@ -46,7 +46,19 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
 - **`p0_measured_bird_run{1,2}=≥7/50`**（默认）且 **`p0_stability_bird=stable`**
 
-将 **`p0_measured_*` / `p0_stability_*`** 行写入 [benchmark.md](./benchmark.md)。若 BIRD 稳定高于 **7/50**，更新 `test_p0_external_measured_baseline.py` 与 **`P0_BIRD_MIN_MATCHED`**。
+将脚本 stdout 中 **`p0_measured_*` / `p0_stability_*`** 行（及 **`p0_acceptance_gate=pass`**）写入 [benchmark.md](./benchmark.md) 的 P0 实测段落；格式与 `python3 -m app.evaluation.p0_measured_summary --acceptance-gate` 一致，例如：
+
+```text
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_… commit=… prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_… commit=… prompt=…
+p0_stability_tpcds=stable
+p0_measured_bird_run1=7/50 ex=0.14 dir=run_… …
+p0_measured_bird_run2=7/50 ex=0.14 dir=run_… …
+p0_stability_bird=stable
+p0_acceptance_gate=pass
+```
+
+若 BIRD 稳定高于 **7/50**，同步更新 `test_p0_external_measured_baseline.py` 与 **`P0_BIRD_MIN_MATCHED`**。
 
 ## 无 LLM 复分（回归，非新实测）
 

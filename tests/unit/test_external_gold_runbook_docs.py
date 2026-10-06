@@ -19,6 +19,8 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "ops_runbook=" in body
     assert "verify_external_gold.sh" in body
     assert "退出码" in body or "Exit:" in body
+    assert "p0_measured_tpcds_run1=" in body
+    assert "p0_acceptance_gate=pass" in body
 
 
 def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
