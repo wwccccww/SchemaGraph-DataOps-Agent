@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-python3 -m pytest tests/unit/test_p0_external_measured_baseline.py \
+uv run pytest tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_p1_replay_gate.py \
   tests/unit/test_external_release.py \
   tests/unit/test_external_model_cli.py \
