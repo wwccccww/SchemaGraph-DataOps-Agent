@@ -17,6 +17,11 @@ if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
   echo "POSTGRES_USER and POSTGRES_PASSWORD are required (TPC-DS 2× full eval after billing)" >&2
   exit 1
 fi
+if python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reachable; raise SystemExit(0 if tpcds_postgres_catalog_reachable() else 1)"; then
+  echo "tpcds_postgres_catalog=ready"
+else
+  echo "tpcds_postgres_catalog=unreachable"
+fi
 INTERVAL="${P0_BILLING_POLL_SECONDS:-300}"
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"

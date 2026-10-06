@@ -20,6 +20,27 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "P0_WAIT_STUB_ACCEPTANCE" in text
     assert "BIRD_DATABASE_ROOT is required" in text
     assert "POSTGRES_USER" in text
+    assert "tpcds_postgres_catalog=" in text
+
+
+def test_wait_for_billing_requires_postgres_env() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/wait_for_billing_and_run_p0.sh"
+    env = {k: v for k, v in os.environ.items() if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")}
+    env["BIRD_DATABASE_ROOT"] = env.get(
+        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
+    )
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+        timeout=10,
+    )
+    assert completed.returncode == 1
+    assert "POSTGRES_USER" in completed.stderr
 
 
 def test_wait_for_billing_requires_bird_database_root() -> None:
