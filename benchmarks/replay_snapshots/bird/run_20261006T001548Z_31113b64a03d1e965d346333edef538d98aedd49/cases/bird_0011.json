@@ -1,0 +1,184 @@
+{
+  "case_id": "bird_0011",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    f.CDSCode AS CDSCode,\n    f.\"School Name\" AS \"School Name\",\n    f.\"County Name\" AS \"County Name\",\n    f.\"Enrollment (K-12)\" AS TotalEnrollment,\n    f.\"Percent (%) Eligible FRPM (K-12)\" * 100 AS FRPMPercentage,\n    CASE\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" * 100 >= 75 THEN 'High'\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" * 100 >= 50 THEN 'Medium'\n      ELSE 'Low'\n    END AS FRPMCategory,\n    CASE s.Charter WHEN 1 THEN 'Yes' WHEN 0 THEN 'No' ELSE 'Unknown' END AS IsCharterSchool,\n    ss.NumTstTakr AS SATTestTakers,\n    (COALESCE(ss.AvgScrRead,0) + COALESCE(ss.AvgScrMath,0) + COALESCE(ss.AvgScrWrite,0)) AS TotalSATScore,\n    CASE\n      WHEN ss.NumTstTakr IS NULL OR ss.NumTstTakr = 0 THEN NULL\n      ELSE ss.NumGE1500 * 100.0 / ss.NumTstTakr\n    END AS PercentageStudentsOver1500\n  FROM frpm f\n  JOIN schools s ON s.CDSCode = f.CDSCode\n  LEFT JOIN satscores ss ON ss.cds = s.CDSCode\n  WHERE f.\"Enrollment (K-12)\" > 500\n    AND f.\"Enrollment (K-12)\" > 0\n)\nSELECT\n  CDSCode,\n  \"School Name\",\n  \"County Name\",\n  TotalEnrollment,\n  FRPMPercentage,\n  FRPMCategory,\n  IsCharterSchool,\n  SATTestTakers,\n  TotalSATScore,\n  PercentageStudentsOver1500,\n  RANK() OVER (PARTITION BY \"County Name\" ORDER BY TotalEnrollment DESC) AS CountyEnrollmentRank,\n  RANK() OVER (PARTITION BY FRPMCategory ORDER BY TotalSATScore DESC) AS CategorySATRank\nFROM base\nWHERE FRPMPercentage > 60\n   OR (PercentageStudentsOver1500 IS NOT NULL AND PercentageStudentsOver1500 > 30)\nORDER BY \"County Name\", CountyEnrollmentRank;",
+    "sql_hash": "sha256:c39959e59edbcba5de4d4948e876cf6c81b8ff2e2415e626d0f81c757fd55106",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "CDSCode",
+      "School Name",
+      "County Name",
+      "TotalEnrollment",
+      "FRPMPercentage",
+      "FRPMCategory",
+      "IsCharterSchool",
+      "SATTestTakers",
+      "TotalSATScore",
+      "PercentageStudentsOver1500",
+      "CountyEnrollmentRank",
+      "CategorySATRank"
+    ],
+    "joins": [
+      "JOIN schools ON s.CDSCode = f.CDSCode",
+      "LEFT JOIN satscores ON ss.cds = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE FRPMPercentage > 60 OR (NOT PercentageStudentsOver1500 IS NULL AND PercentageStudentsOver1500 > 30)"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "\"County Name\" ASC",
+      "CountyEnrollmentRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "CDSCode",
+          "School Name",
+          "County Name",
+          "TotalEnrollment",
+          "FRPMPercentage",
+          "FRPMCategory",
+          "IsCharterSchool",
+          "SATTestTakers",
+          "TotalSATScore",
+          "PercentageStudentsOver1500",
+          "CountyEnrollmentRank",
+          "CategorySATRank"
+        ],
+        "joins": [
+          "JOIN schools ON s.CDSCode = f.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "CDSCode",
+          "School Name",
+          "County Name",
+          "TotalEnrollment",
+          "FRPMPercentage",
+          "FRPMCategory",
+          "IsCharterSchool",
+          "SATTestTakers",
+          "TotalSATScore",
+          "PercentageStudentsOver1500"
+        ],
+        "joins": [
+          "JOIN schools ON s.CDSCode = f.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:f014be20a6ea4068cb93f6166d824e53c084688b4999505ef687f64e26a73cc1;2:no_progress:sha256:f014be20a6ea4068cb93f6166d824e53c084688b4999505ef687f64e26a73cc1"
+    ]
+  ]
+}

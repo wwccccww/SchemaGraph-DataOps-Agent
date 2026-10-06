@@ -1,0 +1,141 @@
+{
+  "case_id": "bird_0083",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT schools.City AS City, COUNT(frpm.CDSCode) AS \"COUNT(T2.CDSCode)\" FROM schools JOIN frpm ON frpm.CDSCode = schools.CDSCode WHERE schools.Magnet = 1 AND schools.GSserved = 'K-8' AND frpm.\"NSLP Provision Status\" = 'Multiple Provision Types' GROUP BY schools.City",
+    "sql_hash": "sha256:e7bc4465bb47a69c4e75681a1a2ed36e57f6a69d0ee98550868350e03d3d4ed7",
+    "referenced_tables": [
+      "frpm",
+      "schools"
+    ],
+    "projections": [
+      "City",
+      "COUNT(T2.CDSCode)"
+    ],
+    "joins": [
+      "JOIN frpm ON frpm.CDSCode = schools.CDSCode"
+    ],
+    "predicates": [
+      "WHERE schools.Magnet = 1 AND schools.GSserved = 'K-8' AND frpm.\"NSLP Provision Status\" = 'Multiple Provision Types'"
+    ],
+    "group_by": [
+      "schools.City"
+    ],
+    "aggregations": [
+      "count"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "City",
+          "COUNT(T2.CDSCode)"
+        ],
+        "joins": [
+          "JOIN frpm ON frpm.CDSCode = schools.CDSCode"
+        ],
+        "group_by": [
+          "schools.City"
+        ],
+        "aggregations": [
+          "count"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:T2.City"
+    ],
+    [
+      "predicted_group_by",
+      "outer:schools.City"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=1;predicted=1"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

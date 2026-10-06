@@ -1,0 +1,211 @@
+{
+  "case_id": "bird_0118",
+  "database_id": "financial",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "loan",
+    "account",
+    "card",
+    "client",
+    "disp",
+    "district",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH loan_base AS (SELECT d.A3 AS region, CASE WHEN l.amount < 50000 THEN 'Small' WHEN l.amount < 100000 THEN 'Medium' ELSE 'Large' END AS loan_size_category, l.amount AS amount, l.duration AS duration, l.status AS status FROM loan AS l JOIN account AS a ON l.account_id = a.account_id JOIN district AS d ON a.district_id = d.district_id WHERE l.amount < 100000), region_stats AS (SELECT region, loan_size_category, COUNT(status) AS total_loans, SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END) AS running_ok_loans, CAST(SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(status) AS percentage_running_ok, AVG(amount) AS avg_loan_amount, AVG(duration) AS avg_duration FROM loan_base GROUP BY region, loan_size_category), overall_stats AS (SELECT loan_size_category, CAST(SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(status) AS overall_percentage FROM loan_base GROUP BY loan_size_category) SELECT r.region AS region, r.loan_size_category AS loan_size_category, r.total_loans AS total_loans, r.running_ok_loans AS running_ok_loans, ROUND(r.percentage_running_ok, 2) AS percentage_running_ok, ROUND(r.avg_loan_amount, 2) AS avg_loan_amount, r.avg_duration AS avg_duration, ROUND(o.overall_percentage, 2) AS overall_percentage, ROUND(r.percentage_running_ok - o.overall_percentage, 2) AS diff_from_overall FROM region_stats AS r JOIN overall_stats AS o ON r.loan_size_category = o.loan_size_category ORDER BY r.region, r.loan_size_category",
+    "sql_hash": "sha256:888b1fb3caf6af0bb47b69a69681b155caed4b03b4776fc25128b3d408bf75c6",
+    "referenced_tables": [
+      "account",
+      "district",
+      "loan"
+    ],
+    "projections": [
+      "region",
+      "loan_size_category",
+      "total_loans",
+      "running_ok_loans",
+      "percentage_running_ok",
+      "avg_loan_amount",
+      "avg_duration",
+      "overall_percentage",
+      "diff_from_overall"
+    ],
+    "joins": [
+      "JOIN overall_stats ON r.loan_size_category = o.loan_size_category",
+      "JOIN account ON l.account_id = a.account_id",
+      "JOIN district ON a.district_id = d.district_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "r.region ASC",
+      "r.loan_size_category ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "region",
+          "loan_size_category",
+          "total_loans",
+          "running_ok_loans",
+          "percentage_running_ok",
+          "avg_loan_amount",
+          "avg_duration",
+          "overall_percentage",
+          "diff_from_overall"
+        ],
+        "joins": [
+          "JOIN overall_stats ON r.loan_size_category = o.loan_size_category",
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "loan_base",
+        "projections": [
+          "region",
+          "loan_size_category",
+          "amount",
+          "duration",
+          "status"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "region_stats",
+        "projections": [
+          "region",
+          "loan_size_category",
+          "total_loans",
+          "running_ok_loans",
+          "percentage_running_ok",
+          "avg_loan_amount",
+          "avg_duration"
+        ],
+        "joins": [],
+        "group_by": [
+          "region",
+          "loan_size_category"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "overall_stats",
+        "projections": [
+          "loan_size_category",
+          "overall_percentage"
+        ],
+        "joins": [],
+        "group_by": [
+          "loan_size_category"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "RegionalStats:region、loan_size_category | OverallStats:loan_size_category"
+    ],
+    [
+      "predicted_group_by",
+      "region_stats:region、loan_size_category | overall_stats:loan_size_category"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "region_stats,overall_stats"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

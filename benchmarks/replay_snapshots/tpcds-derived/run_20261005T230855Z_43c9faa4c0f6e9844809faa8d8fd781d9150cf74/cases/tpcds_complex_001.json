@@ -1,0 +1,175 @@
+{
+  "case_id": "tpcds_complex_001",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "store_sales",
+    "customer",
+    "item",
+    "customer_address",
+    "store",
+    "customer_demographics",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "promotion",
+    "time_dim",
+    "call_center",
+    "catalog_page",
+    "inventory"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT s.s_state AS store_state, i.i_category AS item_category, d.d_year AS sales_year, SUM(ss.ss_ext_sales_price) AS sales_amount FROM store_sales AS ss JOIN customer AS c ON ss.ss_customer_sk = c.c_customer_sk JOIN customer_address AS ca ON c.c_current_addr_sk = ca.ca_address_sk JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk JOIN item AS i ON ss.ss_item_sk = i.i_item_sk JOIN store AS s ON ss.ss_store_sk = s.s_store_sk WHERE d.d_year = 2001 GROUP BY s.s_state, i.i_category, d.d_year ORDER BY s.s_state, i.i_category, d.d_year",
+    "sql_hash": "sha256:226ed76e6f738cbee2ff5cc75a3c94da4eddc69f69ed58a5cdbfe6269d694347",
+    "referenced_tables": [
+      "customer",
+      "customer_address",
+      "date_dim",
+      "item",
+      "store",
+      "store_sales"
+    ],
+    "projections": [
+      "store_state",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+      "JOIN customer_address ON c.c_current_addr_sk = ca.ca_address_sk",
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+      "JOIN store ON ss.ss_store_sk = s.s_store_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001"
+    ],
+    "group_by": [
+      "s.s_state",
+      "i.i_category",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "s.s_state ASC",
+      "i.i_category ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "store_state",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+          "JOIN customer_address ON c.c_current_addr_sk = ca.ca_address_sk",
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+          "JOIN store ON ss.ss_store_sk = s.s_store_sk"
+        ],
+        "group_by": [
+          "s.s_state",
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:store.s_state、item.i_category、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:s.s_state、i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

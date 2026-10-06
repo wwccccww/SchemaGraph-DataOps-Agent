@@ -1,0 +1,221 @@
+{
+  "case_id": "bird_0121",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "account",
+    "loan",
+    "trans",
+    "district",
+    "client",
+    "disp",
+    "order",
+    "card"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT a.account_id, a.date AS opening_date, d.A2 AS district_name, d.A3 AS region, c.gender, CAST((JULIANDAY('2026-10-01') - JULIANDAY(c.birth_date)) / 365.25 AS INTEGER) AS client_age, COUNT(t.trans_id) AS transaction_count, COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) AS total_income, COALESCE(SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END), 0) AS total_expense, COALESCE(SUM(t.amount), 0) AS net_balance, COALESCE(MAX(t.balance), 0) AS max_balance, COUNT(DISTINCT l.loan_id) AS loan_count, COALESCE(SUM(l.amount), 0) AS total_loan_amount, MAX(l.status) AS loan_status FROM account AS a JOIN district AS d ON a.district_id = d.district_id JOIN disp AS dp ON dp.account_id = a.account_id JOIN client AS c ON dp.client_id = c.client_id LEFT JOIN trans AS t ON t.account_id = a.account_id LEFT JOIN loan AS l ON l.account_id = a.account_id WHERE d.A2 = 'Prachatice' GROUP BY a.account_id, a.date, d.A2, d.A3, c.gender, c.birth_date) SELECT account_id, opening_date, district_name, region, gender, client_age, transaction_count, total_income, total_expense, net_balance, max_balance, loan_count, total_loan_amount, loan_status, CASE WHEN net_balance > 100000 THEN 'High Value' WHEN net_balance > 50000 THEN 'Medium Value' ELSE 'Low Value' END AS customer_category, RANK() OVER (ORDER BY net_balance DESC) AS balance_rank FROM base ORDER BY net_balance DESC",
+    "sql_hash": "sha256:a4bb960b8c124508d52ef4d8a3f197f88dfa4e72448b2020e15575d6b9d351e6",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "opening_date",
+      "district_name",
+      "region",
+      "gender",
+      "client_age",
+      "transaction_count",
+      "total_income",
+      "total_expense",
+      "net_balance",
+      "max_balance",
+      "loan_count",
+      "total_loan_amount",
+      "loan_status",
+      "customer_category",
+      "balance_rank"
+    ],
+    "joins": [
+      "JOIN district ON a.district_id = d.district_id",
+      "JOIN disp ON dp.account_id = a.account_id",
+      "JOIN client ON dp.client_id = c.client_id",
+      "LEFT JOIN trans ON t.account_id = a.account_id",
+      "LEFT JOIN loan ON l.account_id = a.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "net_balance DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "opening_date",
+          "district_name",
+          "region",
+          "gender",
+          "client_age",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "max_balance",
+          "loan_count",
+          "total_loan_amount",
+          "loan_status",
+          "customer_category",
+          "balance_rank"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN disp ON dp.account_id = a.account_id",
+          "JOIN client ON dp.client_id = c.client_id",
+          "LEFT JOIN trans ON t.account_id = a.account_id",
+          "LEFT JOIN loan ON l.account_id = a.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "account_id",
+          "opening_date",
+          "district_name",
+          "region",
+          "gender",
+          "client_age",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "max_balance",
+          "loan_count",
+          "total_loan_amount",
+          "loan_status"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN disp ON dp.account_id = a.account_id",
+          "JOIN client ON dp.client_id = c.client_id",
+          "LEFT JOIN trans ON t.account_id = a.account_id",
+          "LEFT JOIN loan ON l.account_id = a.account_id"
+        ],
+        "group_by": [
+          "a.account_id",
+          "a.date",
+          "d.A2",
+          "d.A3",
+          "c.gender",
+          "c.birth_date"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "filter_scope",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "TransactionStats:t.account_id | LoanInfo:l.account_id"
+    ],
+    [
+      "predicted_group_by",
+      "base:a.account_id、a.date、d.A2、d.A3、c.gender、c.birth_date"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      "OWNER"
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:empty_result:sha256:76875bf6b5876d91fa5a9493c76acd17ba6c818e2094b43c0b5c1fd72404ad85;2:accepted:"
+    ]
+  ]
+}

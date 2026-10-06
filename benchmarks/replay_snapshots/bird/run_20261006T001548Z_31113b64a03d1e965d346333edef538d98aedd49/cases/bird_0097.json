@@ -1,0 +1,302 @@
+{
+  "case_id": "bird_0097",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "card",
+    "loan",
+    "trans",
+    "account",
+    "client",
+    "disp",
+    "district",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH owner_disp AS (SELECT disp_id, client_id, account_id FROM disp WHERE type = 'OWNER'), eligible_accounts AS (SELECT DISTINCT t.account_id FROM trans AS t WHERE t.date > (SELECT a.date FROM account AS a WHERE a.account_id = t.account_id)), loan_agg AS (SELECT l.account_id, COUNT(*) AS loan_count, AVG(l.amount) AS avg_loan_amount, SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) AS completed_loans, SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS active_loans FROM loan AS l GROUP BY l.account_id), trans_agg AS (SELECT t.account_id, COUNT(*) AS transaction_count, SUM(CASE WHEN t.type = 'credit' THEN t.amount ELSE 0 END) AS total_income, SUM(CASE WHEN t.type = 'debit' THEN t.amount ELSE 0 END) AS total_expense, SUM(CASE WHEN t.type = 'credit' THEN t.amount ELSE -t.amount END) AS net_balance, MAX(t.date) AS last_transaction_date FROM trans AS t GROUP BY t.account_id), card_agg AS (SELECT d.account_id, COUNT(c.card_id) AS card_count, GROUP_CONCAT(DISTINCT c.type) AS card_types FROM card AS c JOIN disp AS d ON c.disp_id = d.disp_id GROUP BY d.account_id), base AS (SELECT cl.client_id, cl.gender, cl.birth_date, ds.A2 AS district_name, ds.A3 AS region, COALESCE(la.loan_count, 0) AS loan_count, COALESCE(la.avg_loan_amount, 0) AS avg_loan_amount, COALESCE(la.active_loans, 0) AS active_loans, COALESCE(la.completed_loans, 0) AS completed_loans, COALESCE(ta.transaction_count, 0) AS transaction_count, COALESCE(ta.total_income, 0) AS total_income, COALESCE(ta.total_expense, 0) AS total_expense, COALESCE(ta.net_balance, 0) AS net_balance, ta.last_transaction_date, COALESCE(ca.card_count, 0) AS card_count, ca.card_types FROM owner_disp AS od JOIN eligible_accounts AS ea ON od.account_id = ea.account_id JOIN client AS cl ON od.client_id = cl.client_id JOIN account AS a ON od.account_id = a.account_id JOIN district AS ds ON a.district_id = ds.district_id LEFT JOIN loan_agg AS la ON od.account_id = la.account_id LEFT JOIN trans_agg AS ta ON od.account_id = ta.account_id LEFT JOIN card_agg AS ca ON od.account_id = ca.account_id) SELECT client_id, gender, birth_date, district_name, region, loan_count, avg_loan_amount, active_loans, completed_loans, transaction_count, total_income, total_expense, net_balance, last_transaction_date, card_count, card_types, CASE WHEN transaction_count >= 50 THEN 'High Usage' WHEN transaction_count >= 20 THEN 'Medium Usage' ELSE 'Low Usage' END AS client_category, RANK() OVER (ORDER BY transaction_count DESC) AS transaction_rank FROM base ORDER BY transaction_count DESC",
+    "sql_hash": "sha256:a2dfbdbdde1c3a9d3128e45903582b4fa057b23e89da1e599411f4ceb971fab1",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "client_id",
+      "gender",
+      "birth_date",
+      "district_name",
+      "region",
+      "loan_count",
+      "avg_loan_amount",
+      "active_loans",
+      "completed_loans",
+      "transaction_count",
+      "total_income",
+      "total_expense",
+      "net_balance",
+      "last_transaction_date",
+      "card_count",
+      "card_types",
+      "client_category",
+      "transaction_rank"
+    ],
+    "joins": [
+      "JOIN disp ON c.disp_id = d.disp_id",
+      "JOIN eligible_accounts ON od.account_id = ea.account_id",
+      "JOIN client ON od.client_id = cl.client_id",
+      "JOIN account ON od.account_id = a.account_id",
+      "JOIN district ON a.district_id = ds.district_id",
+      "LEFT JOIN loan_agg ON od.account_id = la.account_id",
+      "LEFT JOIN trans_agg ON od.account_id = ta.account_id",
+      "LEFT JOIN card_agg ON od.account_id = ca.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "transaction_count DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_name",
+          "region",
+          "loan_count",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "last_transaction_date",
+          "card_count",
+          "card_types",
+          "client_category",
+          "transaction_rank"
+        ],
+        "joins": [
+          "JOIN disp ON c.disp_id = d.disp_id",
+          "JOIN eligible_accounts ON od.account_id = ea.account_id",
+          "JOIN client ON od.client_id = cl.client_id",
+          "JOIN account ON od.account_id = a.account_id",
+          "JOIN district ON a.district_id = ds.district_id",
+          "LEFT JOIN loan_agg ON od.account_id = la.account_id",
+          "LEFT JOIN trans_agg ON od.account_id = ta.account_id",
+          "LEFT JOIN card_agg ON od.account_id = ca.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "owner_disp",
+        "projections": [
+          "disp_id",
+          "client_id",
+          "account_id"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "eligible_accounts",
+        "projections": [
+          "account_id"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "loan_agg",
+        "projections": [
+          "account_id",
+          "loan_count",
+          "avg_loan_amount",
+          "completed_loans",
+          "active_loans"
+        ],
+        "joins": [],
+        "group_by": [
+          "l.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "trans_agg",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "last_transaction_date"
+        ],
+        "joins": [],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max"
+        ]
+      },
+      {
+        "name": "card_agg",
+        "projections": [
+          "account_id",
+          "card_count",
+          "card_types"
+        ],
+        "joins": [
+          "JOIN disp ON c.disp_id = d.disp_id"
+        ],
+        "group_by": [
+          "d.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "group_concat"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_name",
+          "region",
+          "loan_count",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "last_transaction_date",
+          "card_count",
+          "card_types"
+        ],
+        "joins": [
+          "JOIN eligible_accounts ON od.account_id = ea.account_id",
+          "JOIN client ON od.client_id = cl.client_id",
+          "JOIN account ON od.account_id = a.account_id",
+          "JOIN district ON a.district_id = ds.district_id",
+          "LEFT JOIN loan_agg ON od.account_id = la.account_id",
+          "LEFT JOIN trans_agg ON od.account_id = ta.account_id",
+          "LEFT JOIN card_agg ON od.account_id = ca.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "filter_scope",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "ClientLoanInfo:d.client_id、d.type、a.frequency | ClientTransactions:d.client_id | ClientCards:d.client_id"
+    ],
+    [
+      "predicted_group_by",
+      "loan_agg:l.account_id | trans_agg:t.account_id | card_agg:d.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      "DISPONENT"
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=8"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

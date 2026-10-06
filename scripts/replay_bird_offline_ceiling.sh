@@ -9,7 +9,7 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
-RUN_DIR="${1:-/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
+RUN_DIR="${1:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import bird_peak_run_dir; print(bird_peak_run_dir())')}"
 if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required" >&2
   exit 1

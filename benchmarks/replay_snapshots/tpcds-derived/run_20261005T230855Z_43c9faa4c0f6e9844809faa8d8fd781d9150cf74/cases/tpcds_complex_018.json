@@ -1,0 +1,185 @@
+{
+  "case_id": "tpcds_complex_018",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "catalog_sales",
+    "promotion",
+    "call_center",
+    "catalog_page",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "customer",
+    "item",
+    "ship_mode",
+    "time_dim",
+    "warehouse",
+    "inventory",
+    "store"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT cp.cp_department AS department, cc.cc_name AS call_center_name, p.p_promo_name AS promo_name, i.i_category AS item_category, d.d_year AS sales_year, SUM(cs.cs_ext_sales_price) AS sales_amount FROM catalog_sales AS cs JOIN date_dim AS d ON cs.cs_sold_date_sk = d.d_date_sk JOIN catalog_page AS cp ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk JOIN call_center AS cc ON cs.cs_call_center_sk = cc.cc_call_center_sk JOIN promotion AS p ON cs.cs_promo_sk = p.p_promo_sk JOIN item AS i ON cs.cs_item_sk = i.i_item_sk WHERE d.d_year = 2001 GROUP BY cp.cp_department, cc.cc_name, p.p_promo_name, i.i_category, d.d_year ORDER BY cp.cp_department, cc.cc_name, p.p_promo_name, i.i_category, d.d_year",
+    "sql_hash": "sha256:f7616f966a2d414dbaf8105d55cdaba2783242d6dd6d7727de4007e1f20320d0",
+    "referenced_tables": [
+      "call_center",
+      "catalog_page",
+      "catalog_sales",
+      "date_dim",
+      "item",
+      "promotion"
+    ],
+    "projections": [
+      "department",
+      "call_center_name",
+      "promo_name",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk",
+      "JOIN catalog_page ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk",
+      "JOIN call_center ON cs.cs_call_center_sk = cc.cc_call_center_sk",
+      "JOIN promotion ON cs.cs_promo_sk = p.p_promo_sk",
+      "JOIN item ON cs.cs_item_sk = i.i_item_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001"
+    ],
+    "group_by": [
+      "cp.cp_department",
+      "cc.cc_name",
+      "p.p_promo_name",
+      "i.i_category",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "cp.cp_department ASC",
+      "cc.cc_name ASC",
+      "p.p_promo_name ASC",
+      "i.i_category ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "department",
+          "call_center_name",
+          "promo_name",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk",
+          "JOIN catalog_page ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk",
+          "JOIN call_center ON cs.cs_call_center_sk = cc.cc_call_center_sk",
+          "JOIN promotion ON cs.cs_promo_sk = p.p_promo_sk",
+          "JOIN item ON cs.cs_item_sk = i.i_item_sk"
+        ],
+        "group_by": [
+          "cp.cp_department",
+          "cc.cc_name",
+          "p.p_promo_name",
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:catalog_page.cp_department、call_center.cc_name、promotion.p_promo_name、item.i_category、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:cp.cp_department、cc.cc_name、p.p_promo_name、i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

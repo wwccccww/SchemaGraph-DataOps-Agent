@@ -1,0 +1,206 @@
+{
+  "case_id": "bird_0117",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "loan",
+    "order",
+    "trans",
+    "account",
+    "card",
+    "client",
+    "disp",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH loan_region AS (SELECT d.A3 AS region, l.loan_id, l.amount, l.payments, l.status FROM loan AS l JOIN account AS a ON l.account_id = a.account_id JOIN district AS d ON a.district_id = d.district_id JOIN disp AS dp ON dp.account_id = a.account_id JOIN client AS c ON dp.client_id = c.client_id WHERE dp.type = 'OWNER'), agg AS (SELECT region, SUM(CASE WHEN status = 'C' THEN amount ELSE 0 END) AS paid_amount, SUM(amount) AS total_amount, SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END) AS successful_loans, COUNT(*) AS total_loans, AVG(CASE WHEN status = 'C' THEN payments END) AS avg_interest_paid_successful, AVG(payments) AS avg_interest_paid_all FROM loan_region GROUP BY region) SELECT region, ROUND(CAST(paid_amount AS REAL) * 100 / NULLIF(total_amount, 0), 2) AS paid_amount_percentage, ROUND(CAST(successful_loans AS REAL) * 100 / NULLIF(total_loans, 0), 2) AS successful_loans_percentage, successful_loans, total_loans, paid_amount, total_amount, avg_interest_paid_successful, avg_interest_paid_all, ROUND(CAST(SUM(paid_amount) OVER () AS REAL) * 100 / NULLIF(SUM(total_amount) OVER (), 0), 2) AS overall_percentage FROM agg ORDER BY region",
+    "sql_hash": "sha256:e8e7f0c3c5ea69f2271c1aac156ebd7d182972c5240f56480cfe71dea893454b",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan"
+    ],
+    "projections": [
+      "region",
+      "paid_amount_percentage",
+      "successful_loans_percentage",
+      "successful_loans",
+      "total_loans",
+      "paid_amount",
+      "total_amount",
+      "avg_interest_paid_successful",
+      "avg_interest_paid_all",
+      "overall_percentage"
+    ],
+    "joins": [
+      "JOIN account ON l.account_id = a.account_id",
+      "JOIN district ON a.district_id = d.district_id",
+      "JOIN disp ON dp.account_id = a.account_id",
+      "JOIN client ON dp.client_id = c.client_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "region ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "region",
+          "paid_amount_percentage",
+          "successful_loans_percentage",
+          "successful_loans",
+          "total_loans",
+          "paid_amount",
+          "total_amount",
+          "avg_interest_paid_successful",
+          "avg_interest_paid_all",
+          "overall_percentage"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN disp ON dp.account_id = a.account_id",
+          "JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "loan_region",
+        "projections": [
+          "region",
+          "loan_id",
+          "amount",
+          "payments",
+          "status"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN disp ON dp.account_id = a.account_id",
+          "JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "agg",
+        "projections": [
+          "region",
+          "paid_amount",
+          "total_amount",
+          "successful_loans",
+          "total_loans",
+          "avg_interest_paid_successful",
+          "avg_interest_paid_all"
+        ],
+        "joins": [],
+        "group_by": [
+          "region"
+        ],
+        "aggregations": [
+          "sum",
+          "count",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "RegionSummary:region"
+    ],
+    [
+      "predicted_group_by",
+      "agg:region"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

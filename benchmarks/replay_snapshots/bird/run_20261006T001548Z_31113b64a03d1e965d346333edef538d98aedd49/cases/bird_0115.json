@@ -1,0 +1,186 @@
+{
+  "case_id": "bird_0115",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "district",
+    "account",
+    "client",
+    "card",
+    "disp",
+    "loan",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH south_bohemia AS (SELECT district_id, A2 AS district_name, A3 AS region, A4 AS inhabitants FROM district WHERE A3 = 'south Bohemia'), most_populated AS (SELECT district_id, district_name, region, inhabitants FROM south_bohemia ORDER BY inhabitants DESC LIMIT 1) SELECT mp.district_id AS district_id, mp.district_name AS district_name, mp.region AS region, mp.inhabitants AS inhabitants, COUNT(c.client_id) AS total_clients, SUM(CASE WHEN c.gender = 'M' THEN 1 ELSE 0 END) AS male_clients, ROUND(CAST(SUM(CASE WHEN c.gender = 'M' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(c.client_id), 2) AS pct_male FROM most_populated AS mp JOIN client AS c ON c.district_id = mp.district_id GROUP BY mp.district_id, mp.district_name, mp.region, mp.inhabitants",
+    "sql_hash": "sha256:e7a4607f06e488607182ce57b51385c0c3ed144d0bc4d54d12b05c2c28dd44f5",
+    "referenced_tables": [
+      "client",
+      "district"
+    ],
+    "projections": [
+      "district_id",
+      "district_name",
+      "region",
+      "inhabitants",
+      "total_clients",
+      "male_clients",
+      "pct_male"
+    ],
+    "joins": [
+      "JOIN client ON c.district_id = mp.district_id"
+    ],
+    "predicates": [],
+    "group_by": [
+      "mp.district_id",
+      "mp.district_name",
+      "mp.region",
+      "mp.inhabitants"
+    ],
+    "aggregations": [
+      "count",
+      "sum"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants",
+          "total_clients",
+          "male_clients",
+          "pct_male"
+        ],
+        "joins": [
+          "JOIN client ON c.district_id = mp.district_id"
+        ],
+        "group_by": [
+          "mp.district_id",
+          "mp.district_name",
+          "mp.region",
+          "mp.inhabitants"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      },
+      {
+        "name": "south_bohemia",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "most_populated",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "RegionStats:d.district_id、d.A3、d.A4"
+    ],
+    [
+      "predicted_group_by",
+      "outer:mp.district_id、mp.district_name、mp.region、mp.inhabitants"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=1"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

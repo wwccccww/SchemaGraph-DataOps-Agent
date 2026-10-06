@@ -1,0 +1,181 @@
+{
+  "case_id": "bird_0021",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "只允许单条只读 SQLite 查询",
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT f.CDSCode, f.\"Free Meal Count (K-12)\" AS free_meals, f.\"FRPM Count (K-12)\" AS frpm_meals, f.\"Enrollment (K-12)\" AS enrollment, f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" AS free_pct, f.\"FRPM Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" AS frpm_pct, s.Charter, (COALESCE(sat.AvgScrRead, 0) + COALESCE(sat.AvgScrMath, 0) + COALESCE(sat.AvgScrWrite, 0)) AS sat_total, sat.cds AS sat_cds, CASE WHEN f.\"FRPM Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" >= 0.75 THEN 'High FRPM' WHEN f.\"FRPM Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" >= 0.50 THEN 'Medium FRPM' ELSE 'Low FRPM' END AS frpm_category FROM frpm AS f JOIN schools AS s ON f.CDSCode = s.CDSCode LEFT JOIN satscores AS sat ON sat.cds = s.CDSCode WHERE f.\"County Name\" = 'Los Angeles' AND f.\"Enrollment (K-12)\" > 0 AND f.\"Free Meal Count (K-12)\" > 500 AND f.\"FRPM Count (K-12)\" < 700) SELECT COUNT(*) AS TotalSchools, ROUND(AVG(free_meals), 2) AS AvgFreeMeals, ROUND(AVG(frpm_meals), 2) AS AvgTotalFRPM, ROUND(AVG(free_pct), 4) AS AvgFreePercentage, ROUND(AVG(frpm_pct), 4) AS AvgFRPMPercentage, SUM(CASE WHEN Charter = 1 THEN 1 ELSE 0 END) AS CharterSchoolCount, SUM(CASE WHEN Charter = 0 THEN 1 ELSE 0 END) AS NonCharterSchoolCount, ROUND(AVG(CASE WHEN NOT sat_cds IS NULL THEN sat_total END), 2) AS AvgSATScore, SUM(CASE WHEN sat_cds IS NULL THEN 1 ELSE 0 END) AS SchoolsWithoutSATData, GROUP_CONCAT(frpm_category || ':' || cnt, '; ') AS FreeMealCategoryBreakdown FROM (SELECT *, COUNT(*) OVER (PARTITION BY frpm_category) AS cnt FROM base)",
+    "sql_hash": "sha256:014050d74e6e15893729d59971b06e8e9fde04baee7084a977850b0c5ec9b780",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "TotalSchools",
+      "AvgFreeMeals",
+      "AvgTotalFRPM",
+      "AvgFreePercentage",
+      "AvgFRPMPercentage",
+      "CharterSchoolCount",
+      "NonCharterSchoolCount",
+      "AvgSATScore",
+      "SchoolsWithoutSATData",
+      "FreeMealCategoryBreakdown"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sat.cds = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum",
+      "group_concat"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "TotalSchools",
+          "AvgFreeMeals",
+          "AvgTotalFRPM",
+          "AvgFreePercentage",
+          "AvgFRPMPercentage",
+          "CharterSchoolCount",
+          "NonCharterSchoolCount",
+          "AvgSATScore",
+          "SchoolsWithoutSATData",
+          "FreeMealCategoryBreakdown"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum",
+          "group_concat"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "CDSCode",
+          "free_meals",
+          "frpm_meals",
+          "enrollment",
+          "free_pct",
+          "frpm_pct",
+          "Charter",
+          "sat_total",
+          "sat_cds",
+          "frpm_category"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CategoryBreakdown:FreeMealCategory"
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:not_read_only:sha256:bfb824e1489412bc1dc345919873a103819ed0768987a15f2433392516d78343;2:no_progress:sha256:bfb824e1489412bc1dc345919873a103819ed0768987a15f2433392516d78343"
+    ]
+  ]
+}

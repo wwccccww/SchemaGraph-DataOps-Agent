@@ -1,0 +1,223 @@
+{
+  "case_id": "bird_0062",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 3,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT s.CDSCode AS CDSCode, s.School AS School, s.District AS District, f.\"County Name\" AS County, f.\"Enrollment (K-12)\" AS Enrollment, f.\"Free Meal Count (K-12)\" AS FreeMealCount, (f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\") AS FreePercentage FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode LEFT JOIN satscores AS sa ON sa.cds = s.CDSCode WHERE f.\"County Name\" = 'Los Angeles' AND s.Charter = 0 AND f.\"Enrollment (K-12)\" > 0 AND (f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\") < 0.0018), county_stats AS (SELECT f.\"County Name\" AS County, COUNT(*) AS TotalSchools, SUM(CASE WHEN f.\"Enrollment (K-12)\" > 0 AND (f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\") < 0.0018 THEN 1 ELSE 0 END) AS LowFreeSchools, AVG(CASE WHEN f.\"Enrollment (K-12)\" > 0 THEN f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" END) AS CountyAvgFreePercent FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE f.\"County Name\" = 'Los Angeles' AND s.Charter = 0 GROUP BY f.\"County Name\"), la_total AS (SELECT COUNT(*) AS LATotalLowFree FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE f.\"County Name\" = 'Los Angeles' AND s.Charter = 0 AND f.\"Enrollment (K-12)\" > 0 AND (f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\") < 0.0018) SELECT b.CDSCode AS CDSCode, b.School AS School, b.District AS District, b.County AS County, b.Enrollment AS Enrollment, b.FreeMealCount AS FreeMealCount, b.FreePercentage AS FreePercentage, 'Low FRPM' AS FreeCategory, RANK() OVER (ORDER BY b.FreePercentage ASC) AS CountyRank, cs.TotalSchools AS TotalSchools, cs.LowFreeSchools AS LowFreeSchools, cs.CountyAvgFreePercent AS CountyAvgFreePercent, (cs.LowFreeSchools * 1.0 / cs.TotalSchools) AS PctLowFreeInCounty, lt.LATotalLowFree AS LATotalLowFree FROM base AS b JOIN county_stats AS cs ON cs.County = b.County CROSS JOIN la_total AS lt ORDER BY b.FreePercentage ASC",
+    "sql_hash": "sha256:1a99bbd26e018236ee3315c0197589e3ae53d84c4c4866128b1692498d43257d",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "CDSCode",
+      "School",
+      "District",
+      "County",
+      "Enrollment",
+      "FreeMealCount",
+      "FreePercentage",
+      "FreeCategory",
+      "CountyRank",
+      "TotalSchools",
+      "LowFreeSchools",
+      "CountyAvgFreePercent",
+      "PctLowFreeInCounty",
+      "LATotalLowFree"
+    ],
+    "joins": [
+      "JOIN county_stats ON cs.County = b.County",
+      "CROSS la_total ON",
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sa.cds = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "b.FreePercentage ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "County",
+          "Enrollment",
+          "FreeMealCount",
+          "FreePercentage",
+          "FreeCategory",
+          "CountyRank",
+          "TotalSchools",
+          "LowFreeSchools",
+          "CountyAvgFreePercent",
+          "PctLowFreeInCounty",
+          "LATotalLowFree"
+        ],
+        "joins": [
+          "JOIN county_stats ON cs.County = b.County",
+          "CROSS la_total ON",
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "County",
+          "Enrollment",
+          "FreeMealCount",
+          "FreePercentage"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "county_stats",
+        "projections": [
+          "County",
+          "TotalSchools",
+          "LowFreeSchools",
+          "CountyAvgFreePercent"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [
+          "f.\"County Name\""
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "la_total",
+        "projections": [
+          "LATotalLowFree"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CountyStats:County"
+    ],
+    [
+      "predicted_group_by",
+      "county_stats:f.\"County Name\""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:7b4bcaa3b2d7a9409d8c6cb8e0e073074be292d6d72cdcc3bf6a026f04d09303;2:cartesian_product:sha256:4b4789054b9500275654833d3b52aff93dcfdee809f16d64feba72b2991cb801;3:join_not_on_graph:sha256:01faff7bfb778b409e627e4f1adf745a782ee948d2c8753c843884cdcba09205;4:kept_candidate:join_not_on_graph"
+    ]
+  ]
+}

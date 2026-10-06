@@ -1,0 +1,180 @@
+{
+  "case_id": "tpcds_complex_004",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "catalog_sales",
+    "item",
+    "call_center",
+    "catalog_page",
+    "date_dim",
+    "ship_mode"
+  ],
+  "expanded_tables": [
+    "customer",
+    "promotion",
+    "time_dim",
+    "warehouse",
+    "inventory",
+    "store"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT cc.cc_name AS call_center_name, sm.sm_type AS ship_type, i.i_category AS item_category, d.d_year AS sales_year, SUM(cs.cs_ext_sales_price) AS sales_amount FROM catalog_sales AS cs JOIN call_center AS cc ON cs.cs_call_center_sk = cc.cc_call_center_sk JOIN ship_mode AS sm ON cs.cs_ship_mode_sk = sm.sm_ship_mode_sk JOIN item AS i ON cs.cs_item_sk = i.i_item_sk JOIN date_dim AS d ON cs.cs_sold_date_sk = d.d_date_sk JOIN catalog_page AS cp ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk WHERE d.d_year = 2001 GROUP BY cc.cc_name, sm.sm_type, i.i_category, d.d_year ORDER BY cc.cc_name, sm.sm_type, i.i_category, d.d_year",
+    "sql_hash": "sha256:290d8242087fedb73625887c8462bc2663b75475290219f3bcaf60f7da03ae69",
+    "referenced_tables": [
+      "call_center",
+      "catalog_page",
+      "catalog_sales",
+      "date_dim",
+      "item",
+      "ship_mode"
+    ],
+    "projections": [
+      "call_center_name",
+      "ship_type",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN call_center ON cs.cs_call_center_sk = cc.cc_call_center_sk",
+      "JOIN ship_mode ON cs.cs_ship_mode_sk = sm.sm_ship_mode_sk",
+      "JOIN item ON cs.cs_item_sk = i.i_item_sk",
+      "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk",
+      "JOIN catalog_page ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001"
+    ],
+    "group_by": [
+      "cc.cc_name",
+      "sm.sm_type",
+      "i.i_category",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "cc.cc_name ASC",
+      "sm.sm_type ASC",
+      "i.i_category ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "call_center_name",
+          "ship_type",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN call_center ON cs.cs_call_center_sk = cc.cc_call_center_sk",
+          "JOIN ship_mode ON cs.cs_ship_mode_sk = sm.sm_ship_mode_sk",
+          "JOIN item ON cs.cs_item_sk = i.i_item_sk",
+          "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk",
+          "JOIN catalog_page ON cs.cs_catalog_page_sk = cp.cp_catalog_page_sk"
+        ],
+        "group_by": [
+          "cc.cc_name",
+          "sm.sm_type",
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:call_center.cc_name、ship_mode.sm_type、item.i_category、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:cc.cc_name、sm.sm_type、i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

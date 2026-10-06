@@ -1,0 +1,214 @@
+{
+  "case_id": "tpcds_complex_023",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "inventory",
+    "store_sales",
+    "item",
+    "store",
+    "date_dim",
+    "warehouse"
+  ],
+  "expanded_tables": [
+    "customer",
+    "promotion",
+    "time_dim",
+    "call_center",
+    "catalog_page",
+    "web_page"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH sold AS (\n  SELECT ss_item_sk, SUM(ss_quantity) AS quantity_sold\n  FROM store_sales\n  JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk\n  WHERE date_dim.d_year = 2001\n  GROUP BY ss_item_sk\n),\nstock AS (\n  SELECT warehouse.w_state AS warehouse_state,\n         item.i_category AS item_category,\n         date_dim.d_year AS inventory_year,\n         inventory.inv_item_sk AS item_sk,\n         SUM(inventory.inv_quantity_on_hand) AS quantity_on_hand\n  FROM inventory\n  JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk\n  JOIN item ON inventory.inv_item_sk = item.i_item_sk\n  JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk\n  WHERE date_dim.d_year = 2001\n  GROUP BY warehouse.w_state, item.i_category, date_dim.d_year, inventory.inv_item_sk\n)\nSELECT stock.warehouse_state AS warehouse_state,\n       stock.item_category AS item_category,\n       stock.inventory_year AS inventory_year,\n       SUM(stock.quantity_on_hand) AS quantity_on_hand,\n       SUM(COALESCE(sold.quantity_sold, 0)) AS quantity_sold\nFROM stock\nJOIN sold ON stock.item_sk = sold.ss_item_sk\nGROUP BY stock.warehouse_state, stock.item_category, stock.inventory_year\nORDER BY stock.warehouse_state, stock.item_category, stock.inventory_year;",
+    "sql_hash": "sha256:85c1cd150d3e84aa4e6fbad5f94534f3bdfc534b31f8c28a2e7fc533378bc069",
+    "referenced_tables": [
+      "date_dim",
+      "inventory",
+      "item",
+      "store_sales",
+      "warehouse"
+    ],
+    "projections": [
+      "warehouse_state",
+      "item_category",
+      "inventory_year",
+      "quantity_on_hand",
+      "quantity_sold"
+    ],
+    "joins": [
+      "JOIN sold ON stock.item_sk = sold.ss_item_sk",
+      "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk",
+      "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk",
+      "JOIN item ON inventory.inv_item_sk = item.i_item_sk",
+      "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk"
+    ],
+    "predicates": [],
+    "group_by": [
+      "stock.warehouse_state",
+      "stock.item_category",
+      "stock.inventory_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "stock.warehouse_state ASC",
+      "stock.item_category ASC",
+      "stock.inventory_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "warehouse_state",
+          "item_category",
+          "inventory_year",
+          "quantity_on_hand",
+          "quantity_sold"
+        ],
+        "joins": [
+          "JOIN sold ON stock.item_sk = sold.ss_item_sk",
+          "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk",
+          "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk",
+          "JOIN item ON inventory.inv_item_sk = item.i_item_sk",
+          "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk"
+        ],
+        "group_by": [
+          "stock.warehouse_state",
+          "stock.item_category",
+          "stock.inventory_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "sold",
+        "projections": [
+          "ss_item_sk",
+          "quantity_sold"
+        ],
+        "joins": [
+          "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk"
+        ],
+        "group_by": [
+          "ss_item_sk"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "stock",
+        "projections": [
+          "warehouse_state",
+          "item_category",
+          "inventory_year",
+          "item_sk",
+          "quantity_on_hand"
+        ],
+        "joins": [
+          "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk",
+          "JOIN item ON inventory.inv_item_sk = item.i_item_sk",
+          "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk"
+        ],
+        "group_by": [
+          "warehouse.w_state",
+          "item.i_category",
+          "date_dim.d_year",
+          "inventory.inv_item_sk"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:stock.warehouse_state、stock.item_category、stock.inventory_year | sold:store_sales.ss_item_sk | stock:warehouse.w_state、item.i_category、date_dim.d_year、inventory.inv_item_sk"
+    ],
+    [
+      "predicted_group_by",
+      "outer:stock.warehouse_state、stock.item_category、stock.inventory_year | sold:ss_item_sk | stock:warehouse.w_state、item.i_category、date_dim.d_year、inventory.inv_item_sk"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:69773bfcf2c1a8ea98e7914ab1fd1d4f4f11abec0d3d142b2a3cb74e3355a926;2:no_progress:sha256:69773bfcf2c1a8ea98e7914ab1fd1d4f4f11abec0d3d142b2a3cb74e3355a926"
+    ]
+  ]
+}

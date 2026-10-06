@@ -1,0 +1,204 @@
+{
+  "case_id": "tpcds_complex_022",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "store_sales",
+    "web_sales",
+    "item",
+    "store",
+    "web_page",
+    "web_site",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "customer",
+    "promotion",
+    "time_dim",
+    "ship_mode",
+    "warehouse"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH store_agg AS (SELECT i.i_category AS item_category, d.d_year AS sales_year, SUM(ss.ss_ext_sales_price) AS store_sales_amount FROM store_sales AS ss JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk JOIN item AS i ON ss.ss_item_sk = i.i_item_sk JOIN store AS s ON ss.ss_store_sk = s.s_store_sk WHERE d.d_year = 2001 GROUP BY i.i_category, d.d_year), web_agg AS (SELECT i.i_category AS item_category, d.d_year AS sales_year, SUM(ws.ws_ext_sales_price) AS web_sales_amount FROM web_sales AS ws JOIN date_dim AS d ON ws.ws_sold_date_sk = d.d_date_sk JOIN item AS i ON ws.ws_item_sk = i.i_item_sk JOIN web_site AS wsite ON ws.ws_web_site_sk = wsite.web_site_sk WHERE d.d_year = 2001 GROUP BY i.i_category, d.d_year) SELECT s.item_category AS item_category, s.sales_year AS sales_year, s.store_sales_amount AS store_sales_amount, w.web_sales_amount AS web_sales_amount FROM store_agg AS s JOIN web_agg AS w ON s.item_category = w.item_category AND s.sales_year = w.sales_year ORDER BY s.item_category, s.sales_year",
+    "sql_hash": "sha256:e5ec12dea8aa2c27ee0149db3d97c2728e26fa0f02e3e04d814449f163873c3e",
+    "referenced_tables": [
+      "date_dim",
+      "item",
+      "store",
+      "store_sales",
+      "web_sales",
+      "web_site"
+    ],
+    "projections": [
+      "item_category",
+      "sales_year",
+      "store_sales_amount",
+      "web_sales_amount"
+    ],
+    "joins": [
+      "JOIN web_agg ON s.item_category = w.item_category AND s.sales_year = w.sales_year",
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+      "JOIN store ON ss.ss_store_sk = s.s_store_sk",
+      "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk",
+      "JOIN item ON ws.ws_item_sk = i.i_item_sk",
+      "JOIN web_site ON ws.ws_web_site_sk = wsite.web_site_sk"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "s.item_category ASC",
+      "s.sales_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "item_category",
+          "sales_year",
+          "store_sales_amount",
+          "web_sales_amount"
+        ],
+        "joins": [
+          "JOIN web_agg ON s.item_category = w.item_category AND s.sales_year = w.sales_year",
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+          "JOIN store ON ss.ss_store_sk = s.s_store_sk",
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk",
+          "JOIN item ON ws.ws_item_sk = i.i_item_sk",
+          "JOIN web_site ON ws.ws_web_site_sk = wsite.web_site_sk"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "store_agg",
+        "projections": [
+          "item_category",
+          "sales_year",
+          "store_sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+          "JOIN store ON ss.ss_store_sk = s.s_store_sk"
+        ],
+        "group_by": [
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "web_agg",
+        "projections": [
+          "item_category",
+          "sales_year",
+          "web_sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk",
+          "JOIN item ON ws.ws_item_sk = i.i_item_sk",
+          "JOIN web_site ON ws.ws_web_site_sk = wsite.web_site_sk"
+        ],
+        "group_by": [
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "store_totals:item.i_category、date_dim.d_year | web_totals:item.i_category、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "store_agg:i.i_category、d.d_year | web_agg:i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "store_agg,web_agg"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=7;predicted=7"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:6506243da783e06a80540e8960faeeb43ebb3b3d6bca6d93d47e46fcf58b9ceb;2:accepted:"
+    ]
+  ]
+}

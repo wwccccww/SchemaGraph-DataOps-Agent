@@ -1,0 +1,189 @@
+{
+  "case_id": "tpcds_complex_015",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "store_sales",
+    "web_sales",
+    "customer",
+    "item",
+    "web_page",
+    "store",
+    "web_site",
+    "customer_address",
+    "customer_demographics",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "promotion",
+    "time_dim"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH web_buyers AS (SELECT DISTINCT ws.ws_bill_customer_sk AS customer_sk, ws.ws_item_sk AS item_sk FROM web_sales AS ws JOIN date_dim AS d ON ws.ws_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001) SELECT ca.ca_state AS customer_state, i.i_category AS item_category, d.d_year AS sales_year, SUM(ss.ss_ext_sales_price) AS sales_amount FROM store_sales AS ss JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk JOIN customer AS c ON ss.ss_customer_sk = c.c_customer_sk JOIN customer_address AS ca ON c.c_current_addr_sk = ca.ca_address_sk JOIN item AS i ON ss.ss_item_sk = i.i_item_sk JOIN web_buyers AS wb ON wb.customer_sk = ss.ss_customer_sk AND wb.item_sk = ss.ss_item_sk WHERE d.d_year = 2001 GROUP BY ca.ca_state, i.i_category, d.d_year ORDER BY ca.ca_state, i.i_category, d.d_year",
+    "sql_hash": "sha256:bfb1c33b8d59026b21c98fc9f66f1567f22597793916aeb3a4853ffcdb8bacba",
+    "referenced_tables": [
+      "customer",
+      "customer_address",
+      "date_dim",
+      "item",
+      "store_sales",
+      "web_sales"
+    ],
+    "projections": [
+      "customer_state",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+      "JOIN customer_address ON c.c_current_addr_sk = ca.ca_address_sk",
+      "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+      "JOIN web_buyers ON wb.customer_sk = ss.ss_customer_sk AND wb.item_sk = ss.ss_item_sk",
+      "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001"
+    ],
+    "group_by": [
+      "ca.ca_state",
+      "i.i_category",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "ca.ca_state ASC",
+      "i.i_category ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "customer_state",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+          "JOIN customer_address ON c.c_current_addr_sk = ca.ca_address_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk",
+          "JOIN web_buyers ON wb.customer_sk = ss.ss_customer_sk AND wb.item_sk = ss.ss_item_sk",
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk"
+        ],
+        "group_by": [
+          "ca.ca_state",
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "web_buyers",
+        "projections": [
+          "customer_sk",
+          "item_sk"
+        ],
+        "joins": [
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:customer_address.ca_state、item.i_category、date_dim.d_year | web_buyers:web_sales.ws_bill_customer_sk、web_sales.ws_item_sk"
+    ],
+    [
+      "predicted_group_by",
+      "outer:ca.ca_state、i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=6;predicted=6"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

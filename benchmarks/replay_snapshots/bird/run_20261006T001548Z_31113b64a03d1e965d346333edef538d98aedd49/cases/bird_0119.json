@@ -1,0 +1,260 @@
+{
+  "case_id": "bird_0119",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "client",
+    "district",
+    "loan",
+    "card",
+    "disp",
+    "trans",
+    "account",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH\n  base_accounts AS (\n    SELECT a.account_id, a.district_id\n    FROM account a\n    WHERE strftime('%Y', a.date) = '1993'\n  ),\n  trans_agg AS (\n    SELECT t.account_id,\n           COUNT(*) AS transaction_count,\n           SUM(CASE WHEN t.type = 'credit' THEN t.amount ELSE -t.amount END) AS net_cash_flow,\n           AVG(t.balance) AS balance_volatility\n    FROM trans t\n    JOIN base_accounts ba ON t.account_id = ba.account_id\n    GROUP BY t.account_id\n  ),\n  client_agg AS (\n    SELECT d.account_id,\n           COUNT(DISTINCT c.client_id) AS client_count,\n           MAX(CASE WHEN d.type = 'OWNER' THEN c.gender END) AS owner_gender,\n           AVG(CAST((julianday('2026-10-01') - julianday(c.birth_date)) / 365.25 AS REAL)) AS avg_client_age\n    FROM disp d\n    JOIN client c ON d.client_id = c.client_id\n    JOIN base_accounts ba ON d.account_id = ba.account_id\n    GROUP BY d.account_id\n  ),\n  loan_agg AS (\n    SELECT l.account_id,\n           COUNT(*) AS loan_count,\n           SUM(l.amount) AS total_loan_amount,\n           AVG(l.duration) AS avg_loan_duration_months,\n           SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) AS running_loans,\n           SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS finished_loans,\n           SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS defaulted_loans\n    FROM loan l\n    JOIN base_accounts ba ON l.account_id = ba.account_id\n    GROUP BY l.account_id\n  )\nSELECT\n  ba.account_id AS account_id,\n  di.A2 AS district_name,\n  di.A3 AS district_region,\n  di.A4 AS urbanization_category,\n  COALESCE(ta.transaction_count, 0) AS transaction_count,\n  COALESCE(ta.net_cash_flow, 0) AS net_cash_flow,\n  COALESCE(ta.balance_volatility, 0) AS balance_volatility,\n  COALESCE(ca.client_count, 0) AS client_count,\n  ca.owner_gender AS owner_gender,\n  ca.avg_client_age AS avg_client_age,\n  COALESCE(la.loan_count, 0) AS loan_count,\n  COALESCE(la.total_loan_amount, 0) AS total_loan_amount,\n  la.avg_loan_duration_months AS avg_loan_duration_months,\n  COALESCE(la.running_loans, 0) AS running_loans,\n  COALESCE(la.finished_loans, 0) AS finished_loans,\n  COALESCE(la.defaulted_loans, 0) AS defaulted_loans,\n  CASE\n    WHEN COALESCE(la.defaulted_loans, 0) > 0 THEN 'High Risk'\n    WHEN COALESCE(la.running_loans, 0) > 0 THEN 'Medium Risk'\n    ELSE 'Low Risk'\n  END AS risk_category\nFROM base_accounts ba\nJOIN district di ON ba.district_id = di.district_id\nLEFT JOIN trans_agg ta ON ba.account_id = ta.account_id\nLEFT JOIN client_agg ca ON ba.account_id = ca.account_id\nLEFT JOIN loan_agg la ON ba.account_id = la.account_id\nORDER BY ba.account_id;",
+    "sql_hash": "sha256:516de305f233c3d36a451b55ac069cae66af699abbfd27f84ef70f594cb6b58a",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "district_name",
+      "district_region",
+      "urbanization_category",
+      "transaction_count",
+      "net_cash_flow",
+      "balance_volatility",
+      "client_count",
+      "owner_gender",
+      "avg_client_age",
+      "loan_count",
+      "total_loan_amount",
+      "avg_loan_duration_months",
+      "running_loans",
+      "finished_loans",
+      "defaulted_loans",
+      "risk_category"
+    ],
+    "joins": [
+      "JOIN district ON ba.district_id = di.district_id",
+      "LEFT JOIN trans_agg ON ba.account_id = ta.account_id",
+      "LEFT JOIN client_agg ON ba.account_id = ca.account_id",
+      "LEFT JOIN loan_agg ON ba.account_id = la.account_id",
+      "JOIN base_accounts ON t.account_id = ba.account_id",
+      "JOIN client ON d.client_id = c.client_id",
+      "JOIN base_accounts ON d.account_id = ba.account_id",
+      "JOIN base_accounts ON l.account_id = ba.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "ba.account_id ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "district_name",
+          "district_region",
+          "urbanization_category",
+          "transaction_count",
+          "net_cash_flow",
+          "balance_volatility",
+          "client_count",
+          "owner_gender",
+          "avg_client_age",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans",
+          "risk_category"
+        ],
+        "joins": [
+          "JOIN district ON ba.district_id = di.district_id",
+          "LEFT JOIN trans_agg ON ba.account_id = ta.account_id",
+          "LEFT JOIN client_agg ON ba.account_id = ca.account_id",
+          "LEFT JOIN loan_agg ON ba.account_id = la.account_id",
+          "JOIN base_accounts ON t.account_id = ba.account_id",
+          "JOIN client ON d.client_id = c.client_id",
+          "JOIN base_accounts ON d.account_id = ba.account_id",
+          "JOIN base_accounts ON l.account_id = ba.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base_accounts",
+        "projections": [
+          "account_id",
+          "district_id"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "trans_agg",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "net_cash_flow",
+          "balance_volatility"
+        ],
+        "joins": [
+          "JOIN base_accounts ON t.account_id = ba.account_id"
+        ],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "client_agg",
+        "projections": [
+          "account_id",
+          "client_count",
+          "owner_gender",
+          "avg_client_age"
+        ],
+        "joins": [
+          "JOIN client ON d.client_id = c.client_id",
+          "JOIN base_accounts ON d.account_id = ba.account_id"
+        ],
+        "group_by": [
+          "d.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "max",
+          "avg"
+        ]
+      },
+      {
+        "name": "loan_agg",
+        "projections": [
+          "account_id",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans"
+        ],
+        "joins": [
+          "JOIN base_accounts ON l.account_id = ba.account_id"
+        ],
+        "group_by": [
+          "l.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "AccountStats:a.account_id | ClientDetails:a.account_id | LoanInfo:a.account_id"
+    ],
+    [
+      "predicted_group_by",
+      "trans_agg:t.account_id | client_agg:d.account_id | loan_agg:l.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "trans_agg,client_agg,loan_agg"
+    ],
+    [
+      "missing_output_labels",
+      "Rural"
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=8"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:e5c89e44be1ce602447a5b1b4bf7d9600a29b6629c034b76ede07a963cef96fd;2:no_progress:sha256:e5c89e44be1ce602447a5b1b4bf7d9600a29b6629c034b76ede07a963cef96fd"
+    ]
+  ]
+}

@@ -41,8 +41,8 @@ elif [[ -f "$BIRD_SQLITE" ]]; then
 else
   echo "bird_sqlite=missing fetch=./scripts/fetch_bird_dev_databases.sh"
 fi
-PEAK="${BIRD_PEAK_RUN:-$ROOT/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
-TPCDS_PEAK="${TPCDS_PEAK_RUN:-$ROOT/reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74}"
+PEAK="${BIRD_PEAK_RUN:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import bird_peak_run_dir; print(bird_peak_run_dir())')}"
+TPCDS_PEAK="${TPCDS_PEAK_RUN:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import tpcds_peak_run_dir; print(tpcds_peak_run_dir())')}"
 if [[ "${EXTERNAL_P0_STATUS_SKIP_REPLAY:-0}" == "1" ]]; then
   echo "replay_skipped=external_p0_status_skip_replay"
 else

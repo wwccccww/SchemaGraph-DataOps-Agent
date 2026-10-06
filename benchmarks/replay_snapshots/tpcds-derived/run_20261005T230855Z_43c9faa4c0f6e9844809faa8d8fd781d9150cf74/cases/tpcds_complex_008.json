@@ -1,0 +1,186 @@
+{
+  "case_id": "tpcds_complex_008",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "catalog_sales",
+    "store_sales",
+    "web_sales",
+    "item",
+    "catalog_page",
+    "store",
+    "web_page",
+    "web_site",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "customer",
+    "promotion",
+    "time_dim"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH channel_sales AS (SELECT 'store' AS sales_channel, ss.ss_item_sk AS item_sk, d.d_year AS sales_year, ss.ss_ext_sales_price AS sales_amount FROM store_sales AS ss JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001 UNION ALL SELECT 'catalog' AS sales_channel, cs.cs_item_sk AS item_sk, d.d_year AS sales_year, cs.cs_ext_sales_price AS sales_amount FROM catalog_sales AS cs JOIN date_dim AS d ON cs.cs_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001 UNION ALL SELECT 'web' AS sales_channel, ws.ws_item_sk AS item_sk, d.d_year AS sales_year, ws.ws_ext_sales_price AS sales_amount FROM web_sales AS ws JOIN date_dim AS d ON ws.ws_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001) SELECT cs.sales_channel AS sales_channel, i.i_category AS item_category, cs.sales_year AS sales_year, SUM(cs.sales_amount) AS sales_amount FROM channel_sales AS cs JOIN item AS i ON cs.item_sk = i.i_item_sk GROUP BY cs.sales_channel, i.i_category, cs.sales_year ORDER BY cs.sales_channel, i.i_category, cs.sales_year",
+    "sql_hash": "sha256:54aad388d797272ab04303ae6c85f7c32cd3667bc46721f2e92f32d0ad4edc73",
+    "referenced_tables": [
+      "catalog_sales",
+      "date_dim",
+      "item",
+      "store_sales",
+      "web_sales"
+    ],
+    "projections": [
+      "sales_channel",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN item ON cs.item_sk = i.i_item_sk",
+      "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk",
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk"
+    ],
+    "predicates": [],
+    "group_by": [
+      "cs.sales_channel",
+      "i.i_category",
+      "cs.sales_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "cs.sales_channel ASC",
+      "i.i_category ASC",
+      "cs.sales_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "sales_channel",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN item ON cs.item_sk = i.i_item_sk",
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk",
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk"
+        ],
+        "group_by": [
+          "cs.sales_channel",
+          "i.i_category",
+          "cs.sales_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "channel_sales",
+        "projections": [
+          "sales_channel",
+          "item_sk",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN date_dim ON cs.cs_sold_date_sk = d.d_date_sk",
+          "JOIN date_dim ON ws.ws_sold_date_sk = d.d_date_sk"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:channel_rows.channel、item.i_category、channel_rows.sales_year | channel_rows:store_sales.ss_item_sk、date_dim.d_year、catalog_sales.cs_item_sk、date_dim.d_year、web_sales.ws_item_sk、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:cs.sales_channel、i.i_category、cs.sales_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

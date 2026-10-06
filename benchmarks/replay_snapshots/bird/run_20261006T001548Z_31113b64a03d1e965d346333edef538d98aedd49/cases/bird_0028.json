@@ -1,0 +1,160 @@
+{
+  "case_id": "bird_0028",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH school_diff AS (SELECT s.CDSCode, s.School, s.DOC, f.\"Enrollment (K-12)\" - f.\"Enrollment (Ages 5-17)\" AS diff FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE s.FundingType = 'Locally funded'), avg_diff AS (SELECT AVG(diff) AS avg_d FROM school_diff) SELECT sd.School AS School, sd.DOC AS DOC FROM school_diff AS sd WHERE sd.diff > (SELECT avg_d FROM avg_diff) ORDER BY sd.School",
+    "sql_hash": "sha256:4a902f96407393268b0e5e87c76ba03a7ad2636abc1706e9852123c730ed6618",
+    "referenced_tables": [
+      "frpm",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "DOC"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE sd.diff > (SELECT avg_d FROM avg_diff)"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sd.School ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "DOC"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "school_diff",
+        "projections": [
+          "CDSCode",
+          "School",
+          "DOC",
+          "diff"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "avg_diff",
+        "projections": [
+          "avg_d"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "avg_diff"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=1"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:cartesian_product:sha256:c4b826d4b5ec62649e78d6d9730542f4359237f3d0aef87e33f02233b852e675;2:accepted:"
+    ]
+  ]
+}

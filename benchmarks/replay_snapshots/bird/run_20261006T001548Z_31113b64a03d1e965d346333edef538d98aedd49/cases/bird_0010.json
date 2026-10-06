@@ -1,0 +1,192 @@
+{
+  "case_id": "bird_0010",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT s.School AS SchoolName, s.County AS County, s.City AS City, s.GSserved AS GradeSpan, ss.AvgScrRead AS ReadingScore, ss.AvgScrMath AS MathScore, ss.AvgScrWrite AS WritingScore, (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) AS TotalSATScore, ss.NumTstTakr, ss.NumGE1500, f.\"FRPM Count (K-12)\" AS FRPMCount, f.\"Percent (%) Eligible FRPM (K-12)\" AS FRPMPercentage, f.\"Enrollment (K-12)\" AS Enrollment, s.Charter, f.\"School Type\" AS SchoolType FROM schools AS s JOIN satscores AS ss ON ss.cds = s.CDSCode LEFT JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE ss.NumTstTakr > 10) SELECT SchoolName, County, City, GradeSpan, ReadingScore, MathScore, WritingScore, TotalSATScore, RANK() OVER (ORDER BY ReadingScore DESC) AS ReadingRank, FRPMCount, FRPMPercentage, Enrollment, CASE WHEN Enrollment > 0 THEN ROUND(CAST(NumGE1500 AS REAL) * 100 / Enrollment, 2) ELSE NULL END AS PercentScoring1500Plus, SchoolType, CASE WHEN FRPMPercentage >= 75 THEN 'High FRPM' WHEN FRPMPercentage >= 50 THEN 'Medium FRPM' ELSE 'Low FRPM' END AS PovertyLevel FROM base ORDER BY ReadingScore DESC LIMIT 1",
+    "sql_hash": "sha256:dd99fb951d98c1c8f5e9ef5f0928966f430d78166c1fa5714ef924be30e0141c",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "County",
+      "City",
+      "GradeSpan",
+      "ReadingScore",
+      "MathScore",
+      "WritingScore",
+      "TotalSATScore",
+      "ReadingRank",
+      "FRPMCount",
+      "FRPMPercentage",
+      "Enrollment",
+      "PercentScoring1500Plus",
+      "SchoolType",
+      "PovertyLevel"
+    ],
+    "joins": [
+      "JOIN satscores ON ss.cds = s.CDSCode",
+      "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "ReadingScore DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "GradeSpan",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "TotalSATScore",
+          "ReadingRank",
+          "FRPMCount",
+          "FRPMPercentage",
+          "Enrollment",
+          "PercentScoring1500Plus",
+          "SchoolType",
+          "PovertyLevel"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "GradeSpan",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "TotalSATScore",
+          "NumTstTakr",
+          "NumGE1500",
+          "FRPMCount",
+          "FRPMPercentage",
+          "Enrollment",
+          "Charter",
+          "SchoolType"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

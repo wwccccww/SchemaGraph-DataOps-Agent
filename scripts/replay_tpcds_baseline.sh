@@ -9,7 +9,7 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
-RUN_DIR="${1:-/workspace/reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74}"
+RUN_DIR="${1:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import tpcds_peak_run_dir; print(tpcds_peak_run_dir())')}"
 if [[ ! -d "$RUN_DIR/cases" ]]; then
   echo "missing run dir: $RUN_DIR" >&2
   exit 1
