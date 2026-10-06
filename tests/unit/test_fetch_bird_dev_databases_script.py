@@ -30,4 +30,3 @@ def test_runbook_mentions_fetch_bird_dev_databases_script() -> None:
     root = Path(__file__).resolve().parents[2]
     runbook = (root / "docs/external_gold_p0_runbook.md").read_text(encoding="utf-8")
     assert "fetch_bird_dev_databases.sh" in runbook
-
