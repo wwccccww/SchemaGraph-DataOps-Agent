@@ -418,11 +418,14 @@ def check_frozen_semantic_contract(
                         "不要用 SAT 总分/2400",
                     )
                 )
-            if re.search(
-                r"Free Meal Count \(K-12\)|Enrollment \(K-12\)",
-                sql,
-                re.IGNORECASE,
-            ) and "eligible_free_rate" in sql.lower():
+            if (
+                re.search(
+                    r"Free Meal Count \(K-12\)|Enrollment \(K-12\)",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "eligible_free_rate" in sql.lower()
+            ):
                 if not re.search(r"Ages 5-17", sql, re.IGNORECASE):
                     findings.append(
                         SemanticFinding(
