@@ -112,7 +112,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | **43/43** 绑定 profile（v58） |
 | 峰值 EX=0 frozen 可纠偏 | `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings` | **43/43** 保存 SQL **≥3** findings（v59） |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **7/7** ex=1 题绑定 profile（v56） |
-| P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
+| P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表（含 `test_wait_for_billing_and_run_p0_script.py`）、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
 | P0/P1 runbook 交叉引用 | `test_external_gold_runbook_docs.py` | runbook 存在且 `benchmark.md` / `README.md` / `external-gold.yml` 路径一致 |
 | P0 acceptance 离线 | `test_peak_documented_runs_pass_full_acceptance_gate_cli` | 文档峰值 run 各 2× 喂 `--acceptance-gate` 得 **`pass`**；校验 gate 逻辑，**不能替代** billing 后新 2× LLM 实测 |
 

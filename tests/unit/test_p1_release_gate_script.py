@@ -41,6 +41,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_p1_release_gate_script.py",
         "test_llm_preflight.py",
         "test_p0_post_billing_acceptance_script.py",
+        "test_wait_for_billing_and_run_p0_script.py",
         "test_external_gold_runbook_docs.py",
     ):
         assert module in script
@@ -73,6 +74,7 @@ def test_env_example_documents_bird_database_root_for_p1_gate() -> None:
     example = (root / ".env.example").read_text(encoding="utf-8")
     assert "BIRD_DATABASE_ROOT=" in example
     assert "p0_post_billing_acceptance.sh" in example
+    assert "wait_for_billing_and_run_p0.sh" in example
     assert "P0_BIRD_MIN_MATCHED" in example
     assert "external_gold_p0_runbook.md" in example
 
