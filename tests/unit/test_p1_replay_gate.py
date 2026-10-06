@@ -4,20 +4,12 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
 from app.evaluation.external_release import release_ready
 from app.evaluation.replay_amend import GOLD_OVERLAY_PROFILES, PATCH_AMEND_PROFILES
-
-_BIRD_PEAK = Path(
-    "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
-)
-_TPCDS_PEAK = Path(
-    "/workspace/reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74"
-)
-_BIRD_DB = Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases")
+from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN, TPCDS_PEAK_RUN
 
 
 def test_release_gate_ready() -> None:
@@ -30,7 +22,7 @@ def test_replay_profile_catalog() -> None:
 
 
 def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
-    if not _BIRD_PEAK.is_dir() or not _BIRD_DB.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
         [
@@ -40,9 +32,9 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
             "--source",
             "bird",
             "--database-root",
-            str(_BIRD_DB),
+            str(BIRD_DB_ROOT),
             "--replay-run",
-            str(_BIRD_PEAK),
+            str(BIRD_PEAK_RUN),
         ],
         check=False,
         capture_output=True,
@@ -53,7 +45,7 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
 
 
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
-    if not _TPCDS_PEAK.is_dir():
+    if not TPCDS_PEAK_RUN.is_dir():
         pytest.skip("tpcds replay fixture unavailable")
     completed = subprocess.run(
         [
@@ -63,7 +55,7 @@ def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
             "--source",
             "tpcds-derived",
             "--replay-run",
-            str(_TPCDS_PEAK),
+            str(TPCDS_PEAK_RUN),
         ],
         check=False,
         capture_output=True,

@@ -41,9 +41,9 @@ def test_inspection_from_replay_extracts_sql() -> None:
 
 
 def test_load_replay_cases_from_saved_peak_run() -> None:
-    run = Path(
-        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
-    )
+    from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
+
+    run = BIRD_PEAK_RUN
     if not run.is_dir():
         pytest.skip("saved bird run missing")
     pairs = load_replay_cases(run, load_bird_cases())

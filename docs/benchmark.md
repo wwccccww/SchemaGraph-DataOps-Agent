@@ -87,9 +87,9 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **11/50**（`31113b6` 上五 profile → **7→11**；含 Gold 对齐用例，**非 LLM 实测**）；距 80 例综合可信度未完成。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **11/50**（`31113b6` 上五 profile → **7→11**；含 Gold 对齐用例，**非 LLM 实测**）；距 80 例综合可信度未完成。当前代码 **`text-to-sql-generic-v23`** + **17 条 BIRD 按题 profile** + SQLite 分号修复（**0021** 可执行）为 API 恢复后的全量复跑准备，**不等于**已提升实测 EX。
 
-**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`verify-tpcds` / `verify-bird` + 可选 `--replay-run`。
+**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/verify_external_gold.sh`；模型基线复分：`./scripts/replay_bird_baseline.sh`（需 `reports/` 快照）。
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
