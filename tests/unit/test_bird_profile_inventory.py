@@ -100,11 +100,7 @@ def test_peak_v15_ex0_cases_all_have_explicit_profile() -> None:
         payload = json.loads(case_file.read_text())
         if payload.get("ex"):
             continue
-        profiles = [
-            item
-            for item in contract_for(case).filters
-            if item.endswith("_profile=true")
-        ]
+        profiles = [item for item in contract_for(case).filters if item.endswith("_profile=true")]
         if not profiles:
             missing.append(case.id)
     assert missing == []

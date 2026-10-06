@@ -381,14 +381,18 @@ def check_frozen_semantic_contract(
                         "region 贷款成功：paid/successful 用 status='A'（不是 C）",
                     )
                 )
-            if re.search(r"avg_interest_paid", sql, re.IGNORECASE) and re.search(
-                r"AVG\s*\(\s*CASE\s+WHEN[\s\S]*payments\s*\)",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"payments\s*\*\s*l\.duration|payments\s*\*\s*duration",
-                sql,
-                re.IGNORECASE,
+            if (
+                re.search(r"avg_interest_paid", sql, re.IGNORECASE)
+                and re.search(
+                    r"AVG\s*\(\s*CASE\s+WHEN[\s\S]*payments\s*\)",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"payments\s*\*\s*l\.duration|payments\s*\*\s*duration",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -407,11 +411,17 @@ def check_frozen_semantic_contract(
                         "overall_percentage 用 (SELECT … FROM loan) 全表占比子查询",
                     )
                 )
-            if re.search(r"paid_amount_percentage", sql, re.IGNORECASE) and re.search(
-                r"ORDER BY\s+region\b",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"ORDER BY[\s\S]*paid_amount_percentage\s+DESC", sql, re.IGNORECASE):
+            if (
+                re.search(r"paid_amount_percentage", sql, re.IGNORECASE)
+                and re.search(
+                    r"ORDER BY\s+region\b",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"ORDER BY[\s\S]*paid_amount_percentage\s+DESC", sql, re.IGNORECASE
+                )
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -430,25 +440,33 @@ def check_frozen_semantic_contract(
                         "weekly 对账单账户 frequency='POPLATEK TYDNE'",
                     )
                 )
-            if re.search(r"age_group", sql, re.IGNORECASE) and re.search(
-                r"THEN\s+'Middle'|'Old'\s+END|AS\s+age_group[\s\S]{0,200}'Middle'",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"Middle-aged|'Senior'", sql, re.IGNORECASE):
+            if (
+                re.search(r"age_group", sql, re.IGNORECASE)
+                and re.search(
+                    r"THEN\s+'Middle'|'Old'\s+END|AS\s+age_group[\s\S]{0,200}'Middle'",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"Middle-aged|'Senior'", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "age_group 标签用 Middle-aged 与 Senior（不是 Middle/Old）",
                     )
                 )
-            if re.search(r"avg_net_balance|net_balance", sql, re.IGNORECASE) and re.search(
-                r"SUM\s*\(\s*t\.balance\s*\)|AVG\s*\(\s*ta\.net_balance\s*\)",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"total_income\s*-\s*total_expense|income\s*-\s*expense",
-                sql,
-                re.IGNORECASE,
+            if (
+                re.search(r"avg_net_balance|net_balance", sql, re.IGNORECASE)
+                and re.search(
+                    r"SUM\s*\(\s*t\.balance\s*\)|AVG\s*\(\s*ta\.net_balance\s*\)",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"total_income\s*-\s*total_expense|income\s*-\s*expense",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -467,11 +485,15 @@ def check_frozen_semantic_contract(
                         "age_group 用 strftime 年差与生日校正（anchor 2026-10-01）",
                     )
                 )
-            if re.search(r"total_weekly_owners", sql, re.IGNORECASE) and re.search(
-                r"ORDER BY\s+oi\.gender|ORDER BY\s+gender\s*,\s*age_group",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"ORDER BY\s+total_weekly_owners", sql, re.IGNORECASE):
+            if (
+                re.search(r"total_weekly_owners", sql, re.IGNORECASE)
+                and re.search(
+                    r"ORDER BY\s+oi\.gender|ORDER BY\s+gender\s*,\s*age_group",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"ORDER BY\s+total_weekly_owners", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -545,11 +567,15 @@ def check_frozen_semantic_contract(
                         "勿用 trans.date>开户日代替 POPLATEK PO OBRATU+DISPONENT 过滤",
                     )
                 )
-            if re.search(r"transaction_rank", sql, re.IGNORECASE) and re.search(
-                r"ORDER BY\s+transaction_count\s+DESC",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"ORDER BY\s+transaction_rank", sql, re.IGNORECASE):
+            if (
+                re.search(r"transaction_rank", sql, re.IGNORECASE)
+                and re.search(
+                    r"ORDER BY\s+transaction_count\s+DESC",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"ORDER BY\s+transaction_rank", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -625,9 +651,11 @@ def check_frozen_semantic_contract(
                     )
                 )
         if "prachatice_accounts_financial_profile=true" in contract.filters:
-            if re.search(r"Prachatice|prachatice", sql) and re.search(
-                r"JOIN\s+disp", sql, re.IGNORECASE
-            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+            if (
+                re.search(r"Prachatice|prachatice", sql)
+                and re.search(r"JOIN\s+disp", sql, re.IGNORECASE)
+                and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -667,11 +695,15 @@ def check_frozen_semantic_contract(
                         "balance_rank 用 ROW_NUMBER() OVER (ORDER BY net_balance DESC)",
                     )
                 )
-            if re.search(r"ORDER BY\s+net_balance\s+DESC", sql, re.IGNORECASE) and re.search(
-                r"balance_rank",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"ORDER BY\s+balance_rank", sql, re.IGNORECASE):
+            if (
+                re.search(r"ORDER BY\s+net_balance\s+DESC", sql, re.IGNORECASE)
+                and re.search(
+                    r"balance_rank",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"ORDER BY\s+balance_rank", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -722,9 +754,11 @@ def check_frozen_semantic_contract(
                         "district_problematic_loans 计 status IN ('B','D')",
                     )
                 )
-            if re.search(r"loan_id\s*=\s*4990", sql) and re.search(
-                r"JOIN disp", sql, re.IGNORECASE
-            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+            if (
+                re.search(r"loan_id\s*=\s*4990", sql)
+                and re.search(r"JOIN disp", sql, re.IGNORECASE)
+                and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -755,19 +789,27 @@ def check_frozen_semantic_contract(
                         "WHERE population_rank=1",
                     )
                 )
-            if re.search(r"ORDER BY[\s\S]*A4\s+DESC|ORDER BY[\s\S]*inhabitants\s+DESC", sql, re.IGNORECASE):
-                if not re.search(r"CAST\s*\(\s*A4\s+AS\s+INTEGER\s*\)|CAST\s*\(\s*d\.A4", sql, re.IGNORECASE):
+            if re.search(
+                r"ORDER BY[\s\S]*A4\s+DESC|ORDER BY[\s\S]*inhabitants\s+DESC", sql, re.IGNORECASE
+            ):
+                if not re.search(
+                    r"CAST\s*\(\s*A4\s+AS\s+INTEGER\s*\)|CAST\s*\(\s*d\.A4", sql, re.IGNORECASE
+                ):
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
                             "inhabitants/A4 排序须 CAST(A4 AS INTEGER)（A4 为文本）",
                         )
                     )
-            if re.search(r"total_clients", sql, re.IGNORECASE) and re.search(
-                r"COUNT\s*\(\s*c\.client_id\s*\)",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"COUNT\s*\(\s*DISTINCT\s+c\.client_id\s*\)", sql, re.IGNORECASE):
+            if (
+                re.search(r"total_clients", sql, re.IGNORECASE)
+                and re.search(
+                    r"COUNT\s*\(\s*c\.client_id\s*\)",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"COUNT\s*\(\s*DISTINCT\s+c\.client_id\s*\)", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -804,32 +846,44 @@ def check_frozen_semantic_contract(
                         "total_income/total_expense 用 trans.type PRIJEM/VYDAJ（不是 amount 正负）",
                     )
                 )
-            if re.search(r"expense_to_income", sql, re.IGNORECASE) and re.search(
-                r"total_expense\s*/\s*NULLIF\s*\(\s*total_income",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"\*\s*100", sql, re.IGNORECASE):
+            if (
+                re.search(r"expense_to_income", sql, re.IGNORECASE)
+                and re.search(
+                    r"total_expense\s*/\s*NULLIF\s*\(\s*total_income",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"\*\s*100", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "expense_to_income_ratio=ROUND(expense/income*100,2)",
                     )
                 )
-            if re.search(r"previous_loans", sql, re.IGNORECASE) and re.search(
-                r"prev_loans|previous_loans[\s\S]{0,80}tl\.account_id\s*=",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"client_id\s*=\s*CT\.client_id|d\.client_id", sql, re.IGNORECASE):
+            if (
+                re.search(r"previous_loans", sql, re.IGNORECASE)
+                and re.search(
+                    r"prev_loans|previous_loans[\s\S]{0,80}tl\.account_id\s*=",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"client_id\s*=\s*CT\.client_id|d\.client_id", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "previous_loans 统计该 client 所有账户在贷款日前的 loan 笔数",
                     )
                 )
-            if re.search(r"JOIN disp", sql, re.IGNORECASE) and re.search(
-                r"98832|1996-01-03",
-                sql,
-            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+            if (
+                re.search(r"JOIN disp", sql, re.IGNORECASE)
+                and re.search(
+                    r"98832|1996-01-03",
+                    sql,
+                )
+                and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -900,14 +954,18 @@ def check_frozen_semantic_contract(
                         "average_client_age 用 1996 年与 birth_date 年差（ClientInfo 按 account）",
                     )
                 )
-            if re.search(r"percent_opened_q1", sql, re.IGNORECASE) and re.search(
-                r"q1\s*\*\s*100[\s\S]{0,40}/\s*q_stats\.total",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"AVG\s*\(\s*CASE\s+WHEN\s+month_opened",
-                sql,
-                re.IGNORECASE,
+            if (
+                re.search(r"percent_opened_q1", sql, re.IGNORECASE)
+                and re.search(
+                    r"q1\s*\*\s*100[\s\S]{0,40}/\s*q_stats\.total",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"AVG\s*\(\s*CASE\s+WHEN\s+month_opened",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -942,14 +1000,18 @@ def check_frozen_semantic_contract(
                         "loan_status 用 CASE loan_id IS NOT NULL→Has Loan/No Loan（不是 status 字母）",
                     )
                 )
-            if re.search(r"JOIN district", sql, re.IGNORECASE) and re.search(
-                r"a\.district_id\s*=\s*dist\.district_id",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"c\.district_id\s*=\s*di\.district_id|client\.district_id",
-                sql,
-                re.IGNORECASE,
+            if (
+                re.search(r"JOIN district", sql, re.IGNORECASE)
+                and re.search(
+                    r"a\.district_id\s*=\s*dist\.district_id",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"c\.district_id\s*=\s*di\.district_id|client\.district_id",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -993,11 +1055,15 @@ def check_frozen_semantic_contract(
                         "avg_client_age 用贷款日 '1994-08-25' 与 birth_date 的 JULIANDAY 差/365.25",
                     )
                 )
-            if re.search(r"total_income_before_loan", sql, re.IGNORECASE) and re.search(
-                r"SUM\s*\(\s*t\.amount\s*\)",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"type\s*=\s*'PRIJEM'", sql, re.IGNORECASE):
+            if (
+                re.search(r"total_income_before_loan", sql, re.IGNORECASE)
+                and re.search(
+                    r"SUM\s*\(\s*t\.amount\s*\)",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"type\s*=\s*'PRIJEM'", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -1042,11 +1108,15 @@ def check_frozen_semantic_contract(
                         "本聚合题 active_loans 计 loan status='A'（completed=B，defaulted=C）",
                     )
                 )
-            if re.search(r"female_accounts", sql, re.IGNORECASE) and re.search(
-                r"type\s*=\s*'OWNER'",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"AccountActivity", sql, re.IGNORECASE):
+            if (
+                re.search(r"female_accounts", sql, re.IGNORECASE)
+                and re.search(
+                    r"type\s*=\s*'OWNER'",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"AccountActivity", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -1095,7 +1165,9 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(r"borrower_category", sql, re.IGNORECASE):
-                if re.search(r"Young Active Borrower|Middle-aged|Senior Active", sql, re.IGNORECASE):
+                if re.search(
+                    r"Young Active Borrower|Middle-aged|Senior Active", sql, re.IGNORECASE
+                ):
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
@@ -1198,11 +1270,15 @@ def check_frozen_semantic_contract(
                         "Elementary School District charter 题用 schools.DOC='52'（勿仅用 District Type）",
                     )
                 )
-            if re.search(r"SizeRank", sql, re.IGNORECASE) and re.search(
-                r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"PARTITION\s+BY[\s\S]*City", sql, re.IGNORECASE):
+            if (
+                re.search(r"SizeRank", sql, re.IGNORECASE)
+                and re.search(
+                    r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"PARTITION\s+BY[\s\S]*City", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",

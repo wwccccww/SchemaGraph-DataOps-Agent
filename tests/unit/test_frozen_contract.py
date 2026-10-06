@@ -1030,8 +1030,7 @@ def test_enrollment_rank_10_11_profile_gold_passes_and_flags_rank() -> None:
         "FROM frpm f) SELECT * FROM x WHERE EnrollmentRank IN (10,11)"
     )
     messages = [
-        item.message
-        for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
     ]
     assert any("ROW_NUMBER()" in m for m in messages)
 
