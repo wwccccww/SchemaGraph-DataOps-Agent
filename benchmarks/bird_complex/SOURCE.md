@@ -35,6 +35,15 @@
 重新获取：
 
 ```bash
+./scripts/fetch_bird_dev_databases.sh
+eval "$(./scripts/fetch_bird_dev_databases.sh | grep '^export ')"
+uv run python -m app.evaluation.external_data verify-bird --database-root "$BIRD_DATABASE_ROOT"
+uv run python -m app.evaluation.external_data select-bird --database-root "$BIRD_DATABASE_ROOT"
+```
+
+等价分步：
+
+```bash
 uv run python -m app.evaluation.external_data fetch-bird-questions --dest benchmarks/bird_complex/dev_20251106.json
 uv run python -m app.evaluation.external_data fetch-bird-databases --dest /tmp/minidev_0703.zip
 unzip -q /tmp/minidev_0703.zip -d /tmp/bird_dev
