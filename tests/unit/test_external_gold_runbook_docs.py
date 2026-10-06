@@ -39,3 +39,12 @@ def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
     workflow = (root / ".github/workflows/external-gold.yml").read_text(encoding="utf-8")
     assert "test_external_gold_runbook_docs.py" in workflow
     assert "docs/external_gold_p0_runbook.md" in workflow
+
+
+def test_external_gold_replay_gate_job_fetches_bird_and_runs_p1_replay() -> None:
+    root = Path(__file__).resolve().parents[2]
+    workflow = (root / ".github/workflows/external-gold.yml").read_text(encoding="utf-8")
+    assert "replay-gate:" in workflow
+    assert "fetch_bird_dev_databases.sh" in workflow
+    assert "test_p1_replay_gate.py" in workflow
+    assert "test_replay_snapshot_paths.py" in workflow

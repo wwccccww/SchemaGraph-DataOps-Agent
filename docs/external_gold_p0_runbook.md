@@ -123,7 +123,7 @@ bird	reports/bird/run_…
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无库）。`replay-gate` 需变量 **`BIRD_DATABASE_ROOT`**；smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（**7/50** 等）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
 

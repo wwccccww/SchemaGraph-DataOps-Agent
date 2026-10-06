@@ -128,7 +128,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
-**GitHub 仓库变量（P1 扩展 CI）**：峰值 replay 快照已 vendored 至 **`benchmarks/replay_snapshots/`**（单测 `test_replay_snapshot_paths.py`；脚本默认经 `replay_snapshot_paths.py` 解析）。在 Settings → Secrets and variables → Actions → Variables 中设置 **`BIRD_DATABASE_ROOT`**（runner 上 BIRD `dev_databases` 绝对路径）可启用 **`replay-gate`** job（`test_p1_replay_gate` 对 BIRD 跑 **7/50** 等复分）。设置 **`EXTERNAL_GOLD_TESTS=1`** 启用集成冒烟 job。完整 **`verify-bird` + TPC-DS 库** 在 GitHub 托管 runner 上通常不可用，**权威 Oracle 路径**为自托管环境或本地 `./scripts/p1_release_gate.sh` / `./scripts/verify_external_gold.sh`。
+**GitHub 仓库变量（P1 扩展 CI）**：峰值 replay 快照已 vendored 至 **`benchmarks/replay_snapshots/`**（单测 `test_replay_snapshot_paths.py`；脚本默认经 `replay_snapshot_paths.py` 解析）。**`replay-gate`** job 在 push/nightly 上默认 fetch MINIDEV 并跑 **`test_p1_replay_gate`**（BIRD **7/50** 等）；可选设置 **`BIRD_DATABASE_ROOT`** 为 runner 上已有 `dev_databases` 路径以跳过 fetch。设置 **`EXTERNAL_GOLD_TESTS=1`** 启用集成冒烟 job。完整 **`verify-bird` + TPC-DS 库** 在 GitHub 托管 runner 上通常不可用，**权威 Oracle 路径**为自托管环境或本地 `./scripts/p1_release_gate.sh` / `./scripts/verify_external_gold.sh`。
 
 TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `expected_columns` 生成，不反解析 Gold SQL）。发布前运行 `check-external-release`；通过表示两份 attestation 均为 `gold_matched` 且快照哈希已写入。
 
