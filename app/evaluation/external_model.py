@@ -60,7 +60,11 @@ from app.evaluation.sql_shape import describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
 from app.evaluation.external_badcase import classify_external_case
 from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
-from app.evaluation.replay_amend import apply_replay_amends
+from app.evaluation.replay_amend import (
+    GOLD_OVERLAY_PROFILES,
+    PATCH_AMEND_PROFILES,
+    apply_replay_amends,
+)
 from app.evaluation.tpcds import TPCDS_SOURCE_VERSION, load_tpcds_cases
 from app.graph.expand import TokenCounter
 from app.llm.gateway import DeepSeekGateway
@@ -676,9 +680,7 @@ async def _run(
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
     if replay_run is not None:
-        allowed = frozenset(
-            {"coe_charter", "running_ok", "magnet_sat", "top_reading", "top_frpm_soc66"}
-        )
+        allowed = PATCH_AMEND_PROFILES | frozenset(GOLD_OVERLAY_PROFILES.values())
         unknown = set(replay_amend) - allowed
         if unknown:
             raise ValueError(f"unknown --replay-amend profiles: {sorted(unknown)}")

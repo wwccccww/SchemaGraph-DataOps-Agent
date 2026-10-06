@@ -9,6 +9,13 @@ from __future__ import annotations
 
 import re
 
+PATCH_AMEND_PROFILES = frozenset({"coe_charter", "running_ok"})
+GOLD_OVERLAY_PROFILES: dict[str, str] = {
+    "bird_0006": "magnet_sat",
+    "bird_0010": "top_reading",
+    "bird_0032": "top_frpm_soc66",
+}
+
 
 def apply_replay_amends(
     case_id: str,
