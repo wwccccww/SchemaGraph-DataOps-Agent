@@ -195,6 +195,30 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
 
 
+def test_top_reading_frozen_contract_flags_peak_bird_0010() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
+    peak = Path(
+        "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49/cases/bird_0010.json"
+    )
+    if not peak.is_file():
+        pytest.skip("peak bird_0010 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("ReadingRank=1" in message for message in messages)
+    assert not check_frozen_semantic_contract(
+        case.semantic_contract, case.gold_sql, dialect="sqlite"
+    )
+
+
 def test_order_sensitive_checks_alias_order() -> None:
     contract = SemanticContract(
         projections=["School Name", "Enrollment"],

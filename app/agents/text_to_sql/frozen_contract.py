@@ -2235,6 +2235,181 @@ def check_frozen_semantic_contract(
                         "CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)",
                     )
                 )
+        if "top_reading_sat_profile=true" in contract.filters:
+            if re.search(r"\bGSserved\s+AS\s+GradeSpan", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "GradeSpan 用 schools.GSoffered，不要用 GSserved",
+                    )
+                )
+            if re.search(r"Enrollment \(K-12\)", sql) and "Ages 5-17" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPM/Enrollment 用 frpm Ages 5-17 列（`FRPM Count (Ages 5-17)` 等）",
+                    )
+                )
+            if re.search(
+                r"ORDER BY[\s\S]{0,120}ReadingScore[\s\S]{0,40}LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"ReadingRank\s*=\s*1", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最高 Reading：RANK() 后 WHERE ReadingRank=1，不要仅用 ORDER BY LIMIT 1",
+                    )
+                )
+            if re.search(
+                r"NumGE1500[\s\S]{0,60}\*\s*100[\s\S]{0,40}/[\s\S]{0,40}Enrollment",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentScoring1500Plus=NumGE1500×100/NumTstTakr，不要用 Enrollment 作分母",
+                    )
+                )
+            if re.search(r"FRPMPercentage\s*>=\s*75|FRPMPercentage\s*>=\s*50", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 分档用 frpm 小数 >0.75/>0.50/>0.25，不要 FRPMPercentage>=75",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM", sql) and "PovertyLevel" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 用 High/Moderate/Low/Very Low Poverty (…%) 标签，不要用 High FRPM",
+                    )
+                )
+            if re.search(r'School Type"\s+AS\s+SchoolType', sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter School / Non-Charter School（schools.Charter），"
+                        "不要用 frpm.`School Type`",
+                    )
+                )
+        if "top_frpm_soc66_profile=true" in contract.filters:
+            if re.search(
+                r"ORDER BY[\s\S]{0,80}FRPM[\s\S]{0,40}LIMIT\s+5",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"FRPMRank\s*<=\s*5", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Top-5 FRPM：RANK() OVER FRPM Count，WHERE FRPMRank<=5；勿在 CTE 内 ORDER BY LIMIT 5",
+                    )
+                )
+            if re.search(r"ROW_NUMBER\s*\(\s*\)\s*OVER[\s\S]{0,80}FRPMRank", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMRank 用 RANK()，不要用 ROW_NUMBER()",
+                    )
+                )
+            if re.search(r"EligibilityRate", sql) and not re.search(
+                r"\|\|\s*'%'",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EligibilityRate 输出 ROUND(rate*100,2)||'%'",
+                    )
+                )
+            if re.search(r"THEN\s+'High FRPM'", sql) and not re.search(
+                r"Very High FRPM",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EligibilityCategory 用 Very High/High/Moderate/Low FRPM 四档（>=0.75 为 Very High）",
+                    )
+                )
+            if re.search(r"\bsatscores\b", sql, re.IGNORECASE) and not re.search(
+                r"rtype\s*=\s*['\"]S['\"]",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SAT 子集 satscores 需 rtype='S'（学校级记录）",
+                    )
+                )
+        if "virtual_charter_p_profile=true" in contract.filters:
+            if re.search(r"High FRPM|Medium FRPM|Low FRPM", sql) and "PovertyLevel" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 用 High/Medium-High/Medium-Low/Low Poverty（frpm 小数），"
+                        "不要用 High/Medium/Low FRPM",
+                    )
+                )
+            if "FRPMPercentage" in "".join(contract.projections) and not re.search(
+                r"\|\|\s*'%'",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMPercentage 输出 ROUND(小数×100,2)||'%'",
+                    )
+                )
+            if "PercentOver1500" in "".join(contract.projections) and not re.search(
+                r"\|\|\s*'%'",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentOver1500 带 '%' 后缀（无 SAT 时 '0%'）",
+                    )
+                )
+        if "virtual_county_compare_profile=true" in contract.filters:
+            if (
+                re.search(
+                    r"CASE WHEN\s+Charter\s*=\s*1|SUM\(CASE WHEN\s+[\w.]+\.Charter",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "Charter School (Y/N)" not in sql
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Charter/Regular 计数用 frpm.`Charter School (Y/N)`→Charter School/Regular School",
+                    )
+                )
+            if re.search(r"San Diego", sql) and re.search(r"Santa Barbara", sql):
+                if not re.search(r"CountyRank\s*=\s*1", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "只输出 virtual 校数量最多的县：CountyStats 上 RANK 后 WHERE CountyRank=1",
+                        )
+                    )
+            if "AvgFreeReducedMealPercentage" in "".join(contract.projections) and not re.search(
+                r"\|\|\s*'%'",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "AvgFreeReducedMealPercentage 输出 ROUND(…,2)||'%'（frpm Percent FRPM×100 口径）",
+                    )
+                )
         slim_loan_path = allowed <= {"account", "loan", "trans"}
         if slim_loan_path and re.search(
             r"\b(?:loan|t\d+)\.status\b|\bstatus\s*=\s*['\"]C['\"]",
