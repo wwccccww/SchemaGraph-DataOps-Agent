@@ -226,8 +226,9 @@ def test_cli_acceptance_gate_exit_code(tmp_path: Path) -> None:
 
 
 def test_cli_on_peak_bird_fixture() -> None:
-    root = Path(__file__).resolve().parents[2]
-    peak = root / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
+
+    peak = BIRD_PEAK_RUN
     if not peak.is_dir():
         pytest.skip("bird peak run fixture unavailable")
     loaded = load_run_measured(peak)
@@ -249,11 +250,46 @@ def test_peak_tpcds_pair_satisfies_acceptance_tpcds_rules() -> None:
 
 def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
     """Peak v15 双跑同目录时 BIRD 侧应 stable 且满足默认 7/50 下限（TPC-DS 仍须另补 2 run）。"""
-    root = Path(__file__).resolve().parents[2]
-    peak = root / "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
+
+    peak = BIRD_PEAK_RUN
     if not peak.is_dir():
         pytest.skip("bird peak run fixture unavailable")
     pair = [load_run_measured(peak), load_run_measured(peak)]
     failures = validate_p0_acceptance_gate([], pair, bird_min_matched=7)
     bird_failures = [item for item in failures if "bird" in item.lower()]
     assert bird_failures == []
+
+
+def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
+    """文档峰值 run 各 2× 重放目录时，acceptance gate 应 pass（仍非新 LLM 实测）。"""
+    from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, TPCDS_PEAK_RUN
+
+    if not TPCDS_PEAK_RUN.is_dir() or not BIRD_PEAK_RUN.is_dir():
+        pytest.skip("peak tpcds/bird run fixtures unavailable")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.p0_measured_summary",
+            "--tpcds-run",
+            str(TPCDS_PEAK_RUN),
+            "--tpcds-run",
+            str(TPCDS_PEAK_RUN),
+            "--bird-run",
+            str(BIRD_PEAK_RUN),
+            "--bird-run",
+            str(BIRD_PEAK_RUN),
+            "--acceptance-gate",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "p0_acceptance_gate=pass" in completed.stdout
+    assert validate_p0_acceptance_gate(
+        [load_run_measured(TPCDS_PEAK_RUN), load_run_measured(TPCDS_PEAK_RUN)],
+        [load_run_measured(BIRD_PEAK_RUN), load_run_measured(BIRD_PEAK_RUN)],
+        bird_min_matched=7,
+    ) == []
