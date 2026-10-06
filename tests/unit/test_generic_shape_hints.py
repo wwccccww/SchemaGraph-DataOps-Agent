@@ -7,8 +7,8 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v29_includes_sat_rtype_and_county_ratios() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v29"
+def test_generic_prompt_v30_includes_sat_rtype_and_fresno_charter() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v30"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system

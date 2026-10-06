@@ -369,6 +369,52 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "fresno_direct_funded_charter_profile=true" in contract.filters:
+            if re.search(r"\bFundingType\b", sql, re.IGNORECASE) and not re.search(
+                r"Charter Funding Type",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Directly funded 过滤用 frpm.`Charter Funding Type`='Directly funded'，"
+                        "不要用 schools.FundingType",
+                    )
+                )
+            if re.search(r"COUNT\s*\(\s*\*\s*\)\s+AS\s+TotalSchools", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "TotalSchools 用 COUNT(DISTINCT CDSCode)，不要用 COUNT(*)",
+                    )
+                )
+            if re.search(
+                r"NumTstTakr\s*<\s*50[\s\S]*Under50|Under50[\s\S]*NumTstTakr\s*<\s*50",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolsWithUnder50Testers 分桶用 NumTstTakr <= 50（不是 < 50）",
+                    )
+                )
+            if "AvgFRPMPercentage" in contract.projections and re.search(
+                r"AvgFRPMPercentage",
+                sql,
+                re.IGNORECASE,
+            ):
+                if re.search(r"AVG\s*\(\s*frpm_pct\s*\)", sql, re.IGNORECASE) and not re.search(
+                    r"\*\s*100",
+                    sql,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "AvgFRPMPercentage 用 ROUND(AVG(`Percent (%) Eligible FRPM (K-12)`)*100, 2)",
+                        )
+                    )
         if "colusa_humboldt_ratio_profile=true" in contract.filters:
             if re.search(
                 r"High Free Meal|free meal eligibility|free_meal.*0\.75",
@@ -1108,6 +1154,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "fresno_direct_funded_charter_profile=true":
+            hints.append(
+                "Fresno Directly funded：frpm Charter Funding Type + County Name='Fresno'；"
+                "NumTstTakr<=250；GROUP BY County Name；TotalSchools DISTINCT CDSCode；"
+                "三档 tester 计数 <=50 / 50-100 / 100-250；ROUND 平均 SAT/FRPM/年龄。"
             )
         if item == "colusa_humboldt_ratio_profile=true":
             hints.append(

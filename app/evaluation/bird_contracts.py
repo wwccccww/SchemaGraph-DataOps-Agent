@@ -49,6 +49,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("enrollment500_frpm_sat_profile=true")
     if case.id == "bird_0055":
         filters.append("colusa_humboldt_ratio_profile=true")
+    if case.id == "bird_0018":
+        filters.append("fresno_direct_funded_charter_profile=true")
     if case.id == "bird_0005":
         filters.append("virtual_sat_f_profile=true")
     if case.id == "bird_0060":

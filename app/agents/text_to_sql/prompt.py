@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v29"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v30"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -59,6 +59,9 @@ _GENERIC_SHAPE_TAIL = (
     "UnabbreviatedMailingAddress 投影 schools.MailStreet；非 charter 用 frpm Charter School (Y/N)=0。"
     "两县指标比值：Metric 列文案以 Ratio 结尾（如 Total Schools Ratio）；High FRPM 校用 Percent FRPM>0.5；"
     "FRPM 学生总量用 SUM(FRPM Count (K-12))，勿用 Free Meal Count。"
+    "Fresno Directly funded charter SAT 聚合：Charter Funding Type='Directly funded'（frpm）；"
+    "TotalSchools=COUNT(DISTINCT CDSCode)；测试人数分桶 <=50、(50,100]、(100,250]；"
+    "AvgFRPMPercentage=ROUND(AVG(Percent FRPM)*100,2)；SchoolAge 用 anchor 年份减 OpenDate 年。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (
