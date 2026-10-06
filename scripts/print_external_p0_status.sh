@@ -7,6 +7,11 @@ echo "== check-external-release =="
 python3 -m app.evaluation.external_data check-external-release
 echo "release_ready=$(python3 -c 'from app.evaluation.external_release import release_ready; print(release_ready())')"
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
+if python3 -m app.evaluation.llm_preflight >/dev/null 2>&1; then
+  echo "llm_preflight=ready"
+else
+  echo "llm_preflight=blocked"
+fi
 PEAK="${BIRD_PEAK_RUN:-$ROOT/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
 if [[ -n "${BIRD_DATABASE_ROOT:-}" && -d "$PEAK/cases" ]]; then
   echo "== BIRD replay (raw) =="
