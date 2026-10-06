@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # P0 产品条：DeepSeek 计费恢复后，按顺序完成 Oracle 门禁 + 2× 全量 LLM（80 例可信度）。
-# 402 时第一步 llm_preflight 即 exit 2；402 期间请用 ./scripts/print_external_p0_status.sh。
+# 402 时第一步 llm_preflight 即 exit 2；402 期间可用 --gates-only 仅跑 P1 门禁，或 ./scripts/print_external_p0_status.sh。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+GATES_ONLY=0
+if [[ "${1:-}" == "--gates-only" ]]; then
+  GATES_ONLY=1
+fi
 if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required (path to dev_databases)" >&2
   exit 1
@@ -13,6 +17,12 @@ if [[ -z "${POSTGRES_USER:-}" || -z "${POSTGRES_PASSWORD:-}" ]]; then
   exit 1
 fi
 echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
+if [[ "$GATES_ONLY" -eq 1 ]]; then
+  echo "mode=gates_only (skipping llm_preflight and 2× full eval while billing blocked)"
+  "$ROOT/scripts/p1_release_gate.sh"
+  echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
+  exit 0
+fi
 python3 -m app.evaluation.llm_preflight
 "$ROOT/scripts/p1_release_gate.sh"
 "$ROOT/scripts/run_external_p0_full_eval_twice.sh"

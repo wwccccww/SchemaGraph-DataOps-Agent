@@ -12,6 +12,7 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     script = root / "scripts/p0_post_billing_acceptance.sh"
     assert script.is_file()
     assert os.access(script, os.X_OK)
+    assert "--gates-only" in script.read_text(encoding="utf-8")
 
 
 def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
