@@ -369,6 +369,40 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "amador_high_school_stats_profile=true" in contract.filters:
+            if re.search(r"GSserved\s+LIKE", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Amador 高中：`Low Grade`='9' AND `High Grade`='12'，不要用 GSserved LIKE",
+                    )
+                )
+            if re.search(r"SUM\s*\(\s*CASE\s+WHEN\s+Charter\s*=", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CharterSchools/NonCharter 用 frpm `Charter School (Y/N)`",
+                    )
+                )
+            if re.search(r"free_meal\s*\*\s*1\.0\s*/\s*enrollment", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "AvgFRPMPercentage 用 AVG(Percent FRPM)*100；"
+                        "HighPoverty 用 FRPM>0.75 的 PovertyLevel，不要用 free meal 率",
+                    )
+                )
+            if re.search(
+                r"ORDER BY[\s\S]*enrollment\s+DESC[\s\S]*LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and "LargestSchool" in "".join(contract.projections):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "LargestSchool 用 RANK() EnrollmentRank=1",
+                    )
+                )
         if "top_math_sat_active_profile=true" in contract.filters:
             if re.search(
                 r"ORDER BY[\s\S]*AvgScrMath\s+DESC[\s\S]*LIMIT\s+1",
@@ -1301,6 +1335,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
                 "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+            )
+        if item == "amador_high_school_stats_profile=true":
+            hints.append(
+                "Amador 9-12：SchoolInfo+SATData CTE；聚合 COUNT/AVG/SUM；"
+                "DistrictCount 子查询；LargestSchool EnrollmentRank=1；"
+                "MaxPercentAbove1500 来自 SAT NumGE1500/NumTstTakr×100。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

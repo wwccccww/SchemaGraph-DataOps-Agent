@@ -59,6 +59,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("top3_sat_excellence_profile=true")
     if case.id == "bird_0019":
         filters.append("top_math_sat_active_profile=true")
+    if case.id == "bird_0020":
+        filters.append("amador_high_school_stats_profile=true")
     if case.id == "bird_0005":
         filters.append("virtual_sat_f_profile=true")
     if case.id == "bird_0060":

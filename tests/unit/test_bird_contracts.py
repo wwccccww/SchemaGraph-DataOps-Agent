@@ -59,6 +59,13 @@ def test_bird_0006_contract_includes_magnet_sat_profile() -> None:
     assert "magnet_sat_profile=true" in contract.filters
 
 
+def test_bird_0020_contract_includes_amador_high_school_stats_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0020")
+    assert "amador_high_school_stats_profile=true" in contract_for(case).filters
+
+
 def test_bird_0019_contract_includes_top_math_sat_active_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 
