@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上十三 profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`；**非 LLM 实测**）；距 80 例综合可信度未完成。当前代码 **`text-to-sql-generic-v26`** + **17 条 BIRD 按题 profile** + SQLite 分号修复（峰值 run 仅 **0094** 仍不可执行）为 API 恢复后的全量复跑准备，**不等于**已提升实测 EX。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + raw replay **7→7**）；**PATCH autofix 复分**（validate 同款，`--replay-patch-autofix`）峰值 **7→9**（`0002`、`0094`，**非新 LLM run**）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上十三 profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`）；**80 例综合可信度未完成**（需 **2×** 全量 BIRD LLM + 稳定带）。当前 **`text-to-sql-generic-v26`** + **17 条 BIRD 按题 profile** + SQLite 分号修复 + **0094 PATCH** 为 API 恢复后全量复跑准备；峰值保存 SQL 仅 **0094** 仍 raw 不可执行（`test_bird_peak_executable`），workflow PATCH 可在新 run 内修复。
 
 **外部 P0/P1 验收清单（证据导向）**
 
@@ -97,11 +97,12 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT` |
 | 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
 | 模型 BIRD 实测 | 峰值 `31113b6` replay | **7/50**（`test_p0_*`）；**80 例综合未完成** |
-| Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`（7→9） |
-| 发布前聚合 | `./scripts/p1_release_gate.sh` | Oracle + P0/P1 单测子集 |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | **9/50**（`test_p0_*` / `test_p1_*`；非发布 EX） |
+| Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
+| 发布前聚合 | `./scripts/p1_release_gate.sh` | Oracle verify + P0/P1 单测（需 `BIRD_DATABASE_ROOT` 跑满 BIRD verify） |
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | PR 上 **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT` |
 
-**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
+**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；**PATCH 复分**：`./scripts/replay_bird_patch_autofix.sh`；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
