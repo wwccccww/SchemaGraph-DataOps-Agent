@@ -10,7 +10,9 @@ from pathlib import Path
 def test_run_bird_p0_full_eval_twice_requires_database_root() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/run_bird_p0_full_eval_twice.sh"
     assert script.is_file()
-    assert "generic_prompt=" in script.read_text(encoding="utf-8")
+    text = script.read_text(encoding="utf-8")
+    assert "generic_prompt=" in text
+    assert 'source "$ROOT/.env"' in text
     completed = subprocess.run(
         [str(script)],
         check=False,

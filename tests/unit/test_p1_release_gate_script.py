@@ -7,6 +7,12 @@ import subprocess
 from pathlib import Path
 
 
+def test_verify_external_gold_script_sources_env() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = (root / "scripts/verify_external_gold.sh").read_text()
+    assert 'source "$ROOT/.env"' in script
+
+
 def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text()

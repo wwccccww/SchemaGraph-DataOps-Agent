@@ -132,7 +132,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - Generic Prompt 当前 **`text-to-sql-generic-v59`**（v57–v58：magnet/top Reading/top FRMP/virtual 等 frozen 校验；v59：弱反馈题加强 + 峰值 ex=0 **≥3** findings 回归）。**2×** 全量脚本在 `llm_preflight` 后打印 `generic_prompt=` 便于写入本节。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 保存 SQL 在 v15 run 记为 sql_error，**`--replay-run` 用当前 gate 重算**为可执行 + `other_result_mismatch`，见 `test_peak_circuit_breaker_cases_saved_sql_executable_except_0094`）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
 - **P1 本地 verify（Gold Oracle，无模型）**：
   ```bash
-  ./scripts/verify_external_gold.sh   # 需 export BIRD_DATABASE_ROOT=…/dev_databases
+  ./scripts/verify_external_gold.sh   # 自动 source `.env`；或 export BIRD_DATABASE_ROOT=…/dev_databases
   # 或分步：
   python3 -m app.evaluation.external_data verify-tpcds
   python3 -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases

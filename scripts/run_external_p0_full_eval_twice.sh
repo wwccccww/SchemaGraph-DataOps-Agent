@@ -3,6 +3,12 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
 if [[ -z "${BIRD_DATABASE_ROOT:-}" ]]; then
   echo "BIRD_DATABASE_ROOT is required for the combined P0 80-case run" >&2
   exit 1

@@ -16,3 +16,4 @@ def test_run_tpcds_p0_full_eval_twice_script_contract() -> None:
     assert "POSTGRES_PASSWORD" in text
     assert "generic_prompt=" in text
     assert "llm_preflight" in text
+    assert 'source "$ROOT/.env"' in text

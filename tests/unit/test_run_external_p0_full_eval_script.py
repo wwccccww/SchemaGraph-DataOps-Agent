@@ -10,6 +10,7 @@ from pathlib import Path
 def test_run_external_p0_full_eval_twice_requires_bird_root() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/run_external_p0_full_eval_twice.sh"
     assert script.is_file()
+    assert 'source "$ROOT/.env"' in script.read_text(encoding="utf-8")
     env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
     completed = subprocess.run(
         [str(script)],

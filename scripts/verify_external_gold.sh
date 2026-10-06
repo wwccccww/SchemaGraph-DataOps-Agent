@@ -3,6 +3,12 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+if [[ -f "$ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
 python3 -m app.evaluation.external_data check-external-release
 python3 -m app.evaluation.external_data verify-tpcds
 if [[ -n "${BIRD_DATABASE_ROOT:-}" ]]; then
