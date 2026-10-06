@@ -14,6 +14,7 @@
 | --- | --- |
 | **`ops_runbook=docs/external_gold_p0_runbook.md`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`（`--gates-only` 成功或全量结束） |
 | **`next_after_billing=./scripts/p0_post_billing_acceptance.sh`** | 同上 |
+| **`unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh`** | 同上（计费恢复后可选轮询 preflight） |
 | **`while_billing_blocked=… --gates-only`** | `print_external_p0_status.sh`（402 时） |
 | **`llm_preflight=ready`** | `python3 -m app.evaluation.llm_preflight` 成功 stdout |
 

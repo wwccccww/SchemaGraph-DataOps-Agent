@@ -23,6 +23,7 @@ def test_replay_baseline_scripts_source_env() -> None:
     root = Path(__file__).resolve().parents[2]
     for name in (
         "replay_bird_baseline.sh",
+        "replay_bird_patch_autofix.sh",
         "replay_tpcds_baseline.sh",
         "replay_bird_offline_ceiling.sh",
     ):

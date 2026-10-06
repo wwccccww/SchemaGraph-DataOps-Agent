@@ -54,6 +54,7 @@ if [[ -d "$PEAK/cases" ]]; then
 fi
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
+echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
 echo "post_billing_docs=python3 -m app.evaluation.p0_measured_summary --acceptance-gate (via run_external_p0_full_eval_twice.sh)"
 if grep -q "402" "$PREFLIGHT_LOG" 2>/dev/null; then
   echo "while_billing_blocked=./scripts/p0_post_billing_acceptance.sh --gates-only"

@@ -18,6 +18,7 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "wait_for_billing_and_run_p0.sh" in body
     assert "--gates-only" in body
     assert "ops_runbook=" in body
+    assert "unattended_after_billing=" in body
     assert "verify_external_gold.sh" in body
     assert "退出码" in body or "Exit:" in body
     assert "p0_measured_tpcds_run1=" in body

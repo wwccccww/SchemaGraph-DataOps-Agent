@@ -24,6 +24,7 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
     assert "release_ready=True" in completed.stdout
     assert "ops_runbook=docs/external_gold_p0_runbook.md" in completed.stdout
     assert "next_after_billing=./scripts/p0_post_billing_acceptance.sh" in completed.stdout
+    assert "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh" in completed.stdout
     assert (
         "post_billing_docs=python3 -m app.evaluation.p0_measured_summary --acceptance-gate"
         in completed.stdout

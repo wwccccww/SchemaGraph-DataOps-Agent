@@ -123,3 +123,4 @@ exec {real_python} "$@"
     assert "P0 gates-only OK" in completed.stdout
     assert "ops_runbook=docs/external_gold_p0_runbook.md" in completed.stdout
     assert "next_after_billing=./scripts/p0_post_billing_acceptance.sh" in completed.stdout
+    assert "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh" in completed.stdout
