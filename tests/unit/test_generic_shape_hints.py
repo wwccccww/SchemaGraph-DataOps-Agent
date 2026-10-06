@@ -7,7 +7,7 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v53_includes_weekly_and_disponent_financial() -> None:
+def test_generic_prompt_v56_includes_weekly_and_disponent_financial() -> None:
     assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v56"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system

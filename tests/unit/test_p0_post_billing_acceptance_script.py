@@ -50,3 +50,4 @@ exec {real_python} "$@"
     )
     assert completed.returncode == 2
     assert "402" in completed.stdout + completed.stderr
+    assert "generic_prompt=text-to-sql-generic-v" in completed.stdout
