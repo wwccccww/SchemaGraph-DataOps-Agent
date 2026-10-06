@@ -369,6 +369,50 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "loan_id_4990_profile=true" in contract.filters:
+            if re.search(
+                r"Running contract|Contract finished|client in debt|loan not paid",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"status_description", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "loan 4990 status：A Running-OK、B Running-Issues、"
+                        "C Finished-No Issues、D Finished-Issues（勿用其它文案）",
+                    )
+                )
+            if re.search(
+                r"status\s*=\s*'C'\s+THEN\s+0\s+ELSE\s+1[\s\S]{0,40}problematic",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "district_problematic_loans 计 status IN ('B','D')",
+                    )
+                )
+            if re.search(r"loan_id\s*=\s*4990", sql) and re.search(
+                r"JOIN disp", sql, re.IGNORECASE
+            ) and not re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "borrower 须 disp.type='OWNER' 关联 client",
+                    )
+                )
+            if re.search(r"district_loan_rank", sql, re.IGNORECASE) and not re.search(
+                r"RANK\s*\(\s*\)\s*OVER\s*\(\s*PARTITION\s+BY[\s\S]*district",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "district_loan_rank 用 RANK() OVER (PARTITION BY district_id ORDER BY amount DESC)",
+                    )
+                )
         if "south_bohemia_top_population_profile=true" in contract.filters:
             if re.search(
                 r"ORDER BY[\s\S]*inhabitants\s+DESC[\s\S]*LIMIT\s+1",
@@ -2116,6 +2160,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "south Bohemia：RegionStats GROUP BY district；CAST(A4) inhabitants；"
                 "RANK population_rank；JOIN district 取 A2 名称；pct_male= male/total×100。"
+            )
+        if item == "loan_id_4990_profile=true":
+            hints.append(
+                "Loan 4990：LoanStats+DistrictStats CTE；status_description 四档 Running/Finished；"
+                "problematic_loans B/D；RANK district_loan_rank；OWNER disp→client。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

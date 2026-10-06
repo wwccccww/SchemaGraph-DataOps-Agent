@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v48"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v49"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -105,6 +105,9 @@ _GENERIC_SHAPE_TAIL = (
     "expense_to_income=expense/income×100；previous_loans 按 client 全部账户。"
     "south Bohemia 最多人口区县：CAST(A4 AS INTEGER)；RANK population_rank=1；"
     "total_clients=COUNT(DISTINCT client_id)。"
+    "loan_id 4990：status A Running-OK、B Running-Issues、C Finished-No Issues、D Finished-Issues；"
+    "problematic=B+D；"
+    "district_loan_rank=RANK()；borrower 经 disp OWNER。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
 )
 _GENERIC_SHAPE = (

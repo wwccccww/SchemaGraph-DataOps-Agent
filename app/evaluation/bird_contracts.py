@@ -87,6 +87,8 @@ def contract_for(case: BenchmarkCase) -> SemanticContract:
         filters.append("loan_98832_19960103_profile=true")
     if case.id == "bird_0115":
         filters.append("south_bohemia_top_population_profile=true")
+    if case.id == "bird_0122":
+        filters.append("loan_id_4990_profile=true")
     if case.id == "bird_0005":
         filters.append("virtual_sat_f_profile=true")
     if case.id == "bird_0060":
