@@ -369,6 +369,58 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "litomerice_1996_accounts_profile=true" in contract.filters:
+            if re.search(r"A3\s*=\s*'Litomerice'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Litomerice 区县名用 district.A2='Litomerice'（A3 是 region）",
+                    )
+                )
+            if re.search(r"type\s*=\s*'credit'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_deposits_in_1996 用 trans.type='PRIJEM'（不是 credit）",
+                    )
+                )
+            if re.search(r"owner_clients|type\s*=\s*'OWNER'", sql, re.IGNORECASE) and re.search(
+                r"accounts_with_multiple_clients",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ClientInfo 统计 account 上全部 disp→client（勿限 OWNER）",
+                    )
+                )
+            if re.search(r"average_client_age", sql, re.IGNORECASE) and re.search(
+                r"2026-10-01[\s\S]{0,80}average_client_age|average_client_age[\s\S]{0,80}2026-10-01",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "average_client_age 用 1996 年与 birth_date 年差（ClientInfo 按 account）",
+                    )
+                )
+            if re.search(r"percent_opened_q1", sql, re.IGNORECASE) and re.search(
+                r"q1\s*\*\s*100[\s\S]{0,40}/\s*q_stats\.total",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"AVG\s*\(\s*CASE\s+WHEN\s+month_opened",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "季度开户占比：ROUND(AVG(CASE month_opened BETWEEN …)*100,2)",
+                    )
+                )
         if "card_issued_19961021_profile=true" in contract.filters:
             if re.search(
                 r"ORDER BY[\s\S]*amount\s+DESC[\s\S]*LIMIT\s+1",
@@ -1921,6 +1973,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "1996-10-21 card：ClientCards+TransactionStats RANK largest；"
                 "transaction_category 三档 Value；loan_status Has/No Loan；"
                 "LEFT JOIN loan/order；district 经 client.district_id。"
+            )
+        if item == "litomerice_1996_accounts_profile=true":
+            hints.append(
+                "Litomerice 1996：AccountsInLitomerice1996 用 A2；ClientInfo/AccountActivity/LoanStatus CTE；"
+                "trans 1996 年 PRIJEM 存款；最终单行聚合 AVG 季度占比。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
