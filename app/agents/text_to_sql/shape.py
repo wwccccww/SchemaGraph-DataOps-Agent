@@ -263,7 +263,7 @@ def check_answer_shape(
                 )
             )
         if re.search(
-            r"Percent\s*\(\%\)\s*Eligible\s*FRPM[^)]*\*\s*100|PercentFRPM.*\* *100",
+            r"Percent\s*\(\%\)\s*Eligible\s*FRPM[\s\S]*?\*\s*100|\*\s*100\s+AS\s+PercentFRPM",
             sql,
             re.IGNORECASE,
         ):
@@ -273,6 +273,57 @@ def check_answer_shape(
                     "PercentFRPM 直接用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，不要 ×100",
                 )
             )
+        if re.search(r">=\s*0\.75|>=\s*0\.50", sql) and re.search(
+            r"High FRPM|Medium FRPM", sql
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档比较用严格 >0.75 / >0.50（BIRD Gold），不要用 >=",
+                )
+            )
+    if re.search(
+        r"charter schools.*County Office|County Office of Education.*charter",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"\bs\.School\b|\bschools\.School\b", sql, re.IGNORECASE) and (
+            "school name" not in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "CharterSchoolName 用 frpm.`School Name`，不要用 schools.School",
+                )
+            )
+        if re.search(r"YearOpened|year each school opened", question, re.IGNORECASE) and re.search(
+            r"cast\s*\(\s*strftime\s*\(\s*'%Y'",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "YearOpened 用 STRFTIME('%Y', OpenDate) 文本年，不要 CAST AS INTEGER",
+                )
+            )
+        if re.search(r"rankings|PercentageAbove1500|SAT performance metrics", question, re.I):
+            if re.search(r"sum\s*\(\s*case\s+when\s+totalsatscore\s*>\s*1500", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentageAbove1500 用 satscores NumGE1500/NumTstTakr（WHERE rtype='S'），"
+                        "不要对 TotalSATScore>1500 做窗口 COUNT",
+                    )
+                )
+            if re.search(r"order by\s+satranking", sql, re.I) and "total satscore desc" not in lowered:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "排序：NULL SAT 置后，再 TotalSATScore DESC、Enrollment DESC；"
+                        "不要仅 ORDER BY SATRanking",
+                    )
+                )
     if re.search(r"County Office of Education", question, re.IGNORECASE):
         if re.search(r"County Name", sql) and re.search(r"Office of Education", sql):
             findings.append(
@@ -292,8 +343,10 @@ def check_answer_shape(
                     "不要仅用 schools.Charter",
                 )
             )
-    if re.search(r"charter", question, re.IGNORECASE) and any(
-        document.table_name.lower() == "schools" for document in documents
+    if (
+        re.search(r"charter", question, re.IGNORECASE)
+        and not re.search(r"County Office of Education", question, re.IGNORECASE)
+        and any(document.table_name.lower() == "schools" for document in documents)
     ):
         if "charter school (y/n)" in lowered and re.search(
             r"\bschools\b", sql, re.IGNORECASE
@@ -786,7 +839,10 @@ def _join_hints(
     ):
         hints.append(
             "COE charter 题：frpm.`District Name` 过滤学区；`Charter School (Y/N)`=1；"
-            "PercentFRPM 用小数列；FRPMCategory 为 High FRPM / Medium FRPM / Low FRPM（0.75/0.50）。"
+            "CharterSchoolName=frpm.`School Name`；PercentFRPM 用小数列（不×100）；"
+            "FRPMCategory 严格 >0.75/>0.50；YearOpened=STRFTIME('%Y',OpenDate)；"
+            "PercentageAbove1500=NumGE1500/NumTstTakr（rtype='S'）；"
+            "ORDER BY NULL SAT 最后、TotalSATScore DESC、Enrollment DESC。"
         )
     if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
         if "customer_address" in visible and "web_sales" in visible:

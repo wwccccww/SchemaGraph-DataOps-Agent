@@ -67,6 +67,34 @@ def test_loan_running_ok_uses_count_status() -> None:
     assert any("COUNT(status)" in message for message in messages)
 
 
+def test_coe_charter_does_not_forbid_frpm_charter_filter() -> None:
+    question = (
+        "For charter schools in Fresno County Office of Education, categorizing schools "
+        "by their FRPM percentage levels."
+    )
+    sql = (
+        'SELECT f."School Name" FROM frpm AS f JOIN schools AS s ON f.CDSCode = s.CDSCode '
+        'WHERE f."District Name" = \'Fresno County Office of Education\' '
+        'AND f."Charter School (Y/N)" = 1'
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert not any("不要用 frpm 的 Y/N" in message for message in messages)
+
+
+def test_coe_charter_flags_percent_frpm_times_100() -> None:
+    question = (
+        "For charter schools in Fresno County Office of Education, categorizing schools "
+        "by their FRPM percentage levels."
+    )
+    sql = (
+        'SELECT f."Percent (%) Eligible FRPM (K-12)" * 100 AS PercentFRPM FROM frpm f '
+        'WHERE f."District Name" = \'Fresno County Office of Education\''
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    assert any("不要 ×100" in item.message for item in findings)
+
+
 def test_charter_prefers_schools_table() -> None:
     question = "Is it a charter school?"
     sql = (
