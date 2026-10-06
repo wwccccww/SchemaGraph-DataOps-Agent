@@ -40,6 +40,31 @@ def test_p0_bird_measured_baseline_seven_of_fifty_on_peak_run() -> None:
     assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
 
 
+def test_p0_bird_peak_patch_autofix_replay_nine_of_fifty() -> None:
+    """峰值 v15 保存 SQL 经 PATCH autofix 后 EX 上界（0002+0094）；仍非新 LLM run。"""
+    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+        pytest.skip("bird replay fixtures unavailable")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.external_model",
+            "--source",
+            "bird",
+            "--database-root",
+            str(BIRD_DB_ROOT),
+            "--replay-run",
+            str(BIRD_PEAK_RUN),
+            "--replay-patch-autofix",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "matched 7 -> 9" in completed.stderr or "matched 7 -> 9" in completed.stdout
+
+
 def test_p0_tpcds_measured_baseline_thirty_of_thirty_on_peak_run() -> None:
     if not TPCDS_PEAK_RUN.is_dir():
         pytest.skip("tpcds replay fixture unavailable")

@@ -110,7 +110,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 ### 2.6 外部模型评测（P2）
 
 - 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`、`--max-repair-rounds 4`（5 次模型调用）、`--timeout 180`。
-- **无 LLM 复分**：`--replay-run` 重放预测 SQL；TPC-DS 例 `43c9faa` **30→30**。**Gateway 402 时**：先 `verify-*`，再 `external_model --replay-run`（及可选 `--replay-amend`）维持 EX 门禁。
+- **无 LLM 复分**：`--replay-run` 重放预测 SQL；TPC-DS 例 `43c9faa` **30→30**。**Gateway 402 时**：先 `verify-*`，再 `external_model --replay-run`（及可选 `--replay-amend`）维持 EX 门禁；`--replay-patch-autofix` 复分 **validate 同款 PATCH**（峰值 `31113b6` **7→9**，仍非新 LLM 实测）。脚本：`./scripts/replay_bird_patch_autofix.sh`。
 - **`--replay-amend` profile**：`coe_charter`（**0002** 补丁）、Gold 对齐类（**0006/0010/0032/0011/0021/0066/0069/0077/0087/0094/0119** 等）、`31113b6` 全量 **7→19**（`replay_bird_offline_ceiling.sh`）仅作口径进度，不作发布 EX。
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。

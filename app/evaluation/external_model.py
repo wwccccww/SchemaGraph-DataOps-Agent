@@ -171,8 +171,10 @@ def load_replay_cases(
 def inspection_from_replay(
     payload: Mapping[str, object],
     *,
+    case: BenchmarkCase | None = None,
     case_id: str | None = None,
     amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
 ) -> TextToSqlInspection:
     prediction = payload.get("prediction")
     sql: str | None = None
@@ -180,8 +182,27 @@ def inspection_from_replay(
         raw = prediction.get("sql")
         if isinstance(raw, str) and raw.strip():
             sql = raw
-    if sql and amend_profiles and case_id:
-        sql = apply_replay_amends(case_id, sql, profiles=amend_profiles)
+    resolved_id = case.id if case is not None else case_id
+    if sql and patch_autofix and case is not None and case.source == "bird":
+        from app.agents.text_to_sql.profile_autofix import autofix_sql_when_frozen_contract_clean
+        from app.evaluation.bird_contracts import contract_for
+
+        contract = contract_for(case)
+        frozen_state: dict[str, object] = {
+            "frozen_contract": contract.model_dump(mode="json"),
+            "profile": "generic",
+        }
+        fixed = autofix_sql_when_frozen_contract_clean(
+            case_id=case.id,
+            sql=sql,
+            contract=contract,
+            dialect=case.dialect,
+            frozen_contract_state=frozen_state,
+        )
+        if fixed is not None:
+            sql = fixed
+    if sql and amend_profiles and resolved_id:
+        sql = apply_replay_amends(resolved_id, sql, profiles=amend_profiles)
     replay_status: Literal["succeeded", "failed"] = "succeeded" if sql else "failed"
     attempts = payload.get("attempts")
     if not isinstance(attempts, int):
@@ -209,11 +230,17 @@ async def evaluate_replay(
     execute_sql: ExecuteCase,
     catalog_for: Callable[[str], Collection[str]],
     amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
 ) -> list[ModelCaseTrace]:
     traces: list[ModelCaseTrace] = []
     for case, payload in pairs:
         LOGGER.info("replay %s", case.id)
-        inspection = inspection_from_replay(payload, case_id=case.id, amend_profiles=amend_profiles)
+        inspection = inspection_from_replay(
+            payload,
+            case=case,
+            amend_profiles=amend_profiles,
+            patch_autofix=patch_autofix,
+        )
 
         async def execute(
             sql: str, *, current: BenchmarkCase = case
@@ -538,6 +565,11 @@ def main(argv: list[str] | None = None) -> None:
         "directly_funded_stanislaus, state_special_soc3, la_k9_frpm_sat, "
         "schools_admin_doc_soc, financial_1993_poplatek)",
     )
+    parser.add_argument(
+        "--replay-patch-autofix",
+        action="store_true",
+        help="With --replay-run: apply measured-path PATCH autofix (validate 节点同款，非 Gold overlay)",
+    )
     args = parser.parse_args(argv)
     if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
         raise SystemExit("--max-repair-rounds must be between 1 and 8")
@@ -559,6 +591,7 @@ def main(argv: list[str] | None = None) -> None:
             max_recovery_rounds=args.max_repair_rounds,
             replay_run=args.replay_run,
             replay_amend=tuple(args.replay_amend),
+            replay_patch_autofix=args.replay_patch_autofix,
         )
     )
     if code:
@@ -574,6 +607,7 @@ async def _run_replay(
     timeout_seconds: float,
     report_root: Path | None,
     amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
 ) -> int:
     pairs = load_replay_cases(replay_run, loaded)
     orig_matched = sum(1 for _, payload in pairs if payload.get("ex") == 1)
@@ -623,6 +657,7 @@ async def _run_replay(
         execute_sql=execute_sql,
         catalog_for=lambda database_id: catalogs[database_id],
         amend_profiles=amend_profiles,
+        patch_autofix=patch_autofix,
     )
     new_matched = sum(trace.ex for trace in traces)
     LOGGER.info(
@@ -652,6 +687,7 @@ async def _run_replay(
             "sample": len(pairs) < len(loaded),
             "replay_of": str(replay_run),
             "replay_amend": sorted(amend_profiles),
+            "replay_patch_autofix": patch_autofix,
             "original_matched": orig_matched,
             "lexical_seeds": False,
             "business_rules": False,
@@ -686,6 +722,7 @@ async def _run(
     max_recovery_rounds: int,
     replay_run: Path | None = None,
     replay_amend: Sequence[str] = (),
+    replay_patch_autofix: bool = False,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
@@ -702,6 +739,7 @@ async def _run(
             timeout_seconds=timeout_seconds,
             report_root=report_root,
             amend_profiles=frozenset(replay_amend),
+            patch_autofix=replay_patch_autofix,
         )
     if full:
         if per_database is not None or limit is not None:
