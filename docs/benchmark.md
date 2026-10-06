@@ -92,6 +92,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 **外部 P0/P1 验收清单（证据导向）**
 
+运维命令与 402/计费后路径见 **[external_gold_p0_runbook.md](./external_gold_p0_runbook.md)**（与下表互补）。
+
 | 项 | 权威证据 | 当前状态 |
 | --- | --- | --- |
 | Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
