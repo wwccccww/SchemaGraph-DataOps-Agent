@@ -137,6 +137,86 @@ def check_frozen_semantic_contract(
                     "冻结 core_tables 不含 client，不要 JOIN client",
                 )
             )
+        if "top10_high_frpm_profile=true" in contract.filters:
+            if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and not re.search(
+                r"frpm_rank\s*<=",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Top-10 FRPM：RANK() OVER (ORDER BY FRPM Count DESC) 得 frpm_rank，"
+                        "外层 WHERE frpm_rank<=10；不要 ORDER BY … LIMIT 10",
+                    )
+                )
+            if re.search(r'frpm\."School Type"|frpm\.\`School Type\`', sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "school_type 用 schools Charter→Charter School/Non-Charter School，"
+                        "不要用 frpm School Type",
+                    )
+                )
+            if re.search(
+                r"NumTstTakr\s*\*\s*100[\s\S]*Enrollment\s*\(\s*K-12\s*\)",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "percent_taking_sat 用 satscores.enroll12 作分母，不要用 frpm Enrollment (K-12)",
+                    )
+                )
+        if "enrollment500_frpm_sat_profile=true" in contract.filters:
+            if re.search(r"THEN\s+'High'|THEN\s+'Medium'|THEN\s+'Low'", sql) and not re.search(
+                r"High FRPM", sql
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCategory 标签用 High FRPM / Medium FRPM / Low FRPM",
+                    )
+                )
+            if re.search(
+                r"Percent\s*\(\%\)\s*Eligible\s*FRPM[\s\S]*?\*\s*100[\s\S]*?>=\s*75",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCategory 分档用小数列 >=0.75 / >=0.50，不要对 ×100 后的值用 >=75",
+                    )
+                )
+            if (
+                re.search(r"Enrollment \(K-12\)", sql)
+                and "TotalEnrollment" in " ".join(contract.projections)
+                and "Ages 5-17" not in sql
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "TotalEnrollment = Enrollment (K-12) + Enrollment (Ages 5-17)",
+                    )
+                )
+            if re.search(r"\bs\.Charter\b|\bschools\.Charter\b", sql, re.IGNORECASE) and (
+                "charter school (y/n)" not in sql.lower()
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "IsCharter 用 frpm.`Charter School (Y/N)`，输出 IsCharterSchool Yes/No",
+                    )
+                )
+            if re.search(r"\bsatscores\b|\bss\.\b", sql, re.IGNORECASE) and "rtype" not in sql.lower():
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "satscores 侧过滤 rtype='S'（学校级记录）",
+                    )
+                )
         if "virtual_sat_f_profile=true" in contract.filters:
             if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
                 findings.append(
@@ -658,6 +738,18 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
             hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+        if item == "top10_high_frpm_profile=true":
+            hints.append(
+                "Top-10 FRPM Count：RANK() 得 frpm_rank，WHERE frpm_rank<=10；"
+                "school_type/grade_level 来自 schools；percent_eligible_frpm 输出 ×100；"
+                "percent_taking_sat 用 sat.enroll12；percent_scoring_over_1500=NumGE1500/NumTstTakr×100。"
+            )
+        if item == "enrollment500_frpm_sat_profile=true":
+            hints.append(
+                "Enrollment>500：TotalEnrollment=K-12+Ages 5-17；FRPMPercentage 输出 ×100；"
+                "FRPMCategory 用小数 >=0.75/0.50 得 High/Medium/Low FRPM；"
+                "IsCharter 来自 frpm Y/N；satscores rtype='S'；PercentageStudentsOver1500=NumGE1500/NumTstTakr×100。"
+            )
         if item == "virtual_sat_f_profile=true":
             hints.append(
                 "Fully virtual：WHERE schools.Virtual='F'；VirtualStatus CASE F/P/N；"

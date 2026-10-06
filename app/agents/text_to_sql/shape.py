@@ -374,6 +374,31 @@ def check_answer_shape(
                     "县级排名 CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)，不要用 RANK()",
                 )
             )
+    if re.search(r"top 10 schools.*free or reduced|highest number of students eligible for free", question, re.I):
+        if re.search(r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE) and "frpm_rank<=" not in lowered.replace(
+            " ", ""
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Top-10 FRPM：RANK() + WHERE frpm_rank<=10，不要 ORDER BY … LIMIT 10",
+                )
+            )
+    if re.search(r"enrollment exceeding 500|total enrollment exceeding 500", question, re.I):
+        if re.search(r"THEN 'High'|THEN 'Medium'|THEN 'Low'", sql) and "High FRPM" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档标签用 High FRPM / Medium FRPM / Low FRPM",
+                )
+            )
+        if re.search(r"Enrollment \(K-12\)", sql) and "Ages 5-17" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "TotalEnrollment 需 K-12 与 Ages 5-17 之和",
+                )
+            )
     if re.search(r"fully virtual", question, re.IGNORECASE):
         if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
             findings.append(

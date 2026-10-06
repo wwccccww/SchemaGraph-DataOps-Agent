@@ -39,6 +39,51 @@ def test_format_includes_projection_order_hint_when_grouped() -> None:
     assert "ORDER BY" in text
 
 
+def test_enrollment500_profile_flags_peak_0011_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0011")
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    if not (run / "cases" / "bird_0011.json").is_file():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    sql = json.loads((run / "cases" / "bird_0011.json").read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, sql, dialect="sqlite")
+    ]
+    assert any("High FRPM" in message for message in messages)
+    assert any("Ages 5-17" in message for message in messages)
+
+
+def test_top10_frpm_profile_flags_peak_0008_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0008")
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    if not (run / "cases" / "bird_0008.json").is_file():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    sql = json.loads((run / "cases" / "bird_0008.json").read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, sql, dialect="sqlite")
+    ]
+    assert any("frpm_rank" in message for message in messages)
+
+
 def test_virtual_sat_f_frozen_contract_flags_peak_0005_sql() -> None:
     from app.evaluation.bird import load_bird_cases
 

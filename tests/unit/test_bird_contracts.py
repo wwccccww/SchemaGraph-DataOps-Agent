@@ -59,6 +59,20 @@ def test_bird_0006_contract_includes_magnet_sat_profile() -> None:
     assert "magnet_sat_profile=true" in contract.filters
 
 
+def test_bird_0008_contract_includes_top10_high_frpm_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0008")
+    assert "top10_high_frpm_profile=true" in contract_for(case).filters
+
+
+def test_bird_0011_contract_includes_enrollment500_frpm_sat_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0011")
+    assert "enrollment500_frpm_sat_profile=true" in contract_for(case).filters
+
+
 def test_bird_0005_contract_includes_virtual_sat_f_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 
