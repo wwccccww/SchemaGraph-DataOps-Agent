@@ -26,6 +26,11 @@ else
     echo "llm_preflight=blocked"
   fi
 fi
+if python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reachable; raise SystemExit(0 if tpcds_postgres_catalog_reachable() else 1)"; then
+  echo "tpcds_postgres_catalog=ready"
+else
+  echo "tpcds_postgres_catalog=unreachable"
+fi
 PEAK="${BIRD_PEAK_RUN:-$ROOT/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49}"
 if [[ -n "${BIRD_DATABASE_ROOT:-}" && -d "$PEAK/cases" ]]; then
   echo "== BIRD replay (raw) =="

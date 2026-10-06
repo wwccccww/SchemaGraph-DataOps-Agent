@@ -25,6 +25,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh`** | 同上（计费恢复后可选轮询 preflight） |
 | **`while_billing_blocked=… --gates-only`** | `print_external_p0_status.sh`（402 时） |
 | **`llm_preflight=ready`** | `python3 -m app.evaluation.llm_preflight` 成功 stdout |
+| **`tpcds_postgres_catalog=ready\|unreachable`** | `print_external_p0_status.sh`（`tpcds_postgres_catalog_reachable` 探测） |
 
 402 时 **`llm_preflight`** stderr 亦指向本 runbook 与 **`--gates-only`**。
 
