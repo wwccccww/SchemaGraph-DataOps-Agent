@@ -52,6 +52,7 @@ def test_env_example_documents_bird_database_root_for_p1_gate() -> None:
     example = (root / ".env.example").read_text(encoding="utf-8")
     assert "BIRD_DATABASE_ROOT=" in example
     assert "p0_post_billing_acceptance.sh" in example
+    assert "P0_BIRD_MIN_MATCHED" in example
 
 
 def test_p1_release_gate_fast_pytest_subset_passes() -> None:
