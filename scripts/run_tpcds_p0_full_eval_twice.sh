@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# P0：Billing 恢复后连续 2× 全量 TPC-DS 派生模型实测（需 gold_matched + 本机 tpcds 库）。
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+python3 -m app.evaluation.external_data check-external-release
+RUN_DIRS=()
+for run in 1 2; do
+  echo "== TPC-DS derived full eval run $run/2 =="
+  python3 -m app.evaluation.external_model \
+    --source tpcds-derived \
+    --full \
+    --variant self_healing \
+    --max-repair-rounds 4
+  latest="$(ls -td reports/tpcds-derived/run_* 2>/dev/null | head -1)"
+  RUN_DIRS+=("$latest")
+  echo "wrote $latest"
+  python3 -m app.evaluation.external_model \
+    --source tpcds-derived \
+    --replay-run "$latest" 2>&1 | grep "replay EX:" || true
+done
+echo "P0 TPC-DS runs: ${RUN_DIRS[0]:-?} ; ${RUN_DIRS[1]:-?}"
+echo "Target band: 30/30 on both runs (LLM variance)."

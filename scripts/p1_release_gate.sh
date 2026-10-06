@@ -10,5 +10,6 @@ python3 -m pytest tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_bird_peak_executable.py \
   tests/unit/test_print_external_p0_status.py \
   tests/unit/test_run_bird_p0_full_eval_script.py \
+  tests/unit/test_run_tpcds_p0_full_eval_script.py \
   -q
 "$ROOT/scripts/verify_external_gold.sh"
