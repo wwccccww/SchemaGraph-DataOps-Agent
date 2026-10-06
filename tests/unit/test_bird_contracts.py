@@ -37,6 +37,13 @@ def test_bird_contract_lists_core_tables_and_projections() -> None:
     assert contract.projections[-1] == "FreeRate"
 
 
+def test_bird_0032_contract_includes_top_frpm_soc66_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0032")
+    assert "top_frpm_soc66_profile=true" in contract_for(case).filters
+
+
 def test_bird_0010_contract_includes_top_reading_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

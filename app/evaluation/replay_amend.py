@@ -1,4 +1,9 @@
-"""离线 replay 时对已保存预测 SQL 做已知口径修正（不调用 LLM）。"""
+"""离线 replay 时对已保存预测 SQL 做已知口径修正（不调用 LLM）。
+
+`coe_charter` 等对预测 SQL 做字符串修正；`magnet_sat` / `top_reading` / `top_frpm_soc66`
+等 per-case  profile 在离线潜力分析时替换为 Gold SQL（仅该 case_id），
+**不是**模型能力度量，仅用于 v16–v19 口径对齐的上界估算。
+"""
 
 from __future__ import annotations
 
@@ -20,6 +25,8 @@ def apply_replay_amends(
         amended = _amend_bird_0006_magnet_sat(amended)
     if "top_reading" in profiles and case_id == "bird_0010":
         amended = _amend_bird_0010_top_reading(amended)
+    if "top_frpm_soc66" in profiles and case_id == "bird_0032":
+        amended = _amend_bird_0032_top_frpm_soc66(amended)
     return amended
 
 
@@ -36,6 +43,13 @@ def _amend_bird_0002_coe_charter(sql: str) -> str:
         "strftime('%Y', s.OpenDate) AS YearOpened",
     )
     return out
+
+
+def _amend_bird_0032_top_frpm_soc66(_sql: str) -> str:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0032")
+    return case.gold_sql
 
 
 def _amend_bird_0010_top_reading(_sql: str) -> str:

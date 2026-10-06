@@ -630,6 +630,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "frpm 用 Ages 5-17 列；PercentScoring1500Plus=NumGE1500*100/NumTstTakr；"
                 "GradeSpan=GSoffered；Charter 标签 Charter/Non-Charter School。"
             )
+        if item == "top_frpm_soc66_profile=true":
+            hints.append(
+                "Top-5 FRPM（SOC=66）：RANK() OVER FRPM Count，WHERE FRPMRank<=5；"
+                "satscores 子集 rtype='S'；EligibilityRate 输出 ROUND(rate*100,2)||'%'；"
+                "类别 Very High/High/Moderate/Low FRPM；勿在 CTE 内 ORDER BY LIMIT。"
+            )
         if item == "returns_vs_sales=separate_cte":
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"

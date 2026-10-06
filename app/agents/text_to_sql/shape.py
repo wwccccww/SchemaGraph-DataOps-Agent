@@ -461,6 +461,30 @@ def check_answer_shape(
                 "不要在 CTE 内 ORDER BY ... LIMIT（SQLite 易错且难自愈）",
             )
         )
+    if re.search(r"top 5.*ownership code 66|ownership code 66.*top 5", question, re.IGNORECASE):
+        if re.search(r"row_number\s*\(", sql, re.IGNORECASE) and re.search(
+            r"FRPMRank|FRPM Rank", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPMRank 用 RANK() OVER (ORDER BY FRPM Count DESC)，不要用 ROW_NUMBER",
+                )
+            )
+        if re.search(r"Low Grade|High Grade", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Top-5 FRPM（SOC=66）Gold 不按 Low/High Grade 过滤，仅 SOC=66 与 Enrollment>0",
+                )
+            )
+        if re.search(r"High FRPM' WHEN.*Medium FRPM", sql) and "Very High FRPM" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "EligibilityCategory：Very High FRPM / High FRPM / Moderate FRPM / Low FRPM",
+                )
+            )
     if re.search(r"Multiple Provision Types", question, re.IGNORECASE):
         if "multiple provision types" not in lowered.replace("_", " "):
             findings.append(
