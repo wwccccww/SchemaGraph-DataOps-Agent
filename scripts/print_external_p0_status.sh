@@ -53,6 +53,7 @@ if [[ -d "$PEAK/cases" ]]; then
   fi
 fi
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
+echo "post_billing_docs=python3 -m app.evaluation.p0_measured_summary (via run_external_p0_full_eval_twice.sh manifest)"
 if grep -q "402" "$PREFLIGHT_LOG" 2>/dev/null; then
   echo "while_billing_blocked=./scripts/p0_post_billing_acceptance.sh --gates-only"
 fi
