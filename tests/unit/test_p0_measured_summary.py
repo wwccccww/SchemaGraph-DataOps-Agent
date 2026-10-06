@@ -235,6 +235,20 @@ def test_cli_on_peak_bird_fixture() -> None:
     assert loaded.case_count == 50
 
 
+def test_peak_tpcds_pair_satisfies_acceptance_tpcds_rules() -> None:
+    root = Path(__file__).resolve().parents[2]
+    peak = (
+        root
+        / "reports/tpcds-derived/run_20261005T230855Z_43c9faa4c0f6e9844809faa8d8fd781d9150cf74"
+    )
+    if not peak.is_dir():
+        pytest.skip("tpcds peak run fixture unavailable")
+    pair = [load_run_measured(peak), load_run_measured(peak)]
+    failures = validate_p0_acceptance_gate(pair, [], bird_min_matched=7)
+    tpcds_failures = [item for item in failures if "tpcds" in item.lower()]
+    assert tpcds_failures == []
+
+
 def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
     """Peak v15 双跑同目录时 BIRD 侧应 stable 且满足默认 7/50 下限（TPC-DS 仍须另补 2 run）。"""
     root = Path(__file__).resolve().parents[2]
