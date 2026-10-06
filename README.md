@@ -131,7 +131,7 @@ uv run python -m app.evaluation.external_data check-external-release
 ./scripts/wait_for_billing_and_run_p0.sh # 402 解除后轮询 preflight，就绪则跑上一条全量路径
 ./scripts/replay_bird_baseline.sh     # 模型实测基线复分（需 reports 快照）
 ./scripts/replay_bird_patch_autofix.sh  # 峰值 SQL + PATCH autofix 复分（7→9 上界，非新 LLM run）
-./scripts/print_external_p0_status.sh   # 402 时 release、prompt 版本、llm_preflight + replay 摘要
+./scripts/print_external_p0_status.sh   # 402 时 release、llm_preflight、tpcds catalog、replay 摘要
 ./scripts/run_external_p0_full_eval_twice.sh # P0：2× TPC-DS + 2× BIRD（80 例，需 BIRD_DATABASE_ROOT）
 python3 -m app.evaluation.llm_preflight       # P0 全量前探测（402→exit 2）
 ./scripts/run_tpcds_p0_full_eval_twice.sh # P0：2× 全量 TPC-DS（--full）
