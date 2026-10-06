@@ -17,6 +17,20 @@ TPCDS_PEAK_RUN = (
 )
 
 
+def ensure_bird_database_root(env: dict[str, str], *, tmp_path: Path | None = None) -> str:
+    """Ensure BIRD_DATABASE_ROOT exists (CI runners lack local minidev checkout)."""
+    existing = env.get("BIRD_DATABASE_ROOT")
+    if existing:
+        path = Path(existing)
+    elif tmp_path is not None:
+        path = tmp_path / "dev_databases"
+    else:
+        path = BIRD_DB_ROOT
+    path.mkdir(parents=True, exist_ok=True)
+    env["BIRD_DATABASE_ROOT"] = str(path)
+    return str(path)
+
+
 def peak_case_path(case_id: str) -> Path:
     return BIRD_PEAK_RUN / "cases" / f"{case_id}.json"
 

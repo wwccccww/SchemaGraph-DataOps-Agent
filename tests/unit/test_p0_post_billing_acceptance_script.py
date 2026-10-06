@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from tests.unit.bird_replay_fixtures import ensure_bird_database_root
+
 
 def test_p0_post_billing_acceptance_script_exists() -> None:
     root = Path(__file__).resolve().parents[2]
@@ -45,9 +47,7 @@ def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/p0_post_billing_acceptance.sh"
     env = {k: v for k, v in os.environ.items() if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")}
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env)
     completed = subprocess.run(
         [str(script)],
         check=False,
@@ -82,9 +82,7 @@ exec {real_python} "$@"
     )
     fake_python.chmod(0o755)
     env = os.environ.copy()
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
@@ -122,9 +120,7 @@ exec {real_python} "$@"
     )
     fake_python.chmod(0o755)
     env = os.environ.copy()
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"

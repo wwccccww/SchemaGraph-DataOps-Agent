@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from tests.unit.bird_replay_fixtures import ensure_bird_database_root
+
 
 def test_wait_for_billing_script_exists_and_contract() -> None:
     root = Path(__file__).resolve().parents[2]
@@ -27,9 +29,7 @@ def test_wait_for_billing_requires_postgres_env() -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/wait_for_billing_and_run_p0.sh"
     env = {k: v for k, v in os.environ.items() if k not in ("POSTGRES_USER", "POSTGRES_PASSWORD")}
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env)
     completed = subprocess.run(
         [str(script)],
         check=False,
@@ -105,9 +105,7 @@ exec {real_python} "$@"
     env = os.environ.copy()
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     completed = subprocess.run(
@@ -155,9 +153,7 @@ exec {real_python} "$@"
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
     env["P0_WAIT_STUB_ACCEPTANCE"] = "1"
-    env["BIRD_DATABASE_ROOT"] = env.get(
-        "BIRD_DATABASE_ROOT", "/tmp/bird_dev/minidev/MINIDEV/dev_databases"
-    )
+    ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
     completed = subprocess.run(
