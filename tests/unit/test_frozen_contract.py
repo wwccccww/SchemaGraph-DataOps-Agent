@@ -39,6 +39,26 @@ def test_format_includes_projection_order_hint_when_grouped() -> None:
     assert "ORDER BY" in text
 
 
+def test_coe_charter_frozen_contract_flags_peak_run_mistakes() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0002")
+    contract = case.semantic_contract
+    assert contract is not None
+    bad = (
+        "SELECT s.School AS CharterSchoolName, "
+        'f."Percent (%) Eligible FRPM (K-12)" * 100 AS PercentFRPM, '
+        "CASE WHEN f.\"Percent (%) Eligible FRPM (K-12)\" >= 0.75 THEN 'High FRPM' END, "
+        "CAST(strftime('%Y', s.OpenDate) AS INTEGER) AS YearOpened "
+        "FROM frpm f JOIN schools s ON f.CDSCode = s.CDSCode"
+    )
+    messages = [item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")]
+    assert any("×100" in message for message in messages)
+    assert any("School Name" in message for message in messages)
+    assert any(">0.75" in message or ">=" in message for message in messages)
+    assert any("CAST" in message or "文本" in message for message in messages)
+
+
 def test_order_sensitive_checks_alias_order() -> None:
     contract = SemanticContract(
         projections=["School Name", "Enrollment"],

@@ -150,6 +150,26 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
+                r"\bs\.School\b|\bschools\.School\b",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r'"School Name"', sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CharterSchoolName 用 frpm.`School Name`，不要用 schools.School",
+                    )
+                )
+            if re.search(r">=\s*0\.75|>=\s*0\.50", sql) and re.search(
+                r"High FRPM|Medium FRPM", sql, re.IGNORECASE
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCategory 分档用严格 >0.75 / >0.50，不要用 >=",
+                    )
+                )
+            if re.search(
                 r"cast\s*\(\s*strftime\s*\(\s*'%Y'",
                 sql,
                 re.IGNORECASE,
