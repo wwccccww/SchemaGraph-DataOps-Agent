@@ -95,6 +95,23 @@ def test_coe_charter_flags_percent_frpm_times_100() -> None:
     assert any("不要 ×100" in item.message for item in findings)
 
 
+def test_magnet_sat_flags_frpm_school_type_and_poverty_labels() -> None:
+    question = (
+        "For magnet schools with over 500 SAT test takers, provide poverty levels "
+        "and performance categories."
+    )
+    sql = (
+        "SELECT CASE WHEN x >= 75 THEN 'High FRPM' END, 'Above Average' AS PerformanceCategory "
+        "FROM frpm f JOIN schools s ON 1=1 WHERE f.\"Free Meal Count (K-12)\" * 100 / "
+        "f.\"Enrollment (K-12)\" > 0"
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert any("High Poverty" in m for m in messages)
+    assert any("Excellent" in m for m in messages)
+    assert any("Percent (%) Eligible FRPM" in m or "Free Meal Count" in m for m in messages)
+
+
 def test_top_n_cte_order_limit_flagged() -> None:
     question = "For the top 5 schools with the highest FRPM count, list details."
     sql = (

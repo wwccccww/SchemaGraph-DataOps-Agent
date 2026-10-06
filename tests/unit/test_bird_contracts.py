@@ -37,6 +37,14 @@ def test_bird_contract_lists_core_tables_and_projections() -> None:
     assert contract.projections[-1] == "FreeRate"
 
 
+def test_bird_0006_contract_includes_magnet_sat_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0006")
+    contract = contract_for(case)
+    assert "magnet_sat_profile=true" in contract.filters
+
+
 def test_bird_0002_contract_includes_coe_charter_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

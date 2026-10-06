@@ -283,6 +283,53 @@ def check_answer_shape(
                 )
             )
     if re.search(
+        r"magnet schools.*(500|SAT test takers)|over 500 SAT",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"School Type|Educational Option Type", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Magnet SAT 题 SchoolType/EducationalOption 用 schools.SOCType 与 schools.EdOpsName，"
+                    "不要用 frpm 的 School Type / Educational Option Type",
+                )
+            )
+        if re.search(r"Free Meal Count \(K-12\).*100|Free Meal Count.*Enrollment", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FreeReducedMealPercentage 用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，"
+                    "不要用 Free Meal Count/Enrollment×100",
+                )
+            )
+        if re.search(r"High FRPM|Medium FRPM|Low FRPM", sql) and "High Poverty" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PovertyLevel 标签：High Poverty / Moderate Poverty / Low Poverty / "
+                    "Very Low Poverty（FRPM 小数 >0.75/>0.50/>0.25）",
+                )
+            )
+        if re.search(r"Above Average", sql) and "Excellent" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PerformanceCategory：Excellent(>1800)/Good(>1500)/Average(>1200)/Below Average",
+                )
+            )
+        if re.search(
+            r"rank\s*\(\s*\)\s+over\s*\(\s*partition\s+by\s+county",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "县级排名 CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)，不要用 RANK()",
+                )
+            )
+    if re.search(
         r"charter schools.*County Office|County Office of Education.*charter",
         question,
         re.IGNORECASE,

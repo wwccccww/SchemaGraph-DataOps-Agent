@@ -616,6 +616,14 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "running OK：COUNT(status) 分母；CTE percentage 不 ROUND；"
                 "最终 ROUND(percentage_running_ok,2) 与 ROUND(avg_loan_amount,2)；avg_duration 不 ROUND。"
             )
+        if item == "magnet_sat_profile=true":
+            hints.append(
+                "Magnet + SAT>500：satscores JOIN schools LEFT JOIN frpm；SchoolType=s.SOCType，"
+                "EducationalOption=s.EdOpsName；FreeReducedMealPercentage=frpm Percent FRPM 小数；"
+                "PovertyLevel 用 >0.75/>0.50/>0.25 与 High/Moderate/Low/Very Low Poverty；"
+                "PerformanceCategory 用 Excellent/Good/Average/Below Average（1800/1500/1200）；"
+                "CountyRank 用 DENSE_RANK；外层 WHERE Magnet=1。"
+            )
         if item == "returns_vs_sales=separate_cte":
             hints.append(
                 "退货与销售需分 CTE 按各自事实表+date_dim 过滤后再 JOIN，"
