@@ -24,4 +24,8 @@ export P0_MEASURED_MANIFEST="$MANIFEST"
 "$ROOT/scripts/run_tpcds_p0_full_eval_twice.sh"
 "$ROOT/scripts/run_bird_p0_full_eval_twice.sh"
 echo "== P0 measured summary (paste into docs/benchmark.md) =="
-python3 -m app.evaluation.p0_measured_summary --manifest "$MANIFEST" --acceptance-gate
+BIRD_MIN="${P0_BIRD_MIN_MATCHED:-7}"
+python3 -m app.evaluation.p0_measured_summary \
+  --manifest "$MANIFEST" \
+  --acceptance-gate \
+  --bird-min-matched "$BIRD_MIN"

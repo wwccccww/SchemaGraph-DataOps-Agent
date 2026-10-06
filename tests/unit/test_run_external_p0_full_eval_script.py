@@ -14,6 +14,8 @@ def test_run_external_p0_full_eval_twice_requires_bird_root() -> None:
     assert 'source "$ROOT/.env"' in text
     assert "p0_measured_summary" in text
     assert "--acceptance-gate" in text
+    assert "P0_BIRD_MIN_MATCHED" in text
+    assert "--bird-min-matched" in text
     env = {k: v for k, v in os.environ.items() if k != "BIRD_DATABASE_ROOT"}
     completed = subprocess.run(
         [str(script)],
