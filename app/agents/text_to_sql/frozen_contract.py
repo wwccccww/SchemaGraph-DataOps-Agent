@@ -369,6 +369,51 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "adelanto_grade_span_profile=true" in contract.filters:
+            if re.search(
+                r"frpm_pct\s*>=\s*75|frpm_pct\s*>=\s*50|Percent \(.*FRPM.*\)\s*>=\s*75",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Adelanto poverty 分档：Percent FRPM 为小数，High/Medium 用 >0.75/>0.50（勿 >=75/50）",
+                    )
+                )
+            if re.search(
+                r"high_poverty_schools[\s\S]{0,200}>=\s*75|medium_poverty[\s\S]{0,200}>=\s*50",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "high/medium poverty 计数须基于小数 FRPM 阈值 0.75/0.50",
+                    )
+                )
+            if re.search(
+                r"ORDER BY[\s\S]*cnt[\s\S]*LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"grade_span_rank\s*=\s*1", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最常见 grade span：SchoolsByGradeSpan 中 RANK() 得 grade_span_rank，WHERE =1",
+                    )
+                )
+            if re.search(r"City\s*=\s*'Adelanto'", sql, re.IGNORECASE) and not re.search(
+                r"StatusType\s*=\s*'Active'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Adelanto 题须 StatusType='Active'",
+                    )
+                )
         if "ricci_ulrich_admin_sat_profile=true" in contract.filters:
             if not re.search(
                 r"AdmFName1\s*=\s*'Ricci'[\s\S]*AdmLName1\s*=\s*'Ulrich'",
@@ -1316,6 +1361,20 @@ def _sk_heavy_cte_without_dimensions(
     return None
 
 
+def _window_order_uses_only_aggregates(window: exp.Window) -> bool:
+    order = window.args.get("order")
+    if order is None:
+        return False
+    ordered = order.expressions if hasattr(order, "expressions") else ()
+    if not ordered:
+        return False
+    for item in ordered:
+        expr = item.this if isinstance(item, exp.Ordered) else item
+        if expr.find(exp.AggFunc) is None:
+            return False
+    return True
+
+
 def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
     try:
         parsed = sqlglot.parse_one(sql, read=dialect)
@@ -1327,8 +1386,12 @@ def _window_and_group_by_same_select(sql: str, *, dialect: str) -> bool:
         if not select.args.get("group"):
             continue
         for expression in select.expressions:
-            if expression.find(exp.Window) is not None:
-                return True
+            window = expression.find(exp.Window)
+            if window is None:
+                continue
+            if _window_order_uses_only_aggregates(window):
+                continue
+            return True
     return False
 
 
@@ -1452,6 +1515,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "Ricci Ulrich：SchoolStats JOIN satscores+frpm；DistrictAverages 按 District AVG(写分)；"
                 "RANK 写分/总分；Comparison Above/Equal/Below District Average；"
                 "DifferenceFromDistrictAvg ROUND 差值；PercentageTakingSAT=NumTstTakr×100/Enrollment(K-12)。"
+            )
+        if item == "adelanto_grade_span_profile=true":
+            hints.append(
+                "Adelanto：SchoolsByGradeSpan GROUP BY GSserved，RANK() grade_span_rank；"
+                "SchoolStats poverty_level 用 Percent FRPM 小数 >0.75/>0.50；"
+                "最终 WHERE grade_span_rank=1；聚合 high/medium/low poverty 校数。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(
