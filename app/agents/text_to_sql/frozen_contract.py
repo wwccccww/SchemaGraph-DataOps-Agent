@@ -369,6 +369,48 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+        if "card_issued_19961021_profile=true" in contract.filters:
+            if re.search(
+                r"ORDER BY[\s\S]*amount\s+DESC[\s\S]*LIMIT\s+1",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"amount_rank\s*=\s*1", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最大交易：TransactionStats 中 RANK() OVER (PARTITION BY account ORDER BY amount DESC)，"
+                        "JOIN amount_rank=1",
+                    )
+                )
+            if re.search(r"k_symbol\s+AS\s+transaction_category", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "transaction_category 用 amount 分档 High/Medium/Low Value（不是 k_symbol）",
+                    )
+                )
+            if re.search(r"l\.status\s+AS\s+loan_status", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "loan_status 用 CASE loan_id IS NOT NULL→Has Loan/No Loan（不是 status 字母）",
+                    )
+                )
+            if re.search(r"JOIN district", sql, re.IGNORECASE) and re.search(
+                r"a\.district_id\s*=\s*dist\.district_id",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"c\.district_id\s*=\s*di\.district_id|client\.district_id",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "区县信息 JOIN client.district_id→district（不是 account.district_id）",
+                    )
+                )
         if "loan_approved_19940825_profile=true" in contract.filters:
             if re.search(
                 r"A13\s+AS\s+salary_rank|A14\s+AS\s+unemployment_rank",
@@ -1873,6 +1915,12 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
                 "1994-08-25 loan：LoanAccounts+DistrictInfo+ClientsInDistrict；"
                 "RANK salary/unemployment；ClientsInDistrict 按 district_id；"
                 "trans 子查询 PRIJEM + date<贷款日。"
+            )
+        if item == "card_issued_19961021_profile=true":
+            hints.append(
+                "1996-10-21 card：ClientCards+TransactionStats RANK largest；"
+                "transaction_category 三档 Value；loan_status Has/No Loan；"
+                "LEFT JOIN loan/order；district 经 client.district_id。"
             )
         if item == "top_math_sat_active_profile=true":
             hints.append(

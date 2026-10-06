@@ -7,8 +7,8 @@ from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
-def test_generic_prompt_v43_includes_loan_19940825() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v43"
+def test_generic_prompt_v44_includes_card_19961021() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v44"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
@@ -32,6 +32,8 @@ def test_generic_prompt_v43_includes_loan_19940825() -> None:
     assert "salary_rank_in_region" in sqlite_system
     assert "1994-08-25" in sqlite_system
     assert "PRIJEM" in sqlite_system
+    assert "1996-10-21" in sqlite_system
+    assert "High Value" in sqlite_system or "Low Value" in sqlite_system
 
 
 def _schools_doc() -> TableDocument:
