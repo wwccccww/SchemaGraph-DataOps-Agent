@@ -288,8 +288,5 @@ def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "p0_acceptance_gate=pass" in completed.stdout
-    assert validate_p0_acceptance_gate(
-        [load_run_measured(TPCDS_PEAK_RUN), load_run_measured(TPCDS_PEAK_RUN)],
-        [load_run_measured(BIRD_PEAK_RUN), load_run_measured(BIRD_PEAK_RUN)],
-        bird_min_matched=7,
-    ) == []
+    assert "p0_stability_tpcds=stable" in completed.stdout
+    assert "p0_stability_bird=stable" in completed.stdout
