@@ -93,7 +93,7 @@ def test_bird_explicit_profile_case_ids() -> None:
 
 
 def test_peak_v15_ex1_cases_all_have_explicit_profile() -> None:
-    """峰值 v15 run 上 EX=1 的题均绑定按题 profile（v56 峰值失败自愈口径）。"""
+    """峰值 v15 上 ex=1（matched 成功，共 7 题）均绑定按题 profile。"""
     if not PEAK_V15_RUN.is_dir():
         import pytest
 
