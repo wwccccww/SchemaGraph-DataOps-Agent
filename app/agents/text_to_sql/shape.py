@@ -357,6 +357,18 @@ def check_answer_shape(
                     "charter school 语义优先使用 schools 表的 Charter 字段，不要用 frpm 的 Y/N 列",
                 )
             )
+    if re.search(r"\btop\s+\d+\b", question, re.IGNORECASE) and re.search(
+        r"limit\s+\d+\s*\)\s*select",
+        sql,
+        re.IGNORECASE,
+    ):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "Top-N 学校：在 CTE 用 RANK() OVER (ORDER BY FRPM Count DESC)，外层 WHERE rank<=N；"
+                "不要在 CTE 内 ORDER BY ... LIMIT（SQLite 易错且难自愈）",
+            )
+        )
     if re.search(r"Multiple Provision Types", question, re.IGNORECASE):
         if "multiple provision types" not in lowered.replace("_", " "):
             findings.append(

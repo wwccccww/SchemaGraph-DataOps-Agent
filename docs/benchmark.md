@@ -127,6 +127,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`c975c94` generic v16**（COE charter **`0002`**：禁 frpm Y/N 与 schools.Charter 冲突、PercentFRPM 不×100、`School Name`、YearOpened 文本年）（`self_healing`，180s）：全量待 API 可用后复跑；本地对 `31113b6` 预测做四项修正后 **`0002` EX=1**。
   - **`31113b6` generic v15**（running OK CTE 公式 + COE FRPM + ok_cnt 禁则）（`self_healing`，180s）：BIRD **7/50（EX 0.14）**（`run_20261006T001548Z_31113b6_*`），匹配 **`0000、0028、0036、0083、0104、0116、0118`**（**`0118`** 首次稳定 EX=1，1 attempt）。
   - **`67e1086` v15 + ok_cnt 禁则**（`self_healing`，180s）：BIRD **6/50**（`run_20261006T000343Z_67e1086_*`）；**`0118`** 本地验证差 **ROUND(avg_loan_amount)** 或错误 `ok_cnt/cnt` 重算（已加自愈）。
   - **`5410f5c` COE/FRPM + loan COUNT(status)**（`self_healing`，180s）：BIRD **6/50**（`run_20261005T235214Z_5410f5c_*`）；**`0118`** 距 EX=1 仅 avg_loan_amount 精度。
