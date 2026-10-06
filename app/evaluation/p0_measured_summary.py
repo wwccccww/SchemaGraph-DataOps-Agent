@@ -8,6 +8,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.evaluation.p0_benchmark_docs import write_benchmark_measured_section
+
 
 @dataclass(frozen=True)
 class RunMeasured:
@@ -161,6 +163,11 @@ def main(argv: list[str] | None = None) -> None:
         default=7,
         help="With --acceptance-gate: each BIRD run must have at least this many EX (0=disable)",
     )
+    parser.add_argument(
+        "--write-benchmark",
+        type=Path,
+        help="With --acceptance-gate pass: patch p0-measured-autogen section in this benchmark.md",
+    )
     args = parser.parse_args(argv)
     tpcds_paths = list(args.tpcds_runs)
     bird_paths = list(args.bird_runs)
@@ -181,7 +188,8 @@ def main(argv: list[str] | None = None) -> None:
         if run.benchmark_source != "bird":
             print(f"expected bird run, got {run.benchmark_source}: {run.run_dir}", file=sys.stderr)
             raise SystemExit(1)
-    print(format_report(tpcds, bird))
+    report = format_report(tpcds, bird)
+    print(report)
     if args.acceptance_gate:
         failures = validate_p0_acceptance_gate(tpcds, bird, bird_min_matched=args.bird_min_matched)
         if failures:
@@ -189,6 +197,9 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"p0_acceptance_gate=fail reason={item}", file=sys.stderr)
             raise SystemExit(3)
         print("p0_acceptance_gate=pass")
+        if args.write_benchmark is not None:
+            write_benchmark_measured_section(args.write_benchmark, report)
+            print(f"p0_benchmark_docs=updated path={args.write_benchmark}")
 
 
 if __name__ == "__main__":

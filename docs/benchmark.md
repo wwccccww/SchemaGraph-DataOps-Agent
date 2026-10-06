@@ -90,6 +90,14 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 **P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + raw replay **7→7**）；**PATCH autofix 复分**（validate 同款，`--replay-patch-autofix`）峰值 **7→9**（`0002`、`0094`，**非新 LLM run**）；**离线 `--replay-amend`** 口径潜力 **19/50**（`31113b6` 上 **12** 个 amend profile → **7→19**，见 `./scripts/replay_bird_offline_ceiling.sh`；与 **50** 条冻结契约 profile 不同层）；
 **峰值 v15 上 ex=0（43 题失败）与 ex=1（7 题 matched 成功）均已绑定按题 profile**（单测 `test_peak_v15_ex0_cases_all_have_explicit_profile` / `test_peak_v15_ex1_cases_all_have_explicit_profile`）；**80 例综合可信度未完成**（需 **2×** 全量 BIRD LLM + 稳定带）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile**（清单见单测 `test_bird_explicit_profile_case_ids`；含 **0012** SAT excellence + 县内 free meal 等） + SQLite 分号修复 + **0094 PATCH** 为 API 恢复后全量复跑准备；峰值保存 SQL 仅 **0094** 仍 raw 不可执行（`test_bird_peak_executable`），workflow PATCH 可在新 run 内修复。
 
+<!-- p0-measured-autogen:start -->
+
+```text
+(pending: billing 后 p0_acceptance_gate=pass — 运行 ./scripts/p0_post_billing_acceptance.sh 或 ./scripts/apply_p0_measured_benchmark.sh)
+```
+
+<!-- p0-measured-autogen:end -->
+
 **外部 P0/P1 验收清单（证据导向）**
 
 运维命令与 402/计费后路径见 **[external_gold_p0_runbook.md](./external_gold_p0_runbook.md)**（与下表互补）。
@@ -106,7 +114,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | 自动 `source` 项目根 `.env`（若有）；stdout **`ops_runbook=…`** / **`unattended_after_billing=…`** / **`tpcds_postgres_catalog=ready\|unreachable`** / **`bird_sqlite=ready\|missing\|unset\|invalid_root`**（missing 指向 **`fetch_bird_dev_databases.sh`**）；release + `llm_preflight=blocked_billing_402` 时 **`while_billing_blocked=… --gates-only`** + replay（须 **`bird_sqlite=ready`**）+ **`peak_ex0_frozen_findings=pass_min_3`**；`llm_preflight` 402 stderr 同指 runbook |
 | P0 无人值守（402 解除后轮询） | `./scripts/wait_for_billing_and_run_p0.sh` | 须 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（缺则 exit **1**）；默认每 **300s** 探测 `llm_preflight`（`P0_BILLING_POLL_SECONDS`）；就绪 **`exec`** 上表全量路径；非 402 preflight 失败立即 exit **2** |
-| P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`**（存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`，与 `p1_release_gate.sh` 一致）→ `llm_preflight` → gate → 2× 全量（402→exit 2）；写入 **`reports/p0_measured_manifest.tsv`**（stdout **`p0_measured_manifest=`**）；结束 **`p0_measured_summary --acceptance-gate`**（TPC-DS **30/30×2 stable** + BIRD **2× stable** 且每轮 **≥7/50** 实测基线，失败 exit **3**；调高目标用 `--bird-min-matched N` 或 export **`P0_BIRD_MIN_MATCHED=N`**（与 `test_p0_external_measured_baseline` 同步））；402 期间 **`--gates-only`** 仅跑 P1 门禁，成功时打印 **`ops_runbook`** / **`next_after_billing`** |
+| P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`**（存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`，与 `p1_release_gate.sh` 一致）→ `llm_preflight` → gate → 2× 全量（402→exit 2）；写入 **`reports/p0_measured_manifest.tsv`**（stdout **`p0_measured_manifest=`**）；结束 **`p0_measured_summary --acceptance-gate`**（TPC-DS **30/30×2 stable** + BIRD **2× stable** 且每轮 **≥7/50** 实测基线，失败 exit **3**；调高目标用 `--bird-min-matched N` 或 export **`P0_BIRD_MIN_MATCHED=N`**（与 `test_p0_external_measured_baseline` 同步））；默认 **`P0_APPLY_BENCHMARK=1`** 时 gate pass 后 **`apply_p0_measured_benchmark.sh`** 更新上文 **`p0-measured-autogen`** 段（`test_p0_benchmark_docs.py`）；402 期间 **`--gates-only`** 仅跑 P1 门禁，成功时打印 **`ops_runbook`** / **`next_after_billing`** |
 | LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT`；**`p1_release_gate.sh` pytest 模块**须为 fingerprints 子集（`test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints`） |
 | 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | **43/43** 绑定 profile（v58） |

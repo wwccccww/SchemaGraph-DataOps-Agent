@@ -49,6 +49,11 @@ fi
 python3 -m app.evaluation.llm_preflight
 "$ROOT/scripts/p1_release_gate.sh"
 "$ROOT/scripts/run_external_p0_full_eval_twice.sh"
+if [[ "${P0_APPLY_BENCHMARK:-1}" == "1" ]]; then
+  "$ROOT/scripts/apply_p0_measured_benchmark.sh"
+else
+  echo "p0_benchmark_docs=skipped (set P0_APPLY_BENCHMARK=1 to patch docs/benchmark.md)"
+fi
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
-echo "P0 acceptance: require p0_acceptance_gate=pass above; copy p0_measured_* into docs/benchmark.md; update test_p0_external_measured_baseline when BIRD/TPC-DS fractions stabilize."
+echo "P0 acceptance: require p0_acceptance_gate=pass above; benchmark autogen via apply_p0_measured_benchmark.sh; update test_p0_external_measured_baseline when BIRD/TPC-DS fractions stabilize."

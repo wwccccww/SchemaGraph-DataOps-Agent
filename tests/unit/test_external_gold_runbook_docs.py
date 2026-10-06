@@ -24,6 +24,8 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "p0_measured_tpcds_run1=" in body
     assert "p0_acceptance_gate=pass" in body
     assert "p0_measured_manifest.tsv" in body
+    assert "apply_p0_measured_benchmark.sh" in body
+    assert "p0-measured-autogen" in body or "P0_APPLY_BENCHMARK" in body
     assert "tpcds_postgres_catalog_reachable" in body
     assert "bird_sqlite=" in body
     assert "fetch_bird_dev_databases.sh" in body

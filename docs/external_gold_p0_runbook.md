@@ -76,7 +76,14 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
 - **`p0_measured_bird_run{1,2}=≥7/50`**（默认）且 **`p0_stability_bird=stable`**
 
-将脚本 stdout 中 **`p0_measured_*` / `p0_stability_*`** 行（及 **`p0_acceptance_gate=pass`**）写入 [benchmark.md](./benchmark.md) 的 P0 实测段落；格式与 `python3 -m app.evaluation.p0_measured_summary --acceptance-gate` 一致，例如：
+全量 acceptance 默认 **`P0_APPLY_BENCHMARK=1`**（可 `export P0_APPLY_BENCHMARK=0` 跳过）会在 gate pass 后调用 **`./scripts/apply_p0_measured_benchmark.sh`**，把 **`p0_measured_*` / `p0_stability_*`** 与 **`p0_acceptance_gate=pass`** 写入 [benchmark.md](./benchmark.md) 的 **`p0-measured-autogen`** 段落（单测 `test_p0_benchmark_docs.py`）。也可在已有 manifest 上单独执行：
+
+```bash
+./scripts/apply_p0_measured_benchmark.sh
+# 或：python3 -m app.evaluation.p0_measured_summary --manifest reports/p0_measured_manifest.tsv --acceptance-gate --write-benchmark docs/benchmark.md
+```
+
+手动粘贴格式与 `python3 -m app.evaluation.p0_measured_summary --acceptance-gate` 一致，例如：
 
 ```text
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_… commit=… prompt=text-to-sql-generic-v59
