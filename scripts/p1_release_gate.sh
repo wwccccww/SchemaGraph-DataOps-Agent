@@ -9,7 +9,8 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
-uv run pytest tests/unit/test_p0_external_measured_baseline.py \
+uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_covers_every_case \
+  tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_p1_replay_gate.py \
   tests/unit/test_external_release.py \
   tests/unit/test_external_model_cli.py \

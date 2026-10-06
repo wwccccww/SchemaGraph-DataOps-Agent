@@ -11,6 +11,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text()
     for module in (
+        "test_custom_cases.py",
         "test_p0_external_measured_baseline.py",
         "test_p1_replay_gate.py",
         "test_bird_profile_inventory.py",
