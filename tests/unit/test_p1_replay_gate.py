@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -48,6 +49,32 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
+
+
+def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
+    """v15 保存 trace 为 sql_error；--replay-run 用当前 SQLite gate 重算为可执行。"""
+    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+        pytest.skip("bird replay fixtures unavailable")
+    saved = json.loads((BIRD_PEAK_RUN / "cases" / "bird_0021.json").read_text())
+    assert saved.get("primary_class") == "sql_error"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.external_model",
+            "--source",
+            "bird",
+            "--database-root",
+            str(BIRD_DB_ROOT),
+            "--replay-run",
+            str(BIRD_PEAK_RUN),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "bird_0021 other_result_mismatch ex=0" in completed.stderr
 
 
 def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
