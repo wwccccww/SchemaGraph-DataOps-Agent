@@ -13,6 +13,7 @@ from app.datasources.sqlite_exec import sqlite_executor
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
 from app.evaluation.ex import results_match
+from app.evaluation.external_model import score_prediction
 from app.llm.tokenizer import DeepSeekTokenCounter
 from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, CA_SCHOOLS_DB
 
@@ -57,6 +58,16 @@ async def test_peak_bird_0002_autofix_executes_matching_gold_without_llm() -> No
     gold = conn.execute(case.gold_sql).fetchall()
     pred = conn.execute(inspection.generated_sql).fetchall()
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
-    # Post-execute shape 仍可能判 failed，但 external_model 按 generated_sql 计 EX。
-    if inspection.response.status != "succeeded":
-        assert inspection.response.error is not None
+    assert inspection.response.status == "succeeded", inspection.response.error
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"

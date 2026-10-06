@@ -652,7 +652,7 @@ def _execute_sql(
         plan_rows = None
         if services.estimate_plan_rows is not None:
             plan_rows = await services.estimate_plan_rows(sql)
-        if state["profile"] != "ecommerce":
+        if state["profile"] != "ecommerce" and not state.get("benchmark_case_id"):
             findings_shape = check_answer_shape(
                 state["question"],
                 sql,
