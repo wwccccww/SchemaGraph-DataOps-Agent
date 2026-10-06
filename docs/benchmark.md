@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a` 连续 **2×** 全量）已达标；BIRD 全量 EX 仍 **5–6/50** 方差带（`bc99712` **6/50**），距 80 例综合可信度未完成。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a` 连续 **2×** 全量）已达标；BIRD 全量 EX **6–7/50** 方差带（`31113b6` v15 峰值 **7/50** 含 **`0118`**），距 80 例综合可信度未完成。
 
 **P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push`（`cursor/**` 与评测路径）与 **UTC 06:00 日调度** 上跑单元门禁 + `check-external-release`；仓库变量 `EXTERNAL_GOLD_TESTS=1` 且配置 `BIRD_DATABASE_ROOT` 时额外跑集成 Gold 冒烟。发布前本地仍应执行 `verify-tpcds` / `verify-bird` 并刷新 attestation。
 
@@ -127,6 +127,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
   - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
   - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
   - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`31113b6` generic v15**（running OK CTE 公式 + COE FRPM + ok_cnt 禁则）（`self_healing`，180s）：BIRD **7/50（EX 0.14）**（`run_20261006T001548Z_31113b6_*`），匹配 **`0000、0028、0036、0083、0104、0116、0118`**（**`0118`** 首次稳定 EX=1，1 attempt）。
   - **`67e1086` v15 + ok_cnt 禁则**（`self_healing`，180s）：BIRD **6/50**（`run_20261006T000343Z_67e1086_*`）；**`0118`** 本地验证差 **ROUND(avg_loan_amount)** 或错误 `ok_cnt/cnt` 重算（已加自愈）。
   - **`5410f5c` COE/FRPM + loan COUNT(status)**（`self_healing`，180s）：BIRD **6/50**（`run_20261005T235214Z_5410f5c_*`）；**`0118`** 距 EX=1 仅 avg_loan_amount 精度。
   - **`47fc46a` slim loan 契约**（`core_tables=account,loan,trans` 禁 disp/status；0116 余额增长率 shape）（`self_healing`，180s）：BIRD **6/50**（`run_20261005T234151Z_47fc46a_*`），匹配 **`0000、0028、0036、0083、0104、0116`**（**`0116`** 从 `98c0366` 5/50 恢复）。
