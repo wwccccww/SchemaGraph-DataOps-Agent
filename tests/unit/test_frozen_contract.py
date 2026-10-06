@@ -170,6 +170,31 @@ def test_coe_charter_frozen_contract_flags_peak_run_mistakes() -> None:
     assert any("CAST" in message or "文本" in message for message in messages)
 
 
+def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0006")
+    contract = case.semantic_contract
+    assert contract is not None
+    peak = Path(
+        "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49/cases/bird_0006.json"
+    )
+    if not peak.is_file():
+        pytest.skip("peak v15 bird_0006 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 4
+    assert any("SOCType" in message for message in messages)
+    assert any("Poverty" in message and "FRPM" in message for message in messages)
+    assert any("DENSE_RANK" in message for message in messages)
+    assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
+
+
 def test_order_sensitive_checks_alias_order() -> None:
     contract = SemanticContract(
         projections=["School Name", "Enrollment"],

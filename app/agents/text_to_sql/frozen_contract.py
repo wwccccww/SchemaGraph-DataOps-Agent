@@ -2167,6 +2167,74 @@ def check_frozen_semantic_contract(
                         "YearOpened 用 STRFTIME('%Y', OpenDate) 文本，不要 CAST INTEGER",
                     )
                 )
+        if "magnet_sat_profile=true" in contract.filters:
+            if re.search(r'School Type"', sql, re.IGNORECASE) and not re.search(
+                r"\bSOCType\s+AS\s+SchoolType",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 schools.SOCType，不要用 frpm.`School Type`",
+                    )
+                )
+            if re.search(r'Educational Option Type"', sql, re.IGNORECASE) and not re.search(
+                r"\bEdOpsName\s+AS\s+EducationalOption",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EducationalOption 用 schools.EdOpsName，不要用 frpm.`Educational Option Type`",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)[\s\S]{0,80}\*\s*100",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"FreeReducedMealPercentage|FRPMPercent", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeReducedMealPercentage 用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，"
+                        "不要用 Free Meal Count×100/Enrollment",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM|Low FRPM", sql) and "PovertyLevel" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 用 High/Moderate/Low/Very Low Poverty（frpm 小数 >0.75/>0.50/>0.25），"
+                        "不要用 High/Medium/Low FRPM",
+                    )
+                )
+            if re.search(
+                r"THEN\s+'Above Average'|THEN\s+'Below Average'",
+                sql,
+                re.IGNORECASE,
+            ) and "PerformanceCategory" in "".join(contract.projections):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PerformanceCategory 用 Excellent/Good/Average/Below Average（1800/1500/1200），"
+                        "不要用 Above Average/Below Average",
+                    )
+                )
+            if "CountyRank" in "".join(contract.projections) and not re.search(
+                r"DENSE_RANK\s*\(",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)",
+                    )
+                )
         slim_loan_path = allowed <= {"account", "loan", "trans"}
         if slim_loan_path and re.search(
             r"\b(?:loan|t\d+)\.status\b|\bstatus\s*=\s*['\"]C['\"]",

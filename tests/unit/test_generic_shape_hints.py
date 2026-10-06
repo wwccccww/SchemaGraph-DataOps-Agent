@@ -8,7 +8,7 @@ from app.schemas.catalog import TableDocument
 
 
 def test_generic_prompt_v56_includes_weekly_and_disponent_financial() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v56"
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v57"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
