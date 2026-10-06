@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-
 from app.agents.text_to_sql.frozen_contract import (
     check_frozen_semantic_contract,
     format_frozen_semantic_contract,
