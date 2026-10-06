@@ -119,6 +119,7 @@ def validate_p0_acceptance_gate(
     bird_runs: list[RunMeasured],
     *,
     tpcds_cases: int = 30,
+    bird_min_matched: int = 7,
 ) -> list[str]:
     """Return human-readable failure reasons; empty list means gate passed."""
     failures: list[str] = []
@@ -135,6 +136,12 @@ def validate_p0_acceptance_gate(
         failures.append("tpcds 2× runs are not stable (matched or ex differ)")
     if len(bird_runs) == 2 and stability_label(bird_runs[0], bird_runs[1]) != "stable":
         failures.append("bird 2× runs are not stable (matched or ex differ)")
+    if bird_min_matched > 0:
+        for index, run in enumerate(bird_runs, start=1):
+            if run.matched < bird_min_matched:
+                failures.append(
+                    f"bird run{index} below baseline min {bird_min_matched}/50, got {run.fraction_label}"
+                )
     return failures
 
 
@@ -147,6 +154,12 @@ def main(argv: list[str] | None = None) -> None:
         "--acceptance-gate",
         action="store_true",
         help="Exit 3 if TPC-DS not 30/30×2 stable or BIRD 2× not stable",
+    )
+    parser.add_argument(
+        "--bird-min-matched",
+        type=int,
+        default=7,
+        help="With --acceptance-gate: each BIRD run must have at least this many EX (0=disable)",
     )
     args = parser.parse_args(argv)
     tpcds_paths = list(args.tpcds_runs)
@@ -170,7 +183,7 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(1)
     print(format_report(tpcds, bird))
     if args.acceptance_gate:
-        failures = validate_p0_acceptance_gate(tpcds, bird)
+        failures = validate_p0_acceptance_gate(tpcds, bird, bird_min_matched=args.bird_min_matched)
         if failures:
             for item in failures:
                 print(f"p0_acceptance_gate=fail reason={item}", file=sys.stderr)
