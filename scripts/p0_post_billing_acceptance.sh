@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # P0 产品条：DeepSeek 计费恢复后，按顺序完成 Oracle 门禁 + 2× 全量 LLM（80 例可信度）。
 # 402 时第一步 llm_preflight 即 exit 2；402 期间可用 --gates-only 仅跑 P1 门禁，或 ./scripts/print_external_p0_status.sh。
+# Exit: 0 OK；1 缺 BIRD_DATABASE_ROOT / POSTGRES_*；2 llm_preflight（402 等）；3 p0_measured_summary --acceptance-gate 未 pass。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

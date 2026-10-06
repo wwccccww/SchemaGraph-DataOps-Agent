@@ -38,6 +38,8 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 ./scripts/p0_post_billing_acceptance.sh          # 禁止 --gates-only
 ```
 
+**退出码**（`p0_post_billing_acceptance.sh` 全量）：**0** 成功；**1** 环境缺失；**2** `llm_preflight`（含 402）；**3** acceptance gate 未 pass（`set -e` 自 `run_external_p0_full_eval_twice.sh` 传播）。
+
 成功条件（脚本末尾）：
 
 - **`p0_acceptance_gate=pass`**

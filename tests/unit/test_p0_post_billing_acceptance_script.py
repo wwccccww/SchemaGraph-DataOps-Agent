@@ -16,6 +16,8 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "--gates-only" in text
     assert 'source "$ROOT/.env"' in text
     assert "p0_acceptance_gate=pass" in text
+    assert "run_external_p0_full_eval_twice.sh" in text
+    assert "acceptance-gate" in text or "Exit:" in text
 
 
 def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
