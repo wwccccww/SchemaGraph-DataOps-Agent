@@ -22,6 +22,8 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "apply_p0_measured_benchmark.sh" in text
     assert "tpcds_postgres_catalog=" in text
     assert "acceptance-gate" in text or "Exit:" in text
+    assert "P0_FROM_BILLING_WAIT" in text
+    assert "P0_PREFLIGHT_WAIT_RETRIES" in text
 
 
 def test_p0_post_billing_acceptance_requires_bird_root_directory() -> None:
@@ -59,6 +61,55 @@ def test_p0_post_billing_acceptance_requires_postgres_env() -> None:
     )
     assert completed.returncode == 1
     assert "POSTGRES_USER" in completed.stderr
+
+
+def test_p0_post_billing_acceptance_retries_transient_402_after_wait(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/p0_post_billing_acceptance.sh"
+    real_python = subprocess.run(
+        ["bash", "-lc", "command -v python3"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    state = tmp_path / "preflight_calls"
+    state.write_text("0", encoding="utf-8")
+    fake_python = tmp_path / "python3"
+    fake_python.write_text(
+        f"""#!/usr/bin/env bash
+if [[ "$1" == "-m" && "$2" == "app.evaluation.llm_preflight" ]]; then
+  n=$(cat {state})
+  echo $((n + 1)) > {state}
+  if [[ "$n" -lt 2 ]]; then
+    echo "model gateway failed with status 402 (Payment Required)" >&2
+    exit 2
+  fi
+  exit 0
+fi
+exec {real_python} "$@"
+"""
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    ensure_bird_database_root(env, tmp_path=tmp_path)
+    env.setdefault("POSTGRES_USER", "text2sql_admin")
+    env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+    env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
+    env["P0_FROM_BILLING_WAIT"] = "1"
+    env["P0_PREFLIGHT_WAIT_RETRIES"] = "4"
+    env["P0_PREFLIGHT_WAIT_SLEEP"] = "0"
+    env["P0_ACCEPTANCE_PREFLIGHT_ONLY"] = "1"
+    completed = subprocess.run(
+        [str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "p0_acceptance_preflight_only=ok" in completed.stdout
+    assert "retry=1/4" in completed.stderr or "retry=1/4" in completed.stdout
 
 
 def test_p0_post_billing_acceptance_stops_on_llm_preflight_402(tmp_path: Path) -> None:

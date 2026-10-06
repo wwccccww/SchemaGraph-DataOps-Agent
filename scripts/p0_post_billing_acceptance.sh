@@ -46,7 +46,35 @@ if [[ "$GATES_ONLY" -eq 1 ]]; then
   echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
   exit 0
 fi
-python3 -m app.evaluation.llm_preflight
+_p0_run_llm_preflight() {
+  if [[ -n "${P0_FROM_BILLING_WAIT:-}" ]]; then
+    local retries="${P0_PREFLIGHT_WAIT_RETRIES:-6}"
+    local sleep_sec="${P0_PREFLIGHT_WAIT_SLEEP:-20}"
+    local i
+    for ((i = 1; i <= retries; i++)); do
+      if python3 -m app.evaluation.llm_preflight 2>/tmp/p0_acceptance_preflight.err; then
+        return 0
+      fi
+      if grep -q "402" /tmp/p0_acceptance_preflight.err 2>/dev/null; then
+        echo "llm_preflight=blocked_billing_402 retry=${i}/${retries}" >&2
+        if [[ "$i" -lt "$retries" ]]; then
+          sleep "$sleep_sec"
+        fi
+      else
+        cat /tmp/p0_acceptance_preflight.err >&2
+        return 2
+      fi
+    done
+    cat /tmp/p0_acceptance_preflight.err >&2
+    return 2
+  fi
+  python3 -m app.evaluation.llm_preflight
+}
+_p0_run_llm_preflight || exit 2
+if [[ -n "${P0_ACCEPTANCE_PREFLIGHT_ONLY:-}" ]]; then
+  echo "p0_acceptance_preflight_only=ok"
+  exit 0
+fi
 "$ROOT/scripts/p1_release_gate.sh"
 "$ROOT/scripts/run_external_p0_full_eval_twice.sh"
 if [[ "${P0_APPLY_BENCHMARK:-1}" == "1" ]]; then

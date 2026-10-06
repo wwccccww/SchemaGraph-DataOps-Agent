@@ -70,4 +70,5 @@ if [[ -n "${P0_WAIT_STUB_ACCEPTANCE:-}" ]]; then
   echo "p0_post_billing=stub"
   exit 0
 fi
+export P0_FROM_BILLING_WAIT=1
 exec "$ROOT/scripts/p0_post_billing_acceptance.sh"

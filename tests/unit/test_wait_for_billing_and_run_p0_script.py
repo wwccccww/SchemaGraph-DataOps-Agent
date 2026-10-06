@@ -27,6 +27,7 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "wait_log=" in text
     assert "P0_WAIT_CONFIRM_POLLS" in text
     assert "confirm_polls=" in text
+    assert "P0_FROM_BILLING_WAIT" in text
 
 
 def test_wait_for_billing_requires_postgres_env() -> None:
