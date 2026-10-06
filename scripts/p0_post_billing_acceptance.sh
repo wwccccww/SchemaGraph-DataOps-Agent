@@ -36,4 +36,4 @@ fi
 python3 -m app.evaluation.llm_preflight
 "$ROOT/scripts/p1_release_gate.sh"
 "$ROOT/scripts/run_external_p0_full_eval_twice.sh"
-echo "P0 acceptance: copy p0_measured_* lines above into docs/benchmark.md; update test_p0_external_measured_baseline when BIRD/TPC-DS fractions stabilize."
+echo "P0 acceptance: require p0_acceptance_gate=pass above; copy p0_measured_* into docs/benchmark.md; update test_p0_external_measured_baseline when BIRD/TPC-DS fractions stabilize."

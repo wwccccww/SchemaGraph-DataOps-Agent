@@ -137,6 +137,38 @@ def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
     assert any("tpcds" in item for item in failures)
 
 
+def test_cli_acceptance_gate_passes(tmp_path: Path) -> None:
+    t1 = tmp_path / "t1"
+    t2 = tmp_path / "t2"
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
+    _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
+    _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.p0_measured_summary",
+            "--tpcds-run",
+            str(t1),
+            "--tpcds-run",
+            str(t2),
+            "--bird-run",
+            str(b1),
+            "--bird-run",
+            str(b2),
+            "--acceptance-gate",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "p0_acceptance_gate=pass" in completed.stdout
+
+
 def test_cli_acceptance_gate_exit_code(tmp_path: Path) -> None:
     t1 = tmp_path / "t1"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
