@@ -38,4 +38,12 @@ if [[ -d "$TPCDS_PEAK/cases" ]]; then
   python3 -m app.evaluation.external_model --source tpcds-derived --replay-run "$TPCDS_PEAK" 2>&1 \
     | grep "replay EX:" || true
 fi
+if [[ -d "$PEAK/cases" ]]; then
+  echo "== peak EX=0 frozen semantic bar (≥3 findings) =="
+  if python3 -m pytest tests/unit/test_bird_profile_inventory.py::test_peak_v15_ex0_saved_sql_surfaces_frozen_findings -q --tb=no; then
+    echo "peak_ex0_frozen_findings=pass_min_3"
+  else
+    echo "peak_ex0_frozen_findings=fail" >&2
+  fi
+fi
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
