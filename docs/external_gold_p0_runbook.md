@@ -69,6 +69,19 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **7/50**，同步更新 `test_p0_external_measured_baseline.py` 与 **`P0_BIRD_MIN_MATCHED`**。
 
+### Measured manifest（2×2 全量）
+
+`run_external_p0_full_eval_twice.sh` 会清空并写入 **`reports/p0_measured_manifest.tsv`**（stdout 键 **`p0_measured_manifest=`**）。每行 **`SOURCE<TAB>绝对或相对 run 目录`**：
+
+```text
+tpcds-derived	reports/tpcds-derived/run_…
+tpcds-derived	reports/tpcds-derived/run_…
+bird	reports/bird/run_…
+bird	reports/bird/run_…
+```
+
+验收：`python3 -m app.evaluation.p0_measured_summary --manifest reports/p0_measured_manifest.tsv --acceptance-gate`
+
 ## 无 LLM 复分（回归，非新实测）
 
 | 命令 | 用途 |

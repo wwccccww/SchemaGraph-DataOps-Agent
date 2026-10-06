@@ -46,3 +46,4 @@ def test_main_exits_2_on_402(
     err = capsys.readouterr().err
     assert "external_gold_p0_runbook.md" in err
     assert "--gates-only" in err
+    assert "wait_for_billing_and_run_p0.sh" in err

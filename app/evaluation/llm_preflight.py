@@ -40,6 +40,11 @@ def main() -> None:
                 "./scripts/p0_post_billing_acceptance.sh --gates-only",
                 file=sys.stderr,
             )
+            print(
+                "After billing: ./scripts/wait_for_billing_and_run_p0.sh "
+                "or ./scripts/p0_post_billing_acceptance.sh",
+                file=sys.stderr,
+            )
             raise SystemExit(2) from exc
         raise SystemExit(1) from exc
 
