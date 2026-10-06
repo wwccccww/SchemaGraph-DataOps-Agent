@@ -367,6 +367,21 @@ def check_answer_shape(
                     "只在最终 SELECT ROUND；diff_from_overall 依赖未 ROUND 的中间值",
                 )
             )
+        if re.search(r"\bok_cnt\b|\bcnt\s*\*", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "running OK 占比用 SUM(CASE WHEN status='C' THEN 1 END) 与 COUNT(status)，"
+                    "CTE 列名 percentage_running_ok = CAST(SUM(...) AS REAL)*100/COUNT(status)",
+                )
+            )
+        if re.search(r"overall_percentage\s*\*\s*100", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "overall_stats 的 percentage 已是 0–100 刻度时，最终 SELECT 只 ROUND(o.percentage)，不要 *100",
+                )
+            )
     has_frpm = any(document.table_name.lower() == "frpm" for document in documents)
     if has_frpm and re.search(r"County Name|Alameda|Los Angeles|Fresno", question, re.IGNORECASE):
         if "county name" not in lowered and re.search(
