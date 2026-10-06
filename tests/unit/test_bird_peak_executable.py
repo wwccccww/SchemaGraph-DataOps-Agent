@@ -6,7 +6,7 @@ import json
 
 import pytest
 from app.sandbox.sqlite import SqliteFailure, execute_sqlite_readonly
-from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN
+from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN, bird_sqlite_replay_ready
 
 _DB_BY_NAME = {
     "california_schools": BIRD_DB_ROOT / "california_schools/california_schools.sqlite",
@@ -15,7 +15,7 @@ _DB_BY_NAME = {
 
 
 def test_peak_v15_saved_sql_readonly_failures_only_bird_0094() -> None:
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     failures: list[str] = []
     for case_file in sorted((BIRD_PEAK_RUN / "cases").glob("bird_*.json")):
@@ -36,7 +36,7 @@ def test_peak_v15_saved_sql_readonly_failures_only_bird_0094() -> None:
 
 def test_peak_circuit_breaker_cases_saved_sql_executable_except_0094() -> None:
     """熔断 8 题中 7 题保存 SQL 已可执行；失败主因冻结契约/repair 而非沙箱（P0 诊断）。"""
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     circuit_breaker = (
         "bird_0011",

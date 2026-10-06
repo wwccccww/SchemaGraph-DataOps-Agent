@@ -14,6 +14,7 @@ from tests.unit.bird_replay_fixtures import (
     BIRD_DB_ROOT,
     BIRD_PEAK_RUN,
     TPCDS_PEAK_RUN,
+    bird_sqlite_replay_ready,
     postgres_replay_ready,
 )
 
@@ -23,7 +24,7 @@ def test_p0_oracle_release_gate() -> None:
 
 
 def test_p0_bird_measured_baseline_seven_of_fifty_on_peak_run() -> None:
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
         [
@@ -47,7 +48,7 @@ def test_p0_bird_measured_baseline_seven_of_fifty_on_peak_run() -> None:
 
 def test_p0_bird_peak_patch_autofix_replay_nine_of_fifty() -> None:
     """峰值 v15 保存 SQL 经 PATCH autofix 后 EX 上界（0002+0094）；仍非新 LLM run。"""
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
         [

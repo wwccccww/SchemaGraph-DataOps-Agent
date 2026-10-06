@@ -15,6 +15,7 @@ from tests.unit.bird_replay_fixtures import (
     BIRD_DB_ROOT,
     BIRD_PEAK_RUN,
     TPCDS_PEAK_RUN,
+    bird_sqlite_replay_ready,
     postgres_replay_ready,
 )
 
@@ -34,7 +35,7 @@ def test_replay_profile_catalog() -> None:
 
 
 def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
         [
@@ -58,7 +59,7 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
 
 def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
     """v15 保存 trace 为 sql_error；--replay-run 用当前 SQLite gate 重算为可执行。"""
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     saved = json.loads((BIRD_PEAK_RUN / "cases" / "bird_0021.json").read_text())
     assert saved.get("primary_class") == "sql_error"
@@ -83,7 +84,7 @@ def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
 
 
 def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
         [
@@ -107,7 +108,7 @@ def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
 
 
 def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:
-    if not BIRD_PEAK_RUN.is_dir() or not BIRD_DB_ROOT.is_dir():
+    if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     script = Path(__file__).resolve().parents[2] / "scripts/replay_bird_offline_ceiling.sh"
     if not script.is_file():
