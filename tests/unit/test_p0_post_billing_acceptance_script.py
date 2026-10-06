@@ -119,3 +119,5 @@ exec {real_python} "$@"
     assert "preflight should not run" not in completed.stderr
     assert "p1_release_gate=stub" in completed.stdout
     assert "P0 gates-only OK" in completed.stdout
+    assert "ops_runbook=docs/external_gold_p0_runbook.md" in completed.stdout
+    assert "next_after_billing=./scripts/p0_post_billing_acceptance.sh" in completed.stdout

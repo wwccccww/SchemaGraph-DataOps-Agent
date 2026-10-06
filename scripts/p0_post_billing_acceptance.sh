@@ -30,6 +30,8 @@ if [[ "$GATES_ONLY" -eq 1 ]]; then
   else
     "$ROOT/scripts/p1_release_gate.sh"
   fi
+  echo "ops_runbook=docs/external_gold_p0_runbook.md"
+  echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
   echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
   exit 0
 fi
