@@ -11,7 +11,12 @@ from pathlib import Path
 import pytest
 from app.evaluation.external_release import release_ready
 from app.evaluation.replay_amend import GOLD_OVERLAY_PROFILES, PATCH_AMEND_PROFILES
-from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN, TPCDS_PEAK_RUN
+from tests.unit.bird_replay_fixtures import (
+    BIRD_DB_ROOT,
+    BIRD_PEAK_RUN,
+    TPCDS_PEAK_RUN,
+    postgres_replay_ready,
+)
 
 
 def test_release_gate_ready() -> None:
@@ -121,6 +126,8 @@ def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
     if not TPCDS_PEAK_RUN.is_dir():
         pytest.skip("tpcds replay fixture unavailable")
+    if not postgres_replay_ready():
+        pytest.skip("POSTGRES_USER and POSTGRES_PASSWORD required for tpcds replay")
     completed = subprocess.run(
         [
             sys.executable,

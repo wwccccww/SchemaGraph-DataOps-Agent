@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -19,3 +20,8 @@ TPCDS_PEAK_RUN = (
 
 def peak_case_path(case_id: str) -> Path:
     return BIRD_PEAK_RUN / "cases" / f"{case_id}.json"
+
+
+def postgres_replay_ready() -> bool:
+    """TPC-DS `--replay-run` 需要 Postgres catalog（与 verify-tpcds 相同）。"""
+    return bool(os.environ.get("POSTGRES_USER") and os.environ.get("POSTGRES_PASSWORD"))

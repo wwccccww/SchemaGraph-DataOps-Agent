@@ -10,7 +10,12 @@ import sys
 
 import pytest
 from app.evaluation.external_release import release_ready
-from tests.unit.bird_replay_fixtures import BIRD_DB_ROOT, BIRD_PEAK_RUN, TPCDS_PEAK_RUN
+from tests.unit.bird_replay_fixtures import (
+    BIRD_DB_ROOT,
+    BIRD_PEAK_RUN,
+    TPCDS_PEAK_RUN,
+    postgres_replay_ready,
+)
 
 
 def test_p0_oracle_release_gate() -> None:
@@ -68,6 +73,8 @@ def test_p0_bird_peak_patch_autofix_replay_nine_of_fifty() -> None:
 def test_p0_tpcds_measured_baseline_thirty_of_thirty_on_peak_run() -> None:
     if not TPCDS_PEAK_RUN.is_dir():
         pytest.skip("tpcds replay fixture unavailable")
+    if not postgres_replay_ready():
+        pytest.skip("POSTGRES_USER and POSTGRES_PASSWORD required for tpcds replay")
     completed = subprocess.run(
         [
             sys.executable,
