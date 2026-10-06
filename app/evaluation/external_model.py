@@ -528,7 +528,7 @@ def main(argv: list[str] | None = None) -> None:
         action="append",
         default=[],
         metavar="PROFILE",
-        help="With --replay-run: amend saved SQL (coe_charter, running_ok) before EX",
+        help="With --replay-run: amend saved SQL (coe_charter, running_ok, magnet_sat, top_reading)",
     )
     args = parser.parse_args(argv)
     if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
@@ -676,7 +676,7 @@ async def _run(
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
     ensure_fingerprints(loaded, source)
     if replay_run is not None:
-        allowed = frozenset({"coe_charter", "running_ok", "magnet_sat"})
+        allowed = frozenset({"coe_charter", "running_ok", "magnet_sat", "top_reading"})
         unknown = set(replay_amend) - allowed
         if unknown:
             raise ValueError(f"unknown --replay-amend profiles: {sorted(unknown)}")

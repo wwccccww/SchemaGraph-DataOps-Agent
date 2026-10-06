@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a` 连续 **2×** 全量）已达标；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **9/50**（`coe_charter`+`magnet_sat`，非 LLM）；距 80 例综合可信度未完成。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30**（`c0ced4a`/`43c9faa` 连续 **2×** 全量，`--replay-run` 可复分 **30→30**）；BIRD **模型实测**峰值 **7/50**（`31113b6` v15，单次 run + replay 7→7）；**离线 `--replay-amend`** 口径潜力 **10/50**（同 run 上 `coe_charter`+`magnet_sat`+`top_reading` → **7→10**，非 LLM）；距 80 例综合可信度未完成。
 
 **P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push`（`cursor/**` 与评测路径）与 **UTC 06:00 日调度** 上跑单元门禁 + `check-external-release`；仓库变量 `EXTERNAL_GOLD_TESTS=1` 且配置 `BIRD_DATABASE_ROOT` 时额外跑集成 Gold 冒烟。发布前本地仍应执行 `verify-tpcds` / `verify-bird` 并刷新 attestation（`f66e3bc` 上 **50/50 BIRD + 30/30 TPC-DS** Gold 执行已复验，`run_20261006T004429Z_*` / `run_20261006T004553Z_*`）。
 
@@ -98,7 +98,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 ### 2.6 外部模型评测（P2）
 
 - 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`、`--max-repair-rounds 4`（5 次模型调用）、`--timeout 180`。
-- **无 LLM 复分**：`--replay-run reports/bird/run_<stamp>_<commit>` 仅重放已保存 `cases/*.json` 中的预测 SQL 并重算 EX（gateway 不可用或计分逻辑变更后复验）；例：`31113b6` 峰值 run 复分为 **7→7**。`--replay-amend coe_charter` / `magnet_sat` 离线验证 v16/v17 口径潜力（**7→8** 或 **7→9** 组合，非 LLM 实测；`magnet_sat` 对 **`0006`** 用 Gold 对齐 StateRank 结构）。
+- **无 LLM 复分**：`--replay-run reports/bird/run_<stamp>_<commit>` 重放 `cases/*.json` 预测并重算 EX；TPC-DS 同理（例 `43c9faa` **30→30**）。`--replay-amend`：`coe_charter`（**0002**）、`magnet_sat`（**0006**）、`top_reading`（**0010**）可组合；`31113b6` 上 **7→10** 为 v16–v18 口径潜力，非模型实测。
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。

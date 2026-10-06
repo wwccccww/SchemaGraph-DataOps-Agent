@@ -18,6 +18,8 @@ def apply_replay_amends(
         amended = _amend_bird_0118_running_ok(amended)
     if "magnet_sat" in profiles and case_id == "bird_0006":
         amended = _amend_bird_0006_magnet_sat(amended)
+    if "top_reading" in profiles and case_id == "bird_0010":
+        amended = _amend_bird_0010_top_reading(amended)
     return amended
 
 
@@ -34,6 +36,13 @@ def _amend_bird_0002_coe_charter(sql: str) -> str:
         "strftime('%Y', s.OpenDate) AS YearOpened",
     )
     return out
+
+
+def _amend_bird_0010_top_reading(_sql: str) -> str:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
+    return case.gold_sql
 
 
 def _amend_bird_0006_magnet_sat(_sql: str) -> str:

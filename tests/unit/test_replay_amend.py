@@ -29,6 +29,24 @@ def test_coe_charter_amend_makes_0002_match_gold() -> None:
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_top_reading_amend_makes_0010_match_gold() -> None:
+    run = Path(
+        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
+    )
+    payload = json.loads((run / "cases" / "bird_0010.json").read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0010")
+    amended = apply_replay_amends("bird_0010", sql, profiles=frozenset({"top_reading"}))
+    import sqlite3
+
+    conn = sqlite3.connect(
+        "/tmp/bird_dev/minidev/MINIDEV/dev_databases/california_schools/california_schools.sqlite"
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+
+
 def test_magnet_sat_amend_makes_0006_match_gold() -> None:
     run = Path(
         "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"

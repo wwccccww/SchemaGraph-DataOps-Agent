@@ -302,7 +302,9 @@ def check_answer_shape(
                     "PercentScoring1500Plus 用 NumGE1500*100/NumTstTakr，不要除以 Enrollment",
                 )
             )
-        if re.search(r"order by.*limit\s+1", sql, re.IGNORECASE) and "readingrank\s*=\s*1" not in lowered:
+        if re.search(r"order by.*limit\s+1", sql, re.IGNORECASE) and not re.search(
+            r"readingrank\s*=\s*1", lowered
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
