@@ -82,6 +82,19 @@ def test_coe_charter_does_not_forbid_frpm_charter_filter() -> None:
     assert not any("不要用 frpm 的 Y/N" in message for message in messages)
 
 
+def test_fully_virtual_flags_literal_fully_virtual_filter() -> None:
+    question = (
+        "What are the details of fully virtual schools that have an average SAT Math score above 400?"
+    )
+    sql = (
+        "SELECT s.School FROM schools s WHERE s.Virtual = 'Fully Virtual' AND s.GSserved AS SchoolType"
+    )
+    findings = check_answer_shape(question, sql, (_schools_doc(),), dialect="sqlite")
+    messages = [item.message for item in findings]
+    assert any("Virtual='F'" in message for message in messages)
+    assert any("GSserved" in message or "Charter School" in message for message in messages)
+
+
 def test_coe_charter_flags_percent_frpm_times_100() -> None:
     question = (
         "For charter schools in Fresno County Office of Education, categorizing schools "

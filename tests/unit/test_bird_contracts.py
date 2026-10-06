@@ -59,6 +59,13 @@ def test_bird_0006_contract_includes_magnet_sat_profile() -> None:
     assert "magnet_sat_profile=true" in contract.filters
 
 
+def test_bird_0005_contract_includes_virtual_sat_f_profile() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0005")
+    assert "virtual_sat_f_profile=true" in contract_for(case).filters
+
+
 def test_bird_0002_contract_includes_coe_charter_profile() -> None:
     from app.evaluation.bird import load_bird_cases
 

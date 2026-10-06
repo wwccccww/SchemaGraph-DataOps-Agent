@@ -374,6 +374,31 @@ def check_answer_shape(
                     "县级排名 CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)，不要用 RANK()",
                 )
             )
+    if re.search(r"fully virtual", question, re.IGNORECASE):
+        if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "schools.Virtual 为 F/P/N 代码；fully virtual 用 Virtual='F'，"
+                    "输出 VirtualStatus 用 CASE 映射 Fully Virtual",
+                )
+            )
+        if re.search(r"GSserved\s+AS\s+SchoolType", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SchoolType 用 Charter School / Regular School（schools.Charter），不要用 GSserved",
+                )
+            )
+    if re.search(r"partially virtual", question, re.IGNORECASE):
+        if re.search(r"Virtual\s*=\s*'Partially Virtual'|Virtual\s*=\s*'P'", sql, re.I):
+            if re.search(r"Virtual\s*=\s*'Partially Virtual'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "partially virtual 过滤用 schools.Virtual='P'，VirtualStatus 用 CASE 输出标签",
+                    )
+                )
     if re.search(
         r"charter schools.*County Office|County Office of Education.*charter",
         question,
@@ -959,6 +984,11 @@ def _join_hints(
         hints.append(
             "running OK 占比：COUNT(status) 作分母；CTE 内 percentage 不 ROUND；"
             "avg_duration 不 ROUND；最终 SELECT 再 ROUND percentage 与 diff_from_overall。"
+        )
+    if "schools" in visible and re.search(r"fully virtual|partially virtual", question, re.I):
+        hints.append(
+            "Virtual：schools.Virtual 代码 F=Fully/P=Partially/N=Not；过滤用 F 或 P，"
+            "VirtualStatus 用 CASE 输出可读标签；SchoolType 用 Charter/Regular School。"
         )
     if "frpm" in visible and re.search(
         r"County Office of Education|FRPM percentage levels",

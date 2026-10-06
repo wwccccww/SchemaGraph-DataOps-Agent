@@ -103,7 +103,7 @@ TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `e
 - 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
 - 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
 - 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
-- Generic Prompt 当前 **`text-to-sql-generic-v13`**（v12：California SAT/FRPM；v11：SQLite 明细少写 GROUP BY；v10：NSLP/frpm；v9：窗口函数分层）。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约。
+- Generic Prompt 当前 **`text-to-sql-generic-v20`**（v19：Top-5 FRPM SOC=66；v18：top reading；v17：magnet SAT；v16：COE charter；v15：financial running OK；v20：`schools.Virtual` F/P/N 与 virtual SAT 题）。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile（`coe_charter`、`virtual_sat_f` 等）。
 - **P1 本地 verify（Gold Oracle，无模型）**：
   ```bash
   python3 -m app.evaluation.external_data verify-tpcds

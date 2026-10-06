@@ -137,6 +137,39 @@ def check_frozen_semantic_contract(
                     "冻结 core_tables 不含 client，不要 JOIN client",
                 )
             )
+        if "virtual_sat_f_profile=true" in contract.filters:
+            if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "schools.Virtual 存 F/P/N 代码；fully virtual 过滤用 Virtual='F'，"
+                        "VirtualStatus 用 CASE 映射 Fully Virtual 等标签",
+                    )
+                )
+            if re.search(r"FRPMPercentage\s*>=\s*75|FRPMPercentage\s*>=\s*50", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 基于 frpm 小数列 >=0.75/0.50/0.25，"
+                        "标签 High/Medium/Low/Very Low Poverty；不要对 ×100 后的 FRPMPercentage 用 >=75",
+                    )
+                )
+            if re.search(r"High FRPM|Medium FRPM|Low FRPM", sql) and "Poverty" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "本题 PovertyLevel 用 High/Medium/Low/Very Low Poverty，不要用 High FRPM",
+                    )
+                )
+            if re.search(r"GSserved\s+AS\s+SchoolType|GSoffered\s+AS\s+SchoolType", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter School / Regular School（schools.Charter），不要用 GSserved",
+                    )
+                )
         if "coe_charter_profile=true" in contract.filters:
             if re.search(
                 r"Percent[\s\S]*?\*\s*100\s+AS\s+PercentFRPM|\*\s*100\s+AS\s+PercentFRPM",
@@ -625,6 +658,23 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item.startswith("anchor_date="):
             day = item.split("=", 1)[1]
             hints.append(f"相对日期/校龄计算使用 anchor {day}，不要用 date('now') 或 julianday('now')。")
+        if item == "virtual_sat_f_profile=true":
+            hints.append(
+                "Fully virtual：WHERE schools.Virtual='F'；VirtualStatus CASE F/P/N；"
+                "SAT>400 在 satscores 侧过滤；SchoolType=Charter School/Regular School；"
+                "PovertyLevel 用 High/Medium/Low/Very Low Poverty（frpm 小数）；"
+                "FRPMPercentage=ROUND(Percent FRPM*100,1)||'%'；ORDER BY TotalScore DESC, Enrollment DESC。"
+            )
+        if item == "virtual_charter_p_profile=true":
+            hints.append(
+                "Partially virtual charter：Virtual='P'；County 过滤；charter 用 schools.Charter=1；"
+                "frpm 小数 FRPM 与 Poverty 标签；县内 RANK 按 Enrollment。"
+            )
+        if item == "virtual_county_compare_profile=true":
+            hints.append(
+                "县际 fully virtual：Virtual='F'；按 County 汇总 count/charter 占比/均值 SAT；"
+                "RANK 比较县；LargestVirtualSchool 为该县 Enrollment 最大校。"
+            )
         if item == "coe_charter_profile=true":
             hints.append(
                 "Fresno COE charter：frpm.`District Name` + `Charter School (Y/N)`=1；"

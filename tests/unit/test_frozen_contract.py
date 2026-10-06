@@ -39,6 +39,22 @@ def test_format_includes_projection_order_hint_when_grouped() -> None:
     assert "ORDER BY" in text
 
 
+def test_virtual_sat_f_frozen_contract_flags_peak_0005_sql() -> None:
+    from app.evaluation.bird import load_bird_cases
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0005")
+    contract = case.semantic_contract
+    assert contract is not None
+    bad = (
+        "SELECT s.GSserved AS SchoolType FROM schools s "
+        "WHERE s.Virtual = 'Fully Virtual' "
+        "AND FRPMPercentage >= 75 THEN 'High FRPM'"
+    )
+    messages = [item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")]
+    assert any("Virtual='F'" in message for message in messages)
+    assert any("GSserved" in message or "Charter" in message for message in messages)
+
+
 def test_coe_charter_frozen_contract_flags_peak_run_mistakes() -> None:
     from app.evaluation.bird import load_bird_cases
 
