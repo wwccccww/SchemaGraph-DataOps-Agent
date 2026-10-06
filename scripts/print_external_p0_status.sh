@@ -24,3 +24,4 @@ if [[ -d "$TPCDS_PEAK/cases" ]]; then
   python3 -m app.evaluation.external_model --source tpcds-derived --replay-run "$TPCDS_PEAK" 2>&1 \
     | grep "replay EX:" || true
 fi
+echo "next_after_billing=./scripts/run_external_p0_full_eval_twice.sh"

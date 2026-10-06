@@ -108,6 +108,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
 
+**GitHub 仓库变量（P1 扩展 CI）**：在 Settings → Secrets and variables → Actions → Variables 中设置 **`BIRD_DATABASE_ROOT`**（runner 上 BIRD `dev_databases` 绝对路径）可启用 **`replay-gate`** job（`test_p1_replay_gate`）；checkout 需含峰值 `reports/bird/run_*` 快照（或 runner 预置同路径）。设置 **`EXTERNAL_GOLD_TESTS=1`** 启用集成冒烟 job。完整 **`verify-bird` + TPC-DS 库** 在 GitHub 托管 runner 上通常不可用，**权威 Oracle 路径**为自托管环境或本地 `./scripts/p1_release_gate.sh` / `./scripts/verify_external_gold.sh`。
+
 TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `expected_columns` 生成，不反解析 Gold SQL）。发布前运行 `check-external-release`；通过表示两份 attestation 均为 `gold_matched` 且快照哈希已写入。
 
 ### 2.6 外部模型评测（P2）
