@@ -82,5 +82,10 @@ while true; do
     echo "p0_post_billing=blocked_resume_poll interval=${INTERVAL}s" >&2
     continue
   fi
+  if [[ "$rc" -eq 4 ]]; then
+    _p0_wait_log "p0_post_billing=skipped_already_running"
+    echo "p0_post_billing=skipped_already_running (peer holds P0_ACCEPTANCE_LOCK_FILE)" >&2
+    exit 0
+  fi
   exit "$rc"
 done

@@ -29,6 +29,7 @@ def test_wait_for_billing_script_exists_and_contract() -> None:
     assert "confirm_polls=" in text
     assert "P0_FROM_BILLING_WAIT" in text
     assert "p0_post_billing=blocked_resume_poll" in text
+    assert "p0_post_billing=skipped_already_running" in text
 
 
 def test_wait_for_billing_requires_postgres_env() -> None:

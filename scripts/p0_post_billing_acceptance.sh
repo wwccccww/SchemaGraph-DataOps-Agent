@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # P0 产品条：DeepSeek 计费恢复后，按顺序完成 Oracle 门禁 + 2× 全量 LLM（80 例可信度）。
 # 402 时第一步 llm_preflight 即 exit 2；402 期间可用 --gates-only 仅跑 P1 门禁，或 ./scripts/print_external_p0_status.sh。
-# Exit: 0 OK；1 缺 BIRD_DATABASE_ROOT / POSTGRES_*；2 llm_preflight（402 等）；3 p0_measured_summary --acceptance-gate 未 pass。
+# Exit: 0 OK；1 缺 BIRD_DATABASE_ROOT / POSTGRES_*；2 llm_preflight（402 等）；3 p0_measured_summary --acceptance-gate 未 pass；4 已有全量 acceptance 在跑（flock）。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -45,6 +45,12 @@ if [[ "$GATES_ONLY" -eq 1 ]]; then
   echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
   echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
   exit 0
+fi
+P0_ACCEPTANCE_LOCK_FILE="${P0_ACCEPTANCE_LOCK_FILE:-/tmp/p0_post_billing_acceptance.lock}"
+exec 9>"$P0_ACCEPTANCE_LOCK_FILE"
+if ! flock -n 9; then
+  echo "p0_acceptance=already_running lock=${P0_ACCEPTANCE_LOCK_FILE}" >&2
+  exit 4
 fi
 _p0_run_llm_preflight() {
   if [[ -n "${P0_FROM_BILLING_WAIT:-}" ]]; then

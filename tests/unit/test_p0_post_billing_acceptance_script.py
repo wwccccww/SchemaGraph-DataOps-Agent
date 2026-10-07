@@ -24,6 +24,9 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "acceptance-gate" in text or "Exit:" in text
     assert "P0_FROM_BILLING_WAIT" in text
     assert "P0_PREFLIGHT_WAIT_RETRIES" in text
+    assert "P0_ACCEPTANCE_LOCK_FILE" in text
+    assert "p0_acceptance=already_running" in text
+    assert "flock -n 9" in text
 
 
 def test_p0_post_billing_acceptance_requires_bird_root_directory() -> None:
@@ -200,3 +203,36 @@ exec {real_python} "$@"
             "tpcds_postgres_catalog=unreachable",
         )
     )
+
+
+def test_p0_post_billing_exits_4_when_acceptance_lock_held(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = root / "scripts/p0_post_billing_acceptance.sh"
+    lock = tmp_path / "p0_acceptance.lock"
+    lock.touch()
+    hold = subprocess.Popen(
+        ["bash", "-lc", f'exec 9>"{lock}"; flock 9; sleep 60'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        env = os.environ.copy()
+        ensure_bird_database_root(env, tmp_path=tmp_path)
+        env.setdefault("POSTGRES_USER", "text2sql_admin")
+        env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+        env["P0_ACCEPTANCE_LOCK_FILE"] = str(lock)
+        env["P0_ACCEPTANCE_PREFLIGHT_ONLY"] = "1"
+        completed = subprocess.run(
+            [str(script)],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=root,
+            env=env,
+            timeout=30,
+        )
+    finally:
+        hold.terminate()
+        hold.wait(timeout=5)
+    assert completed.returncode == 4
+    assert "p0_acceptance=already_running" in completed.stderr
