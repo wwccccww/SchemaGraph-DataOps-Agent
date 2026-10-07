@@ -37,6 +37,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |
 | **`replay_skipped=external_p0_status_skip_replay`** | `print_external_p0_status.sh` 在 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 时（单测 / 快速扫键；**运维 acceptance 勿设**，须看 replay EX 行） |
 | **`p0_acceptance_lock=free\|held`** | `print_external_p0_status.sh`：全量 acceptance **`flock`** 锁是否被占用（**`P0_ACCEPTANCE_LOCK_FILE`**） |
+| **`peak_ex0_frozen_findings=pass_min_37`** | `print_external_p0_status.sh`：v11 峰值 EX=0 inventory（`test_v11_measured_ex0_frozen_finding_coverage_floor`） |
 | **`p0_post_billing=blocked_resume_poll`** | `wait_for_billing_and_run_p0.sh`：全量 acceptance 仍 **402→exit 2** 时写 wait 日志并**继续轮询**（不退出 tmux） |
 | **`p0_post_billing=skipped_already_running`** | wait 触发全量时 acceptance **exit 4**（`flock` 锁）；另一路（timer/手动）已在跑，wait **exit 0** |
 | **`p0_acceptance=already_running`** | `p0_post_billing_acceptance.sh` 全量路径：**exit 4**（默认锁 **`/tmp/p0_post_billing_acceptance.lock`**，可 `P0_ACCEPTANCE_LOCK_FILE`） |
@@ -137,6 +138,7 @@ P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM �
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）。
 3. **方言**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名。
 4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`；`P0_BIRD_MIN_MATCHED` 与 `test_p0_external_measured_baseline.py` 同步上调。
+5. **自建评测（与外部轨道独立）**：电商 **132** 条 Oracle 护栏见 [benchmark.md §11](./benchmark.md)（`test_python_oracle_attestation_covers_every_case` **132/132**）；AnswerContract / 契约复核（P1/P2）与外部 BIRD frozen profile 互补，勿混报告。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
 
