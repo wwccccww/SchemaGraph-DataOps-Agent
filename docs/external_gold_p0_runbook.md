@@ -135,6 +135,10 @@ p0_acceptance_gate=pass
 
 **`1c55f6d` BIRD 实测（post-0096 `client_agg` PATCH，`/tmp/bird-p0-1c55f6d.log`）**：**23/50×2 stable**（`run_20261007T193040Z_*` / `run_20261007T193754Z_*`；**0005/0096 ex=1**）；manifest **`reports/p0_measured_manifest_1c55f6d.tsv`** + **`p0_acceptance_gate=pass`**（TPC-DS **`cd3994b` 30×2**）。
 
+**P1 本地（2026-10-07）**：`POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres BIRD_DATABASE_ROOT=… ./scripts/p1_release_gate.sh` → **exit 0**（日志 **`/tmp/p1-gate-54d1b15.log`**；含 Oracle verify + replay 子集 @ **`54d1b15`**）。
+
+**`54d1b15` TPC-DS 实测**：`./scripts/run_tpcds_p0_full_eval_twice.sh` → **30/30×2 stable**（`/tmp/tpcds-p0-1c55f6d.log`；`run_20261007T194508Z_*` / `run_20261007T195104Z_*`）；manifest **`reports/p0_measured_manifest_54d1b15.tsv`**（BIRD 仍 **`1c55f6d` 23×2**）。
+
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **19/50** 与 **18/50**，差分常为 **bird_0013** poverty 标签/`ROUND` 或 **bird_0061** FRPM 列），则 **`p0_stability_bird=unstable`**；优先 **`top3_sat_poverty` / `hickman_frpm` PATCH** 与 frozen 后再跑 2×。
 
 ### Measured manifest（2×2 全量）
