@@ -114,7 +114,7 @@ p0_acceptance_gate=pass
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable** measured（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**；acceptance **19/50×2 stable**（`p0-measured-autogen`，`p0_acceptance_gate=pass`） |
-| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→19/50**（**0061** + **0003**）；**881dd08** / **a78b594** / **7645bbb** 实测 **0003**（FRPM×100、**PercentHighScorers** 去 ROUND、PerformanceCategory 分档）；非新 LLM 实测 |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→19/50**（**0061** + **0003**）；**7645bbb** 保存 run **21→22** / **19→21**（**0003** + **0032** Free Meal→FRPM rate）；**`--replay-amend top_frpm_soc66`** 仍为 Gold overlay；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集（含 **`test_external_model_unit.py`** 外部 P2 写入门禁 + **`test_ablation.py`** 自建 P2）+ verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | … + **`peak_ex0_frozen_findings=pass_min_33`**（v12 EX=0 inventory **33/33**） |
