@@ -273,6 +273,27 @@ def test_slim_loan_core_tables_reject_disp_and_status_filter() -> None:
     assert any("loan.status" in item.message for item in findings)
 
 
+def test_frozen_contract_rejects_inventory_sold_items_join_store_sales() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_009")
+    bad = (
+        "WITH sold_items AS (SELECT DISTINCT ss_item_sk FROM store_sales "
+        "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk WHERE date_dim.d_year = 2001) "
+        "SELECT warehouse.w_state AS warehouse_state, item.i_category AS item_category, "
+        "date_dim.d_year AS inventory_year, SUM(inventory.inv_quantity_on_hand) AS quantity_on_hand "
+        "FROM inventory JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk "
+        "JOIN item ON inventory.inv_item_sk = item.i_item_sk "
+        "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk "
+        "JOIN store_sales ON store_sales.ss_item_sk = inventory.inv_item_sk "
+        "WHERE date_dim.d_year = 2001 "
+        "AND inventory.inv_item_sk IN (SELECT ss_item_sk FROM sold_items) "
+        "GROUP BY warehouse.w_state, item.i_category, date_dim.d_year"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("store_sales" in item.message for item in findings)
+
+
 def test_frozen_contract_rejects_quantity_sold_from_ss_sales_price() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
@@ -618,6 +639,29 @@ def test_multi_channel_union_skips_sk_heavy_cte_warning() -> None:
         check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
         == ()
     )
+
+
+def test_multi_channel_union_rejects_title_case_channel_labels() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_008")
+    bad = (
+        "WITH channel_sales AS (SELECT 'Store' AS sales_channel, ss_item_sk AS item_sk, "
+        "d_year AS sales_year, SUM(ss_ext_sales_price) AS sales_amount FROM store_sales "
+        "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY ss_item_sk, d_year "
+        "UNION ALL SELECT 'Catalog', cs_item_sk, d_year, SUM(cs_ext_sales_price) "
+        "FROM catalog_sales JOIN date_dim ON catalog_sales.cs_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY cs_item_sk, d_year "
+        "UNION ALL SELECT 'Web', ws_item_sk, d_year, SUM(ws_ext_sales_price) FROM web_sales "
+        "JOIN date_dim ON web_sales.ws_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY ws_item_sk, d_year) "
+        "SELECT cs.sales_channel, i.i_category, cs.sales_year, SUM(cs.sales_amount) "
+        "FROM channel_sales cs JOIN item i ON cs.item_sk = i.i_item_sk "
+        "GROUP BY cs.sales_channel, i.i_category, cs.sales_year"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("'store'" in item.message for item in findings)
 
 
 def test_check_requires_item_when_item_category_projected() -> None:

@@ -2627,15 +2627,6 @@ def check_frozen_semantic_contract(
                 "窗口函数（RANK 等）与 GROUP BY 不要写在同一 SELECT 层；用 CTE 先算基础列，外层再 RANK/ORDER BY",
             )
         )
-    if "inventory_sold_items=subquery" in contract.filters and "store" in referenced:
-        audited = {name.lower() for name in core_tables} if core_tables else set()
-        if "store" not in audited:
-            findings.append(
-                SemanticFinding(
-                    "missing_entity",
-                    "门店卖过过滤用 store_sales 子查询即可，不要 JOIN store 表",
-                )
-            )
     if "promotion_via_item_sk_subquery=true" in contract.filters:
         lowered = sql.lower()
         if re.search(r"\bjoin\s+promotion\b", lowered) or (
@@ -2687,6 +2678,49 @@ def check_frozen_semantic_contract(
                     )
                 )
     lowered_sql = sql.lower()
+    if "multi_channel_union=true" in contract.filters and "union" in lowered_sql:
+        if any(label in sql for label in ("'Catalog'", "'Store'", "'Web'")):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "渠道标签用 Gold 小写字面量 'store'、'catalog'、'web'，"
+                    "不要用 'Store'/'Catalog'/'Web'",
+                )
+            )
+        if not re.search(
+            r"group\s+by[^)]*ss_item_sk|group\s+by[^)]*cs_item_sk|group\s+by[^)]*ws_item_sk",
+            lowered_sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "各 UNION 分支先按 item_sk 与 sales_year GROUP BY 汇总 *_ext_sales_price，"
+                    "再 UNION ALL 后外层按 channel/item_category/sales_year 汇总",
+                )
+            )
+    if "inventory_sold_items=subquery" in contract.filters and "store" in referenced:
+        audited = {name.lower() for name in core_tables} if core_tables else set()
+        if "store" not in audited:
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "门店卖过过滤用 store_sales 子查询即可，不要 JOIN store 表",
+                )
+            )
+    if "inventory_sold_items=subquery" in contract.filters and "inventory" in referenced:
+        if re.search(
+            r"from\s+inventory\b[\s\S]*?join\s+store_sales\b",
+            lowered_sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "卖过商品过滤用 inventory.inv_item_sk IN (store_sales 子查询)，"
+                    "主查询 FROM inventory 后不要 JOIN store_sales",
+                )
+            )
     if "sales_amount" in contract.projections and "store_sales" in referenced:
         if re.search(
             r"sum\s*\(\s*[^)]*\bss_sales_price\b[^)]*\)\s*as\s*sales_amount",
@@ -3018,7 +3052,8 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "inventory_sold_items=subquery":
             hints.append(
                 "只保留门店卖过的商品：inventory.inv_item_sk IN (SELECT ss_item_sk FROM store_sales "
-                "JOIN date_dim ON … WHERE d_year=2001) 或等价 CTE；不必 JOIN store 维表。"
+                "JOIN date_dim ON … WHERE d_year=2001) 或 sold_items CTE；主查询不要 JOIN store_sales，"
+                "不必 JOIN store 维表。"
             )
         if item == "promotion_via_item_sk_subquery=true":
             hints.append(
@@ -3342,7 +3377,8 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "multi_channel_union=true":
             hints.append(
-                "多渠道销售须分渠道 CTE（各事实表+date_dim 过滤年份）用 UNION ALL 合并，"
+                "多渠道销售：各渠道 SELECT 小写标签 'store'/'catalog'/'web'，"
+                "按 item_sk 与 sales_year GROUP BY SUM(*_ext_sales_price)，UNION ALL 成 channel_rows，"
                 "再 JOIN item 按 channel/item_category/sales_year 汇总；不要单条 SQL 同时 JOIN 多个 *_sales。"
             )
         if item == "cross_channel_buyers=customer_and_item":
