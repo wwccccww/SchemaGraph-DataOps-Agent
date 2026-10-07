@@ -178,6 +178,26 @@ def test_v12_peak_multattempt_cases_include_repair_trace_symptoms() -> None:
     assert missing == [], f"multi-attempt cases missing repair_trace symptom: {missing}"
 
 
+def test_v12_peak_replay_inspection_restores_repair_trace() -> None:
+    """P1 replay：`inspection_from_replay` 须从 symptoms 还原 trace（对接 score_prediction P2 门禁）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    from app.evaluation.external_model import inspection_from_replay
+
+    empty: list[str] = []
+    for case_file in sorted((PEAK_V15_RUN / "cases").glob("bird_*.json")):
+        payload = json.loads(case_file.read_text())
+        attempts = payload.get("attempts") or 0
+        if attempts <= 1:
+            continue
+        inspection = inspection_from_replay(payload)
+        if not inspection.repair_trace:
+            empty.append(payload["case_id"])
+    assert empty == [], f"replay inspection missing repair_trace: {empty}"
+
+
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
     """Measured v11+ 峰值：EX=0 的 sql_error 保存 SQL 应至少 1 条 frozen finding（inventory）。"""
     if not PEAK_V15_RUN.is_dir():
