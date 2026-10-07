@@ -541,6 +541,18 @@ def check_frozen_semantic_contract(
                             "HighestFreeRate=Free Meal Count (K-12)/Enrollment (K-12)",
                         )
                     )
+                if re.search(
+                    r"ROUND\s*\(\s*[^)]*(?:FreeRate|CountyAverage|Deviation)",
+                    sql,
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "HighestFreeRate/CountyAverage/Deviation 不要 ROUND，"
+                            "与 Gold 全精度比率一致",
+                        )
+                    )
         if "locally_funded_enrollment_gap_profile=true" in contract.filters:
             if re.search(r"Locally funded|Enrollment \(K-12\)", sql, re.IGNORECASE):
                 if not re.search(r"FundingType\s*=\s*'Locally funded'", sql, re.IGNORECASE):
