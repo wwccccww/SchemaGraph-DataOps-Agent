@@ -509,12 +509,12 @@ def test_directly_funded_stanislaus_frozen_contract_flags_v12_bird_0066() -> Non
     ]
     assert len(messages) >= 2
     assert any(
-        "County Average" in message
-        or "CountyStats" in message
-        or "County Name" in message
+        "County Average" in message or "CountyStats" in message or "County Name" in message
         for message in messages
     )
-    assert any("Charter School (Y/N)" in message or "Educational Option" in message for message in messages)
+    assert any(
+        "Charter School (Y/N)" in message or "Educational Option" in message for message in messages
+    )
 
 
 def test_top_frpm_soc66_frozen_contract_flags_v12_bird_0032() -> None:
