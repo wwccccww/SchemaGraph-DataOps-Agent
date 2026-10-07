@@ -223,6 +223,29 @@ def test_high_frpm_frpm_pct_amend_makes_a78b594_measured_0003_match_gold() -> No
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_top3_sat_poverty_amend_makes_e3862a7_run1_0013_match_gold() -> None:
+    case_file = Path(
+        "/workspace/reports/bird/run_20261007T180831Z_e3862a75384e9b79ff25b314c955e045e200cc89/cases/bird_0013.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("e3862a7 run1 bird_0013 fixture missing")
+    if not CA_SCHOOLS_DB.is_file():
+        pytest.skip("bird sqlite snapshot missing")
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0013")
+    amended = apply_replay_amends(
+        "bird_0013",
+        sql,
+        profiles=frozenset({"top3_sat_poverty"}),
+        allow_gold_overlay=False,
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_top3_sat_poverty_amend_makes_unstable_run2_0013_match_gold() -> None:
     """7c47339 2× 方差题：run2 错误 poverty 标签 + ROUND 经 PATCH 后 EX=1。"""
     case_file = Path(

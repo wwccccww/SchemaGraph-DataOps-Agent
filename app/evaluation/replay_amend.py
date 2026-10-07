@@ -276,8 +276,20 @@ def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     out = re.sub(
+        r'ROUND\s*\(\s*se\.excellence_rate\s*,\s*\d+\s*\)\s+AS\s+"SAT Excellence Rate"',
+        'se.excellence_rate AS "SAT Excellence Rate"',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
         r"ROUND\s*\(\s*poverty_rate\s*,\s*\d+\s*\)",
         "poverty_rate",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r'ROUND\s*\(\s*f\."Percent \(\%\) Eligible FRPM \(K-12\)"\s*,\s*\d+\s*\)\s+AS\s+"Poverty Rate"',
+        'f."Percent (%) Eligible FRPM (K-12)" AS "Poverty Rate"',
         out,
         flags=re.IGNORECASE,
     )
