@@ -139,7 +139,7 @@ def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:
     out = re.sub(
         r"WHEN poverty_rate\s*>\s*0\.75\s+THEN\s+'[^']+'[\s\S]*?"
         r"ELSE\s+'[^']+'\s*\n\s*END\s+AS\s+\"Poverty Category\"",
-        f"{canonical}\n  END AS \"Poverty Category\"",
+        f'{canonical}\n  END AS "Poverty Category"',
         out,
         count=1,
         flags=re.IGNORECASE,
