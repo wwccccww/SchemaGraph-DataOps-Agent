@@ -635,7 +635,10 @@ async def test_score_prediction_patches_e5482a4_bird_0113_loan_98832_sql_error()
     if not MEASURED_BIRD_0113_E5482A4.is_file() or not FINANCIAL_DB.is_file():
         pytest.skip("e5482a4 bird_0113 fixture or financial sqlite missing")
     payload = json.loads(MEASURED_BIRD_0113_E5482A4.read_text())
-    assert payload.get("error_category") == "no_progress" or payload.get("primary_class") == "sql_error"
+    assert (
+        payload.get("error_category") == "no_progress"
+        or payload.get("primary_class") == "sql_error"
+    )
     raw_sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0113")
     trace = await _score_bird_saved_sql(case, raw_sql)
