@@ -124,6 +124,7 @@ p0_acceptance_gate=pass
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT`；**`p1_release_gate.sh` pytest 模块**须为 fingerprints 子集（`test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints`） |
 | 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | v11 measured：**37/37** EX=0 绑定 profile |
 | 峰值 EX=0 frozen 可纠偏 | `test_v11_measured_ex0_frozen_finding_coverage_floor` | v11：**37/37** 保存 SQL **≥1** finding（repair 信号；历史 v15 **≥3** 见 `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings`，v11 上 skip） |
+| 峰值 sql_error 熔断题 | `test_v11_measured_sql_error_ex0_have_frozen_findings` | v11：**4/4**（`bird_0006/0069/0092/0119`）保存 SQL **≥1** finding |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **13/13** ex=1 题绑定 profile（v11 measured） |
 | P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表（含 `test_wait_for_billing_and_run_p0_script.py`）、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
 | P0/P1 runbook 交叉引用 | `test_external_gold_runbook_docs.py` | runbook 存在且 `benchmark.md` / `README.md` / `external-gold.yml` 路径一致 |
