@@ -95,8 +95,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T183848Z_cd3994b4b8ebc97481fd57046017dc6d95e3a0a3 commit=cd3994b4b8ebc97481fd57046017dc6d95e3a0a3 prompt=text-to-sql-generic-v59
 p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T184446Z_cd3994b4b8ebc97481fd57046017dc6d95e3a0a3 commit=cd3994b4b8ebc97481fd57046017dc6d95e3a0a3 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=21/50 ex=0.42 dir=run_20261007T182333Z_4eab7cd5e552692bedcfa7fc8ea46afad95af2be commit=4eab7cd5e552692bedcfa7fc8ea46afad95af2be prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=21/50 ex=0.42 dir=run_20261007T183051Z_4eab7cd5e552692bedcfa7fc8ea46afad95af2be commit=4eab7cd5e552692bedcfa7fc8ea46afad95af2be prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=23/50 ex=0.46 dir=run_20261007T193040Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d commit=1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=23/50 ex=0.46 dir=run_20261007T193754Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d commit=1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```

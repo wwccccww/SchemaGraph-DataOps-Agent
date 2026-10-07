@@ -133,6 +133,8 @@ p0_acceptance_gate=pass
 
 **`a89a47b` BIRD 实测（post-0005 PATCH，`/tmp/bird-p0-a89a47b.log`）**：**23 vs 22 unstable**（**`bird_0005` 两 run ex=1**；差分 **`bird_0096`** run2 回退 **ex=0**）；保存 run PATCH replay **23→23** / **22→22**。acceptance 仍用 **`4eab7cd`/`cd3994b` 21×2 stable** 直至 **0096** 方差收窄。
 
+**`1c55f6d` BIRD 实测（post-0096 `client_agg` PATCH，`/tmp/bird-p0-1c55f6d.log`）**：**23/50×2 stable**（`run_20261007T193040Z_*` / `run_20261007T193754Z_*`；**0005/0096 ex=1**）；manifest **`reports/p0_measured_manifest_1c55f6d.tsv`** + **`p0_acceptance_gate=pass`**（TPC-DS **`cd3994b` 30×2**）。
+
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **19/50** 与 **18/50**，差分常为 **bird_0013** poverty 标签/`ROUND` 或 **bird_0061** FRPM 列），则 **`p0_stability_bird=unstable`**；优先 **`top3_sat_poverty` / `hickman_frpm` PATCH** 与 frozen 后再跑 2×。
 
 ### Measured manifest（2×2 全量）
