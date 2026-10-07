@@ -43,6 +43,7 @@ def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
     root = Path(__file__).resolve().parents[2]
     workflow = (root / ".github/workflows/external-gold.yml").read_text(encoding="utf-8")
     assert "test_external_gold_runbook_docs.py" in workflow
+    assert "test_ablation.py" in workflow
     assert "docs/external_gold_p0_runbook.md" in workflow
 
 
