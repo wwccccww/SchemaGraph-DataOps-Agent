@@ -243,7 +243,9 @@ async def test_score_prediction_patches_a78b594_bird_0003_frpm_count_shape_to_ex
         MEASURED_BIRD_0003_7645BBB_RUN2,
     ],
 )
-async def test_score_prediction_patches_7645bbb_bird_0003_round_and_category(case_file: Path) -> None:
+async def test_score_prediction_patches_7645bbb_bird_0003_round_and_category(
+    case_file: Path,
+) -> None:
     if not case_file.is_file() or not CA_SCHOOLS_DB.is_file():
         pytest.skip("7645bbb bird_0003 fixture or sqlite missing")
     raw_sql = json.loads(case_file.read_text())["prediction"]["sql"]
