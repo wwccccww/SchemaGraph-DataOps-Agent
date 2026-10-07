@@ -2709,6 +2709,17 @@ def check_frozen_semantic_contract(
                     "quantity_on_hand/quantity_sold 仅 SUM 聚合",
                 )
             )
+        if re.search(
+            r"group\s+by[^;]*(?:,\s*)2001(?:\s|$|;)",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "GROUP BY 用 inventory_year 列/别名，不要写裸字面量 2001",
+                )
+            )
         if "left join sold" in lowered_sql or "left join sold as" in lowered_sql:
             findings.append(
                 SemanticFinding(

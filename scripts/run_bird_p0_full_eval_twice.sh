@@ -36,10 +36,14 @@ for run in 1 2; do
     echo -e "bird\t$latest" >> "$P0_MEASURED_MANIFEST"
   fi
   echo "wrote $latest"
-  python3 -m app.evaluation.external_model \
-    --source bird \
-    --database-root "$BIRD_DATABASE_ROOT" \
-    --replay-run "$latest"
+  if [[ -z "${P0_SKIP_REPLAY:-}" ]]; then
+    python3 -m app.evaluation.external_model \
+      --source bird \
+      --database-root "$BIRD_DATABASE_ROOT" \
+      --replay-run "$latest"
+  else
+    echo "p0_replay=skipped (P0_SKIP_REPLAY set; measured manifest path)"
+  fi
 done
 echo "P0 runs: ${RUN_DIRS[0]:-?} ; ${RUN_DIRS[1]:-?}"
 echo "Compare summary.json measured.execution_accuracy and stability band."
