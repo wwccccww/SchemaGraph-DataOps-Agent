@@ -23,6 +23,7 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_p1_replay_gate.py \
   tests/unit/test_external_release.py \
   tests/unit/test_external_model_cli.py \
+  tests/unit/test_external_model_unit.py \
   tests/unit/test_bird_peak_executable.py \
   tests/unit/test_print_external_p0_status.py \
   tests/unit/test_run_bird_p0_full_eval_script.py \

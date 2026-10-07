@@ -38,6 +38,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_custom_cases.py",
         "test_p0_external_measured_baseline.py",
         "test_p1_replay_gate.py",
+        "test_external_model_unit.py",
         "test_bird_profile_inventory.py",
         "test_ablation.py",
         "test_p1_release_gate_script.py",

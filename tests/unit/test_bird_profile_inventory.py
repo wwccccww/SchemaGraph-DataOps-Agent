@@ -178,6 +178,24 @@ def test_v12_peak_multattempt_cases_include_repair_trace_symptoms() -> None:
     assert missing == [], f"multi-attempt cases missing repair_trace symptom: {missing}"
 
 
+def test_v12_sql_error_no_progress_cases_mark_no_progress_in_repair_trace() -> None:
+    """§11.5 P2 / 熔断：no_progress sql_error 须在 repair_trace 症状链中可见。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    missing: list[str] = []
+    for case_file in sorted((PEAK_V15_RUN / "cases").glob("bird_*.json")):
+        payload = json.loads(case_file.read_text())
+        if payload.get("error_category") != "no_progress":
+            continue
+        symptoms = dict(payload.get("symptoms") or [])
+        trace = str(symptoms.get("repair_trace", ""))
+        if "no_progress" not in trace:
+            missing.append(payload["case_id"])
+    assert missing == [], f"no_progress cases without no_progress in repair_trace: {missing}"
+
+
 def test_v12_peak_traces_pass_external_p2_write_validation() -> None:
     """v12 峰值 case JSON 须满足 write_external_model_report 的 P2 校验。"""
     if not PEAK_V15_RUN.is_dir():
