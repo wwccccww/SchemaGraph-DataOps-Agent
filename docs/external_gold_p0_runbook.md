@@ -147,7 +147,7 @@ P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM �
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）；v12 峰值 **5** 条 `join_semantics` EX=0 见 **`test_v12_measured_join_semantics_ex0_have_frozen_findings`**（**0066/0078/0092/0097/0111**）；Gold 须 **`test_v12_join_semantics_cases_gold_sql_passes_frozen`**；**0066** CountyStats cohort / **0078** poverty COUNT vs SUM 等 frozen 已收紧（`d4e91a2+`）。
 3. **方言 / 串库**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名；v12 峰值 **`test_v12_peak_zero_cross_database_leaks`**（`cross_database_leaks=0`）。**response_shape** **0055/0113**：**`test_v12_response_shape_cases_gold_sql_passes_frozen`** + **`test_v12_measured_response_shape_ex0_have_frozen_findings`**。
 4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`（当前 **`p0_acceptance_gate=pass`** 见 `benchmark.md` autogen；BIRD 下限 **`P0_BIRD_MIN_MATCHED=19`**，vendored replay 仍 **17/50**）。
-5. **自建评测（与外部轨道独立）**：电商 **132** 条 Oracle 护栏见 [benchmark.md §11](./benchmark.md)（`test_python_oracle_attestation_covers_every_case` **132/132**）；AnswerContract / 契约复核（P1/P2）与外部 BIRD frozen profile 互补，勿混报告。
+5. **自建评测（与外部轨道独立）**：电商 **132** 条 Oracle 护栏见 [benchmark.md §11](./benchmark.md)（`test_python_oracle_attestation_covers_every_case` **132/132**）；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**；全量 Recovery@3 实测需本机电商 Postgres + **`./scripts/run_custom_ablation.sh`**。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
 

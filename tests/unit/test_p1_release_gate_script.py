@@ -35,6 +35,7 @@ def test_p1_release_gate_script_invokes_verify_external_gold() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text(encoding="utf-8")
     assert "verify_external_gold.sh" in script
+    assert 'p2_custom_ablation_gates.sh"' in script
     assert script.strip().endswith('"$ROOT/scripts/verify_external_gold.sh"')
 
 
@@ -54,6 +55,7 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_wait_for_billing_and_run_p0_script.py",
         "test_external_gold_runbook_docs.py",
         "test_tpcds_postgres_reachable.py",
+        "test_p2_custom_ablation_gates_script.py",
     ):
         assert module in script
 

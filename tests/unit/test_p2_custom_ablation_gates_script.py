@@ -19,3 +19,4 @@ def test_p2_custom_ablation_gates_script_passes() -> None:
     completed = subprocess.run([str(script)], check=False, capture_output=True, text=True, cwd=script.parents[1])
     assert completed.returncode == 0, completed.stderr + completed.stdout
     assert "p2_custom_ablation_gates=pass" in completed.stdout
+    assert "pgvector" in completed.stdout

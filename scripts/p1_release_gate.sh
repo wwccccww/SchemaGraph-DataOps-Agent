@@ -40,5 +40,7 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_apply_p0_measured_benchmark_script.py \
   tests/unit/test_external_gold_runbook_docs.py \
   tests/unit/test_tpcds_postgres_reachable.py \
+  tests/unit/test_p2_custom_ablation_gates_script.py \
   -q
+"$ROOT/scripts/p2_custom_ablation_gates.sh"
 "$ROOT/scripts/verify_external_gold.sh"

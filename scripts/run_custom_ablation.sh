@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# §11 P2：自建 132 条全量消融（含 Recovery@3）；需 DeepSeek 密钥与 Postgres sandbox。
+# §11 P2：自建 132 条全量消融（含 Recovery@3）；需 DeepSeek、Postgres 电商库（`python -m app.db.initialize`）与 SANDBOX_DB_PASSWORD。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
