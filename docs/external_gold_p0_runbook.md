@@ -127,6 +127,8 @@ p0_acceptance_gate=pass
 
 **`4eab7cd` BIRD 实测（2026-10-07，CI quality 绿）**：`./scripts/run_bird_p0_full_eval_twice.sh` → **21/50×2 stable**（`run_20261007T182333Z_*` / `run_20261007T183051Z_*`；replay **21→21**；**0013/0096 ex=1**）；manifest **`reports/p0_measured_manifest_4eab7cd.tsv`**（TPC-DS 仍 **`01343cc` 30/30×2** hybrid gate；单 commit **80×2** 待 **`run_tpcds_p0_full_eval_twice.sh` @ HEAD**）。
 
+**`cd3994b` TPC-DS 实测（2026-10-07）**：`POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./scripts/run_tpcds_p0_full_eval_twice.sh` → **30/30×2 stable**（`run_20261007T183848Z_*` / `run_20261007T184446Z_*`）；manifest **`reports/p0_measured_manifest_cd3994b.tsv`**（BIRD 仍 **`4eab7cd` 21×2**；**`cd3994b`** 相对 **`4eab7cd`** 仅文档 diff，代码路径一致）。
+
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **19/50** 与 **18/50**，差分常为 **bird_0013** poverty 标签/`ROUND` 或 **bird_0061** FRPM 列），则 **`p0_stability_bird=unstable`**；优先 **`top3_sat_poverty` / `hickman_frpm` PATCH** 与 frozen 后再跑 2×。
 
 ### Measured manifest（2×2 全量）
