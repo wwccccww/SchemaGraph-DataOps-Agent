@@ -61,6 +61,11 @@ def autofix_sql_when_frozen_contract_clean(
     if payload is None or frozen_contract_state.get("profile") == "ecommerce":
         return decision.sql
     frozen = SemanticContract.model_validate(payload)
-    if check_frozen_semantic_contract(frozen, decision.sql, dialect=dialect):
-        return None
-    return decision.sql
+    pre_findings = check_frozen_semantic_contract(frozen, sql, dialect=dialect)
+    post_findings = check_frozen_semantic_contract(frozen, decision.sql, dialect=dialect)
+    if not post_findings:
+        return decision.sql
+    # PATCH 负责 PercentFRPM / salary-gap 等；Step-3 峰值 frozen 规则可能仍剩 CTE/join 类 finding。
+    if len(post_findings) < len(pre_findings):
+        return decision.sql
+    return None

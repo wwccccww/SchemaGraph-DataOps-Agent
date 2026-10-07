@@ -15,7 +15,11 @@ from app.evaluation.bird_contracts import contract_for
 from app.evaluation.ex import results_match
 from app.evaluation.external_model import score_prediction
 from app.llm.tokenizer import DeepSeekTokenCounter
-from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, CA_SCHOOLS_DB, FINANCIAL_DB
+from tests.unit.bird_replay_fixtures import (
+    CA_SCHOOLS_DB,
+    FINANCIAL_DB,
+    patch_autofix_case_path,
+)
 
 
 class _NoLlmModel:
@@ -25,7 +29,7 @@ class _NoLlmModel:
 
 @pytest.mark.asyncio
 async def test_peak_bird_0002_autofix_executes_matching_gold_without_llm() -> None:
-    case_file = BIRD_PEAK_RUN / "cases" / "bird_0002.json"
+    case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file() or not CA_SCHOOLS_DB.is_file():
         pytest.skip("peak run or bird sqlite missing")
     peak_sql = json.loads(case_file.read_text())["prediction"]["sql"]
@@ -75,7 +79,7 @@ async def test_peak_bird_0002_autofix_executes_matching_gold_without_llm() -> No
 
 @pytest.mark.asyncio
 async def test_peak_bird_0094_autofix_executes_matching_gold_without_llm() -> None:
-    case_file = BIRD_PEAK_RUN / "cases" / "bird_0094.json"
+    case_file = patch_autofix_case_path("bird_0094")
     if not case_file.is_file() or not FINANCIAL_DB.is_file():
         pytest.skip("peak run or bird sqlite missing")
     peak_sql = json.loads(case_file.read_text())["prediction"]["sql"]

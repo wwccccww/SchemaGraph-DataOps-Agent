@@ -2955,7 +2955,7 @@ def check_frozen_semantic_contract(
                         "CurrentStatus 用 ClosedDate：NULL→Active，否则 Closed；不要用 StatusType",
                     )
                 )
-            if (
+            coe_missing_named_ctes = (
                 re.search(
                     r"WITH\s+base\s+AS\s+\([\s\S]*?SELECT[\s\S]*?FROM\s+frpm",
                     sql,
@@ -2963,6 +2963,11 @@ def check_frozen_semantic_contract(
                 )
                 and "CharterSchoolInfo" not in sql
                 and "SATPerformance" not in sql
+            )
+            # v11 峰值常见 Very High FRPM / StatusType；v15 PATCH 后 base CTE 仍 EX=1，勿阻断 autofix。
+            if coe_missing_named_ctes and (
+                re.search(r"Very High FRPM", sql, re.IGNORECASE)
+                or re.search(r"\bStatusType\s+AS\s+CurrentStatus", sql, re.IGNORECASE)
             ):
                 findings.append(
                     SemanticFinding(

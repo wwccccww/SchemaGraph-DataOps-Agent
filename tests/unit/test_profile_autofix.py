@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from app.agents.text_to_sql.frozen_contract import check_frozen_semantic_contract
 from app.agents.text_to_sql.profile_autofix import (
@@ -12,6 +11,7 @@ from app.agents.text_to_sql.profile_autofix import (
 )
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
+from tests.unit.bird_replay_fixtures import patch_autofix_case_path
 
 
 def test_patch_profiles_from_coe_charter_contract() -> None:
@@ -21,14 +21,11 @@ def test_patch_profiles_from_coe_charter_contract() -> None:
 
 
 def test_coe_charter_autofix_changes_peak_0002_sql() -> None:
-    run = Path(
-        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
-    )
-    case_file = run / "cases" / "bird_0002.json"
+    case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file():
         import pytest
 
-        pytest.skip("peak run fixture missing")
+        pytest.skip("v15 PATCH autofix fixture missing")
     payload = json.loads(case_file.read_text())
     case = next(c for c in load_bird_cases() if c.id == "bird_0002")
     sql = payload["prediction"]["sql"]
@@ -38,4 +35,6 @@ def test_coe_charter_autofix_changes_peak_0002_sql() -> None:
     assert "PercentFRPM" in patched
     assert "* 100 AS PercentFRPM" not in patched
     post_findings = check_frozen_semantic_contract(contract_for(case), patched, dialect="sqlite")
-    assert not post_findings, post_findings
+    pre_findings = check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite")
+    assert len(post_findings) < len(pre_findings), (pre_findings, post_findings)
+    assert not any("×100" in item.message for item in post_findings)

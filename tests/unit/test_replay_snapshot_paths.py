@@ -6,8 +6,10 @@ from pathlib import Path
 
 from app.evaluation.replay_snapshot_paths import (
     BIRD_PEAK_RUN_ID,
+    BIRD_V15_PATCH_AUTOFIX_RUN_ID,
     TPCDS_PEAK_RUN_ID,
     bird_peak_run_dir,
+    bird_v15_patch_autofix_run_dir,
     tpcds_peak_run_dir,
 )
 
@@ -20,6 +22,14 @@ def test_vendored_bird_peak_snapshot_in_repo() -> None:
     cases = list((vendored / "cases").glob("bird_*.json"))
     assert len(cases) == 50
     assert bird_peak_run_dir() == vendored
+
+
+def test_vendored_bird_v15_patch_autofix_cases_in_repo() -> None:
+    vendored = REPO_ROOT / "benchmarks/replay_snapshots/bird" / BIRD_V15_PATCH_AUTOFIX_RUN_ID
+    assert vendored.is_dir()
+    for case_id in ("bird_0002", "bird_0094"):
+        assert (vendored / "cases" / f"{case_id}.json").is_file()
+    assert bird_v15_patch_autofix_run_dir() == vendored
 
 
 def test_vendored_tpcds_peak_snapshot_in_repo() -> None:

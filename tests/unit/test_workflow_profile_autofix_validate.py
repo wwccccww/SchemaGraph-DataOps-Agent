@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -17,17 +16,14 @@ from app.datasources.sqlite_catalog import load_sqlite_catalog
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
 from app.llm.tokenizer import DeepSeekTokenCounter
-from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, CA_SCHOOLS_DB, FINANCIAL_DB
+from tests.unit.bird_replay_fixtures import CA_SCHOOLS_DB, FINANCIAL_DB, patch_autofix_case_path
 
 
 @pytest.mark.asyncio
 async def test_validate_autofixes_peak_bird_0002_without_llm() -> None:
-    run = Path(
-        "/workspace/reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49"
-    )
-    case_file = run / "cases" / "bird_0002.json"
+    case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file():
-        pytest.skip("peak run fixture missing")
+        pytest.skip("v15 PATCH autofix fixture missing")
     payload = json.loads(case_file.read_text())
     case = next(c for c in load_bird_cases() if c.id == "bird_0002")
     sql = payload["prediction"]["sql"]
@@ -115,9 +111,9 @@ async def test_validate_autofixes_peak_bird_0002_without_llm() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_autofixes_peak_bird_0094_without_llm() -> None:
-    case_file = BIRD_PEAK_RUN / "cases" / "bird_0094.json"
+    case_file = patch_autofix_case_path("bird_0094")
     if not case_file.is_file():
-        pytest.skip("peak run fixture missing")
+        pytest.skip("v15 PATCH autofix fixture missing")
     payload = json.loads(case_file.read_text())
     case = next(c for c in load_bird_cases() if c.id == "bird_0094")
     sql = payload["prediction"]["sql"]

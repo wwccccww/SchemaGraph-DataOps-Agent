@@ -6,10 +6,15 @@ import os
 import tempfile
 from pathlib import Path
 
-from app.evaluation.replay_snapshot_paths import bird_peak_run_dir, tpcds_peak_run_dir
+from app.evaluation.replay_snapshot_paths import (
+    bird_peak_run_dir,
+    bird_v15_patch_autofix_run_dir,
+    tpcds_peak_run_dir,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BIRD_PEAK_RUN = bird_peak_run_dir()
+BIRD_V15_PATCH_AUTOFIX_RUN = bird_v15_patch_autofix_run_dir()
 BIRD_DB_ROOT = Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases")
 CA_SCHOOLS_DB = BIRD_DB_ROOT / "california_schools/california_schools.sqlite"
 FINANCIAL_DB = BIRD_DB_ROOT / "financial/financial.sqlite"
@@ -40,6 +45,12 @@ def ensure_bird_database_root(env: dict[str, str], *, tmp_path: Path | None = No
 
 def peak_case_path(case_id: str) -> Path:
     return BIRD_PEAK_RUN / "cases" / f"{case_id}.json"
+
+
+def patch_autofix_case_path(case_id: str) -> Path:
+    """v15 peak saved SQL where measured-path PATCH autofix is defined (not v11 measured peak)."""
+
+    return BIRD_V15_PATCH_AUTOFIX_RUN / "cases" / f"{case_id}.json"
 
 
 def postgres_replay_ready() -> bool:
