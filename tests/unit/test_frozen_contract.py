@@ -174,12 +174,12 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0006")
     contract = case.semantic_contract
     assert contract is not None
-    peak = peak_case_path("bird_0006")
+    peak = v11_measured_case_path("bird_0006")
     if not peak.is_file():
         pytest.skip("peak bird_0006 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -197,10 +197,10 @@ def test_loan_approved_frozen_contract_flags_v11_bird_0105() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0105")
-    peak = peak_case_path("bird_0105")
+    peak = v11_measured_case_path("bird_0105")
     if not peak.is_file():
         pytest.skip("peak bird_0105 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -216,10 +216,10 @@ def test_directly_funded_stanislaus_frozen_contract_flags_v11_bird_0066() -> Non
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0066")
-    peak = peak_case_path("bird_0066")
+    peak = v11_measured_case_path("bird_0066")
     if not peak.is_file():
         pytest.skip("peak bird_0066 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -235,10 +235,10 @@ def test_weekly_statement_frozen_contract_flags_v11_bird_0096() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0096")
-    peak = peak_case_path("bird_0096")
+    peak = v11_measured_case_path("bird_0096")
     if not peak.is_file():
         pytest.skip("peak bird_0096 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -254,10 +254,10 @@ def test_enrollment500_frozen_contract_flags_v11_bird_0011() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0011")
-    peak = peak_case_path("bird_0011")
+    peak = v11_measured_case_path("bird_0011")
     if not peak.is_file():
         pytest.skip("peak bird_0011 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -275,10 +275,10 @@ def test_top3_excellence_frozen_contract_flags_v11_bird_0013() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0013")
-    peak = peak_case_path("bird_0013")
+    peak = v11_measured_case_path("bird_0013")
     if not peak.is_file():
         pytest.skip("peak bird_0013 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -294,10 +294,10 @@ def test_virtual_sat_f_frozen_contract_flags_v11_bird_0005() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0005")
-    peak = peak_case_path("bird_0005")
+    peak = v11_measured_case_path("bird_0005")
     if not peak.is_file():
         pytest.skip("peak bird_0005 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -315,10 +315,10 @@ def test_la_meal_stats_frozen_contract_flags_v11_bird_0021() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0021")
-    peak = peak_case_path("bird_0021")
+    peak = v11_measured_case_path("bird_0021")
     if not peak.is_file():
         pytest.skip("peak bird_0021 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -335,10 +335,10 @@ def test_high_frpm_unexpected_frozen_contract_flags_v11_bird_0003() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0003")
-    peak = peak_case_path("bird_0003")
+    peak = v11_measured_case_path("bird_0003")
     if not peak.is_file():
         pytest.skip("peak bird_0003 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -355,10 +355,10 @@ def test_top10_high_frpm_frozen_contract_flags_v11_bird_0008() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0008")
-    peak = peak_case_path("bird_0008")
+    peak = v11_measured_case_path("bird_0008")
     if not peak.is_file():
         pytest.skip("peak bird_0008 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -374,10 +374,10 @@ def test_coe_charter_frozen_contract_flags_v11_bird_0002() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0002")
-    peak = peak_case_path("bird_0002")
+    peak = v11_measured_case_path("bird_0002")
     if not peak.is_file():
         pytest.skip("peak bird_0002 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -394,10 +394,10 @@ def test_top_reading_frozen_contract_flags_v11_bird_0010() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0010")
-    peak = peak_case_path("bird_0010")
+    peak = v11_measured_case_path("bird_0010")
     if not peak.is_file():
         pytest.skip("peak bird_0010 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -414,10 +414,10 @@ def test_financial_1993_poplatek_frozen_contract_flags_v11_bird_0119() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0119")
-    peak = peak_case_path("bird_0119")
+    peak = v11_measured_case_path("bird_0119")
     if not peak.is_file():
         pytest.skip("peak bird_0119 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -436,10 +436,10 @@ def test_female_top3_salary_frozen_contract_flags_v11_bird_0092() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0092")
-    peak = peak_case_path("bird_0092")
+    peak = v11_measured_case_path("bird_0092")
     if not peak.is_file():
         pytest.skip("peak bird_0092 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
@@ -456,10 +456,10 @@ def test_state_special_soc3_frozen_contract_flags_v11_peak_sql() -> None:
     import json
 
     from app.evaluation.bird import load_bird_cases
-    from tests.unit.bird_replay_fixtures import peak_case_path
+    from tests.unit.bird_replay_fixtures import v11_measured_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0069")
-    peak = peak_case_path("bird_0069")
+    peak = v11_measured_case_path("bird_0069")
     if not peak.is_file():
         pytest.skip("peak bird_0069 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
