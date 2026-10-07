@@ -678,6 +678,25 @@ async def test_score_prediction_patches_e5482a4_bird_0078_adelanto_grade_span() 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "case_id",
+    ["bird_0092", "bird_0097", "bird_0111"],
+)
+async def test_score_prediction_patches_e5482a4_v12_join_semantics_cases(
+    case_id: str,
+) -> None:
+    """v12 join_semantics EX=0 集（除 0066/0078 外）在 e5482a4 saved SQL 上 measured PATCH → ex=1。"""
+    case_path = MEASURED_BIRD_E5482A4_RUN / "cases" / f"{case_id}.json"
+    if not case_path.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("e5482a4 join fixture or sqlite missing")
+    raw_sql = json.loads(case_path.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == case_id)
+    trace = await _score_bird_saved_sql(case, raw_sql)
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
 async def test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch() -> None:
     """e5482a4 LLM run 写入 24/50；HEAD catalog measured PATCH 对同批 saved SQL 应为 50/50（非新 LLM）。"""
     run_dir = MEASURED_BIRD_E5482A4_RUN
