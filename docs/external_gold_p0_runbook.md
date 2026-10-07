@@ -52,7 +52,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 ./scripts/p0_post_billing_acceptance.sh --gates-only
 ```
 
-分步：`./scripts/p1_release_gate.sh`（pytest 子集 + `./scripts/verify_external_gold.sh`）。
+分步：`./scripts/p1_release_gate.sh`（pytest 子集 + `./scripts/p2_custom_ablation_gates.sh` + `./scripts/verify_external_gold.sh`）。
 
 **耗时（本地，含 replay 单测 + Oracle verify）**：约 **20–25 分钟**（`p1_release_gate` 内 `test_print_external_p0_status` 设 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 跳过脚本内 replay，门禁约 **5–8 分钟**）；402 运维用 `./scripts/print_external_p0_status.sh` 默认**含** BIRD/TPC-DS replay 摘要（须 **`bird_sqlite=ready`** + Postgres catalog）。
 
@@ -137,6 +137,7 @@ bird	reports/bird/run_…
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
+- 本地发布门禁：**`./scripts/p1_release_gate.sh`** = pytest 子集 + **`./scripts/p2_custom_ablation_gates.sh`**（§11 无 LLM）+ **`verify_external_gold.sh`**（80/80 Oracle）。
 - [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ **`0a78a89`**：**fingerprints + replay-gate**；**`p0_acceptance_gate=pass`**（**80×2** measured @ **`bc29bb6`**）；本地 **`./scripts/p1_release_gate.sh`** @ **`0a78a89`**（pytest + Oracle verify **80/80**）；**UTC 06:00** nightly 与 push 同 workflow。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
