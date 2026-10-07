@@ -145,8 +145,7 @@ def test_v12_measured_sql_error_ex0_have_frozen_findings() -> None:
             continue
         sql = (payload.get("prediction") or {}).get("sql") or ""
         count = len(check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite"))
-        if case.id not in {"bird_0069", "bird_0119"}:
-            assert count >= 1, f"{case.id} sql_error saved SQL has 0 frozen findings"
+        assert count >= 1, f"{case.id} sql_error saved SQL has 0 frozen findings"
         sql_error_ids.append(case.id)
     assert sql_error_ids == [
         "bird_0006",
@@ -158,6 +157,25 @@ def test_v12_measured_sql_error_ex0_have_frozen_findings() -> None:
         "bird_0121",
         "bird_0123",
     ]
+
+
+def test_v12_peak_multattempt_cases_include_repair_trace_symptoms() -> None:
+    """Measured v12：attempts>1 的 case JSON 须在 symptoms 中保留 repair_trace（§11 P2 外部口径）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    missing: list[str] = []
+    for case_file in sorted((PEAK_V15_RUN / "cases").glob("bird_*.json")):
+        payload = json.loads(case_file.read_text())
+        attempts = payload.get("attempts") or 0
+        if attempts <= 1:
+            continue
+        symptoms = dict(payload.get("symptoms") or [])
+        trace = symptoms.get("repair_trace", "")
+        if not trace or trace.strip() == "":
+            missing.append(payload["case_id"])
+    assert missing == [], f"multi-attempt cases missing repair_trace symptom: {missing}"
 
 
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
