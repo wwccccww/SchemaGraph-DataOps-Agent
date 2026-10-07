@@ -595,6 +595,35 @@ async def test_score_prediction_patches_e5482a4_bird_0008_top10_high_frpm_sql_er
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        "bird_0060",
+        "bird_0100",
+        "bird_0105",
+        "bird_0119",
+        "bird_0121",
+        "bird_0123",
+    ],
+)
+async def test_score_prediction_patches_e5482a4_sql_error_cases(case_id: str) -> None:
+    """e5482a4 其余 sql_error/no_progress：measured PATCH 路径应 ex=1（0066/0092/0113 见专项单测）。"""
+    case_path = MEASURED_BIRD_E5482A4_RUN / "cases" / f"{case_id}.json"
+    if not case_path.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip(f"e5482a4 {case_id} fixture or sqlite missing")
+    payload = json.loads(case_path.read_text())
+    assert (
+        payload.get("error_category") == "no_progress"
+        or payload.get("primary_class") == "sql_error"
+    )
+    raw_sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == case_id)
+    trace = await _score_bird_saved_sql(case, raw_sql)
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
 async def test_score_prediction_patches_e5482a4_bird_0010_top_reading() -> None:
     if not MEASURED_BIRD_0010_E5482A4.is_file() or not CA_SCHOOLS_DB.is_file():
         pytest.skip("e5482a4 bird_0010 fixture or sqlite missing")
