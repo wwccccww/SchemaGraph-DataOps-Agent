@@ -103,8 +103,7 @@ def _amend_tpcds_complex_023_stock_grain(sql: str) -> str:
             flags=re.IGNORECASE,
         )
     group_by = (
-        " GROUP BY warehouse.w_state, item.i_category, date_dim.d_year, "
-        "inventory.inv_item_sk"
+        " GROUP BY warehouse.w_state, item.i_category, date_dim.d_year, inventory.inv_item_sk"
     )
     trimmed = new_body.rstrip()
     if trimmed.endswith(")"):
