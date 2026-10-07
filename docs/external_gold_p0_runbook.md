@@ -36,6 +36,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`tpcds_postgres_catalog=ready\|unreachable`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`；`wait_for_billing_and_run_p0.sh`（`tpcds_postgres_catalog_reachable`） |
 | **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |
 | **`replay_skipped=external_p0_status_skip_replay`** | `print_external_p0_status.sh` 在 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 时（单测 / 快速扫键；**运维 acceptance 勿设**，须看 replay EX 行） |
+| **`p0_post_billing=blocked_resume_poll`** | `wait_for_billing_and_run_p0.sh`：全量 acceptance 仍 **402→exit 2** 时写 wait 日志并**继续轮询**（不退出 tmux） |
 
 402 时 **`llm_preflight`** stderr 亦指向本 runbook 与 **`--gates-only`**。
 
@@ -67,7 +68,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 须已配置 **`BIRD_DATABASE_ROOT`**（须为存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（与全量 acceptance 相同），否则**立即 exit 1**，避免空轮询或 verify 跑错路径。
 
-非 402 的 preflight 失败会**立即 exit 2**（不无限轮询）。默认 **`P0_WAIT_CONFIRM_POLLS=2`**：连续两次 preflight 成功才启动全量（间隔 **`P0_WAIT_CONFIRM_SECONDS`** 默认 15s），避免偶发误报。wait 触发全量时会 **`export P0_FROM_BILLING_WAIT=1`**；acceptance 入口 preflight 对 402 默认再重试 **6** 次（间隔 **`P0_PREFLIGHT_WAIT_SLEEP`** 默认 20s），避免确认通过后立刻 402 导致全量未启动。
+非 402 的 preflight 失败会**立即 exit 2**（不无限轮询）。默认 **`P0_WAIT_CONFIRM_POLLS=2`**：连续两次 preflight 成功才启动全量（间隔 **`P0_WAIT_CONFIRM_SECONDS`** 默认 15s），避免偶发误报。wait 触发全量时会 **`export P0_FROM_BILLING_WAIT=1`**；acceptance 入口 preflight 对 402 默认再重试 **6** 次（间隔 **`P0_PREFLIGHT_WAIT_SLEEP`** 默认 20s），避免确认通过后立刻 402 导致全量未启动。若 acceptance 仍以 **exit 2** 结束，wait 记录 **`p0_post_billing=blocked_resume_poll`** 并回到 preflight 轮询（acceptance gate 失败 **exit 3** 则 wait **exit 3**，不无限重试）。
 
 **退出码**（`p0_post_billing_acceptance.sh` 全量）：**0** 成功；**1** 环境缺失；**2** `llm_preflight`（含 402）；**3** acceptance gate 未 pass（`set -e` 自 `run_external_p0_full_eval_twice.sh` 传播）。
 

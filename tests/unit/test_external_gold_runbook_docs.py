@@ -32,6 +32,7 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "bird_sqlite=" in body
     assert "fetch_bird_dev_databases.sh" in body
     assert "replay_skipped=external_p0_status_skip_replay" in body
+    assert "p0_post_billing=blocked_resume_poll" in body
 
 
 def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
