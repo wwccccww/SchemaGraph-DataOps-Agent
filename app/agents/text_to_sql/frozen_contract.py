@@ -3948,6 +3948,29 @@ def check_frozen_semantic_contract(
                     "再与 sold CTE 按 inv_item_sk/ss_item_sk JOIN",
                 )
             )
+        if stock_cte is not None:
+            stock_body = stock_cte.group(1)
+            stock_lower = stock_body.lower()
+            if "group by" not in stock_lower:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "stock CTE 需按 warehouse_state、item_category、inventory_year、"
+                        "inv_item_sk GROUP BY，并对 inv_quantity_on_hand 做 SUM",
+                    )
+                )
+            elif not re.search(
+                r"sum\s*\(\s*[^)]*inv_quantity_on_hand",
+                stock_lower,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "stock CTE 内 quantity_on_hand 须 SUM(inventory.inv_quantity_on_hand)，"
+                        "勿在 stock 行级直接 SELECT inv_quantity_on_hand",
+                    )
+                )
         if "left join sold" in lowered_sql or "left join sold as" in lowered_sql:
             findings.append(
                 SemanticFinding(
@@ -4606,8 +4629,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "inventory_sold_qty=join_sold_cte":
             hints.append(
                 "库存+门店销量：sold CTE 按 ss_item_sk 汇总 ss_quantity；"
-                "stock CTE 含 date_dim.d_year AS inventory_year 与 inv_item_sk，"
-                "再 INNER JOIN sold ON item_sk，外层 GROUP BY warehouse_state/item_category/inventory_year；"
+                "stock CTE 在 JOIN sold 前按 w_state、i_category、d_year、inv_item_sk "
+                "GROUP BY 且 SUM(inv_quantity_on_hand)；"
+                "再 INNER JOIN sold ON item_sk，外层仅 GROUP BY warehouse_state/item_category/inventory_year；"
                 "勿用 2001 AS inventory_year。"
             )
         if item == "return_linked_sales=item_store_year":

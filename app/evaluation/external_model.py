@@ -235,9 +235,13 @@ def inspection_from_replay(
         if isinstance(raw, str) and raw.strip():
             sql = raw
     resolved_id = case.id if case is not None else case_id
-    if sql and patch_autofix and case is not None and case.source == "bird":
+    if sql and patch_autofix and case is not None and case.source in {"bird", "tpcds-derived"}:
         from app.agents.text_to_sql.profile_autofix import autofix_sql_when_frozen_contract_clean
-        from app.evaluation.bird_contracts import contract_for
+
+        if case.source == "bird":
+            from app.evaluation.bird_contracts import contract_for
+        else:
+            from app.evaluation.tpcds_contracts import contract_for
 
         contract = contract_for(case)
         frozen_state: dict[str, object] = {

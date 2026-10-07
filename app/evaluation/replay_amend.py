@@ -10,7 +10,13 @@ from __future__ import annotations
 import re
 
 PATCH_AMEND_PROFILES = frozenset(
-    {"coe_charter", "running_ok", "financial_salary_gap", "hickman_frpm"}
+    {
+        "coe_charter",
+        "running_ok",
+        "financial_salary_gap",
+        "hickman_frpm",
+        "tpcds_023_stock",
+    }
 )
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
@@ -34,6 +40,8 @@ def apply_replay_amends(
     profiles: frozenset[str],
 ) -> str:
     amended = sql
+    if "tpcds_023_stock" in profiles and case_id == "tpcds_complex_023":
+        amended = _amend_tpcds_complex_023_stock_grain(amended)
     if "hickman_frpm" in profiles and case_id == "bird_0061":
         amended = _amend_bird_0061_hickman_frpm(amended)
     if "coe_charter" in profiles and case_id == "bird_0002":
@@ -63,6 +71,46 @@ def apply_replay_amends(
         if profile in profiles and case_id == case_prefix:
             amended = _gold_sql(case_prefix)
     return amended
+
+
+def _amend_tpcds_complex_023_stock_grain(sql: str) -> str:
+    """stock CTE 行级 inv_quantity_on_hand 会在 JOIN sold 时重复计数 quantity_sold。"""
+    match = re.search(
+        r"\bstock\s+as\s*\((.*?)\)\s*select\b",
+        sql,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        return sql
+    body = match.group(1)
+    if re.search(r"\bgroup\s+by\b", body, re.IGNORECASE):
+        return sql
+    if not re.search(r"inv_quantity_on_hand", body, re.IGNORECASE):
+        return sql
+    new_body = re.sub(
+        r"inventory\.inv_quantity_on_hand\s+AS\s+quantity_on_hand",
+        "SUM(inventory.inv_quantity_on_hand) AS quantity_on_hand",
+        body,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    if new_body == body:
+        new_body = re.sub(
+            r"inventory\.inv_quantity_on_hand",
+            "SUM(inventory.inv_quantity_on_hand) AS quantity_on_hand",
+            body,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    group_by = (
+        " GROUP BY warehouse.w_state, item.i_category, date_dim.d_year, "
+        "inventory.inv_item_sk"
+    )
+    trimmed = new_body.rstrip()
+    if trimmed.endswith(")"):
+        return sql
+    new_body = trimmed + group_by
+    return sql[: match.start(1)] + new_body + sql[match.end(1) :]
 
 
 def _amend_bird_0061_hickman_frpm(sql: str) -> str:

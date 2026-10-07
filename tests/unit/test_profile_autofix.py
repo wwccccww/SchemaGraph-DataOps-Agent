@@ -11,6 +11,8 @@ from app.agents.text_to_sql.profile_autofix import (
 )
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
+from app.evaluation.tpcds import load_tpcds_cases
+from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
 from tests.unit.bird_replay_fixtures import patch_autofix_case_path
 
 
@@ -24,6 +26,37 @@ def test_patch_profiles_from_hickman_contract() -> None:
     case = next(c for c in load_bird_cases() if c.id == "bird_0061")
     profiles = patch_profiles_for_contract(contract_for(case))
     assert profiles == frozenset({"hickman_frpm"})
+
+
+def test_patch_profiles_from_tpcds_023_contract() -> None:
+    case = next(c for c in load_tpcds_cases() if c.id == "tpcds_complex_023")
+    profiles = patch_profiles_for_contract(tpcds_contract_for(case))
+    assert profiles == frozenset({"tpcds_023_stock"})
+
+
+def test_tpcds_023_stock_autofix_adds_stock_cte_group_by() -> None:
+    case = next(c for c in load_tpcds_cases() if c.id == "tpcds_complex_023")
+    contract = tpcds_contract_for(case)
+    bad = (
+        "WITH sold AS (SELECT ss_item_sk AS item_sk, SUM(ss_quantity) AS quantity_sold "
+        "FROM store_sales JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY ss_item_sk), "
+        "stock AS (SELECT warehouse.w_state AS warehouse_state, item.i_category AS item_category, "
+        "date_dim.d_year AS inventory_year, inventory.inv_item_sk AS item_sk, "
+        "inventory.inv_quantity_on_hand AS quantity_on_hand FROM inventory "
+        "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk "
+        "JOIN item ON inventory.inv_item_sk = item.i_item_sk "
+        "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk "
+        "WHERE date_dim.d_year = 2001) "
+        "SELECT stock.warehouse_state, stock.item_category, stock.inventory_year, "
+        "SUM(stock.quantity_on_hand) AS quantity_on_hand, SUM(sold.quantity_sold) AS quantity_sold "
+        "FROM stock JOIN sold ON stock.item_sk = sold.item_sk "
+        "GROUP BY stock.warehouse_state, stock.item_category, stock.inventory_year"
+    )
+    patched = try_deterministic_profile_patch("tpcds_complex_023", bad, contract)
+    assert patched is not None
+    assert "GROUP BY warehouse.w_state" in patched
+    assert check_frozen_semantic_contract(contract, patched, dialect="postgres") == ()
 
 
 def test_coe_charter_autofix_changes_peak_0002_sql() -> None:

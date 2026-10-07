@@ -928,6 +928,30 @@ def test_frozen_contract_rejects_inventory_sold_items_join_store_sales() -> None
     assert any("store_sales" in item.message for item in findings)
 
 
+def test_frozen_contract_rejects_tpcds_023_stock_cte_without_item_grain() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_023")
+    bad = (
+        "WITH sold AS (SELECT ss_item_sk AS item_sk, SUM(ss_quantity) AS quantity_sold "
+        "FROM store_sales JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY ss_item_sk), "
+        "stock AS (SELECT warehouse.w_state AS warehouse_state, item.i_category AS item_category, "
+        "date_dim.d_year AS inventory_year, inventory.inv_item_sk AS item_sk, "
+        "inventory.inv_quantity_on_hand AS quantity_on_hand FROM inventory "
+        "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk "
+        "JOIN item ON inventory.inv_item_sk = item.i_item_sk "
+        "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk "
+        "WHERE date_dim.d_year = 2001) "
+        "SELECT stock.warehouse_state, stock.item_category, stock.inventory_year, "
+        "SUM(stock.quantity_on_hand) AS quantity_on_hand, SUM(sold.quantity_sold) AS quantity_sold "
+        "FROM stock JOIN sold ON stock.item_sk = sold.item_sk "
+        "GROUP BY stock.warehouse_state, stock.item_category, stock.inventory_year"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("stock CTE" in item.message and "GROUP BY" in item.message for item in findings)
+
+
 def test_frozen_contract_rejects_tpcds_023_literal_inventory_year() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 
@@ -1879,6 +1903,23 @@ def test_sokolov_pre1950_profile_gold_passes_and_flags_peak_district_and_loan_st
     ]
     assert any("A2" in m and "Sokolov" in m for m in messages)
     assert any("status='A'" in m or "status='D'" in m for m in messages)
+
+
+def test_hickman_frozen_contract_flags_wrong_frpm_and_sat_buckets() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0061")
+    contract = contract_for(case)
+    sql = (
+        "SELECT CASE WHEN x > 0.30 THEN 'High Performing' END AS SATPerformanceCategory, "
+        "'Very High FRPM' AS FRPMCategory FROM t"
+    )
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, sql, dialect="sqlite")
+    ]
+    assert any("High/Medium/Low FRPM" in m for m in messages)
+    assert any("PercentOver1500" in m or ">0.5" in m for m in messages)
 
 
 def test_hickman_frozen_contract_flags_free_meal_as_frpmcount() -> None:

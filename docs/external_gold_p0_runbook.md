@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=17`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步；历史默认 7，v11 **13**，v12 **17**）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**，**b2b1884 实测 19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（`test_p0_external_measured_baseline`）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -80,7 +80,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 - **`p0_acceptance_gate=pass`**
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
-- **`p0_measured_bird_run{1,2}=≥17/50`**（默认 **`P0_BIRD_MIN_MATCHED=17`**）且 **`p0_stability_bird=stable`**
+- **`p0_measured_bird_run{1,2}=≥19/50`**（默认 **`P0_BIRD_MIN_MATCHED=19`**）且 **`p0_stability_bird=stable`**
 
 全量 acceptance 默认 **`P0_APPLY_BENCHMARK=1`**（可 `export P0_APPLY_BENCHMARK=0` 跳过）会在 gate pass 后调用 **`./scripts/apply_p0_measured_benchmark.sh`**，把 **`p0_measured_*` / `p0_stability_*`** 与 **`p0_acceptance_gate=pass`** 写入 [benchmark.md](./benchmark.md) 的 **`p0-measured-autogen`** 段落（单测 `test_p0_benchmark_docs.py`）。也可在已有 manifest 上单独执行：
 
@@ -101,9 +101,11 @@ p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
 
-若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **17/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
+若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
+
+**tpcds_complex_023**：stock CTE 须 item 粒度 `GROUP BY` + `SUM(inv_quantity_on_hand)` 再 JOIN sold；否则 `quantity_sold` 重复计数。frozen + **`tpcds_023_stock` PATCH**；`--replay-patch-autofix` 对 **tpcds-derived** 与 BIRD 同路径。
 
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **17/50** 与 **18/50**，差分常为 **bird_0061** FRPM 列口径），则 **`p0_stability_bird=unstable`**，保持 vendored 峰值 replay 与 **`P0_BIRD_MIN_MATCHED`** 不变；优先收紧该题 frozen 提示（`hickman_elementary_charter_profile`）后再跑 2×。
 
