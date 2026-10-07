@@ -601,6 +601,42 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
+            if re.search(r"'At County Average'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMStatus 第三档文案为 Equal to County Average（不是 At County Average）",
+                    )
+                )
+            if re.search(r"Charter School \(Y/N\)", sql, re.IGNORECASE) and re.search(
+                r"SchoolType",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 schools.Charter（Charter School/Regular School），"
+                        "不要用 frpm.`Charter School (Y/N)`",
+                    )
+                )
+            if re.search(r"CountyStats\s+AS\s*\(", sql, re.IGNORECASE) and re.search(
+                r"FundingType\s*=\s*'Directly funded'",
+                sql,
+                re.IGNORECASE,
+            ):
+                county_block = re.search(
+                    r"CountyStats\s+AS\s*\(([\s\S]*?)\)\s*SELECT",
+                    sql,
+                    re.IGNORECASE,
+                )
+                if county_block and "FundingType" not in county_block.group(1):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "CountyStats 须与 directly funded + Stanislaus 口径一致（JOIN schools 过滤）",
+                        )
+                    )
         if "region_loan_success_stats_profile=true" in contract.filters:
             if re.search(
                 r"status\s*=\s*'C'[\s\S]{0,80}(paid_amount|successful_loans)",
@@ -2592,6 +2628,18 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "FreeCategory Very Low 用 FreePercent<0.18 分档（0.18/10/30 阈值）",
+                    )
+                )
+            if re.search(r"\*\s*100\s+AS\s+FreePercentage", sql, re.IGNORECASE) and re.search(
+                r"FreePercentage\s*<\s*0\.\d+",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreePercent 已 ×100 时过滤/分档用 <18/<6/<12 等百分数，"
+                        "不要与小数 0.18/0.06 混用",
                     )
                 )
         if "fresno_direct_funded_charter_profile=true" in contract.filters:
