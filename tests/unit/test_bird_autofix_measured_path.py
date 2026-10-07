@@ -26,6 +26,9 @@ from tests.unit.bird_replay_fixtures import (
 MEASURED_BIRD_0003_881DD08 = Path(
     "/workspace/reports/bird/run_20261007T152631Z_881dd083d1f0cc3c02f141e48432bec3fca12ca8/cases/bird_0003.json"
 )
+MEASURED_BIRD_0003_A78B594 = Path(
+    "/workspace/reports/bird/run_20261007T161428Z_a78b5947968d37bf198a5115686a1ba614714293/cases/bird_0003.json"
+)
 
 
 class _NoLlmModel:
@@ -175,6 +178,49 @@ async def test_score_prediction_patches_measured_bird_0003_sql_before_execute() 
     )
     assert trace.ex == 1
     assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_a78b594_bird_0003_frpm_count_shape_to_ex1() -> None:
+    if not MEASURED_BIRD_0003_A78B594.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("a78b594 bird_0003 fixture or sqlite missing")
+    raw_sql = json.loads(MEASURED_BIRD_0003_A78B594.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    documents, _ = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req-measured",
+            status="failed",
+            sql=raw_sql,
+            attempts=5,
+            error=ApiError(
+                category="other_result_mismatch",
+                message="mismatch",
+                retryable=False,
+            ),
+        ),
+        generated_sql=raw_sql,
+        repair_trace=(
+            {
+                "attempt": 5,
+                "category": "other_result_mismatch",
+                "symptom": "x",
+                "sql_hash": "sha256:deadbeef",
+            },
+        ),
+    )
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
 
 
 @pytest.mark.asyncio

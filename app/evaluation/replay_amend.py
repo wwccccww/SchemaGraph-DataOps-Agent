@@ -134,6 +134,18 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     out = re.sub(
+        r'ROUND\s*\(\s*f\."FRPM Count \(K-12\)"\s*\*\s*1\.0\s*/\s*f\."Enrollment \(K-12\)"\s*\*\s*100\s*,\s*2\s*\)\s+AS\s+FRPMPercentage',
+        'f."Percent (%) Eligible FRPM (K-12)" AS FRPMPercentage',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r'f\."FRPM Count \(K-12\)"\s*\*\s*1\.0\s*/\s*f\."Enrollment \(K-12\)"\s*\*\s*100\s+AS\s+FRPMPercentage',
+        'f."Percent (%) Eligible FRPM (K-12)" AS FRPMPercentage',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
         r"CASE WHEN NumTstTakr > 0 THEN ROUND\(NumGE1500 \* 100\.0 / NumTstTakr, 2\) END AS PercentHighScorers",
         "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
         out,
@@ -180,9 +192,17 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         "  END AS PerformanceClassification"
     )
     out = re.sub(
-        r"PercentHighScorers,\s*CASE\s+WHEN PercentHighScorers IS NULL THEN 'No SAT Data'[\s\S]*?"
+        r"PercentHighScorers,\s*CASE\s+WHEN PercentHighScorers IS NULL THEN 'No SAT [Dd]ata'[\s\S]*?"
         r"END AS PerformanceClassification",
         f"PercentHighScorers,\n  {gold_class_pct}",
+        out,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"PerformanceCategory,\s*PercentHighScorers,\s*CASE\s+WHEN PercentHighScorers IS NULL[\s\S]*?"
+        r"END AS PerformanceClassification,\s*OpenDate",
+        f"PerformanceCategory,\n  PercentHighScorers,\n  {gold_class_pct},\n  OpenDate",
         out,
         count=1,
         flags=re.IGNORECASE,
