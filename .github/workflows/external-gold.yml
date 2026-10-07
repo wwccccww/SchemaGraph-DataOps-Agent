@@ -26,6 +26,7 @@ on:
       - "scripts/apply_p0_measured_benchmark.sh"
       - "scripts/replay_tpcds_baseline.sh"
       - "scripts/p1_release_gate.sh"
+      - "scripts/run_custom_ablation.sh"
       - "scripts/print_external_p0_status.sh"
       - "scripts/run_bird_p0_full_eval_twice.sh"
       - "scripts/run_tpcds_p0_full_eval_twice.sh"

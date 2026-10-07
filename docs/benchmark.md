@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen`）；BIRD **模型实测** acceptance 默认 **≥19/50×2 stable**（**`P0_BIRD_MIN_MATCHED=19`**，`b2b1884`）；vendored replay 峰值仍 **17/50**（`65bcd64` v12）；**PATCH autofix 复分** v12 峰值 **17→17/50**（**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen`）；BIRD **模型实测** acceptance 默认 **≥19/50×2 stable**（**`P0_BIRD_MIN_MATCHED=19`**，`b2b1884`）；vendored replay 峰值仍 **17/50**（`65bcd64` v12）；**PATCH autofix 复分** v12 峰值 **17→18/50**（**0061** `hickman_frpm`；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
 
 <!-- p0-measured-autogen:start -->
 
@@ -114,7 +114,7 @@ p0_acceptance_gate=pass
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable** measured（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**；acceptance **19/50×2 stable**（`p0-measured-autogen`，`p0_acceptance_gate=pass`） |
-| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→17/50**；非新 LLM 实测 |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→18/50**（**0061**）；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集（含 **`test_external_model_unit.py`** 外部 P2 写入门禁 + **`test_ablation.py`** 自建 P2）+ verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | … + **`peak_ex0_frozen_findings=pass_min_33`**（v12 EX=0 inventory **33/33**） |
@@ -612,7 +612,7 @@ P2：
 
 - 所有 `attempts > 1` 的 case 都保存“触发症状 → 修复变化 → 最终结果”链路；
 - 相同 SQL 或相同症状不允许无变化地连续消耗三轮；
-- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；
+- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；全量实测入口 **`./scripts/run_custom_ablation.sh`**（`python -m app.evaluation.ablation`，132×4 variant，写入 `reports/custom/run_*`）；
 - Schema Graph 的 Junction Table Recall 和 Required Table Recall 不得回退；
 - EX、分类计数和组间转移矩阵由原始 case JSON 重算，不能手工填写。
 

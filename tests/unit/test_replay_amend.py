@@ -62,6 +62,18 @@ def test_hickman_frpm_amend_swaps_free_meal_columns() -> None:
     assert "Percent (%) Eligible FRPM (K-12)" in amended
 
 
+def test_hickman_frpm_amend_makes_v12_peak_0061_match_gold() -> None:
+    """v12 峰值 bird_0061 经 hickman_frpm PATCH 离线 EX=1（对齐 b2b1884 实测 +2 题之一）。"""
+    case_file, conn = _require_peak("bird_0061")
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0061")
+    amended = apply_replay_amends("bird_0061", sql, profiles=frozenset({"hickman_frpm"}))
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_coe_charter_amend_makes_0002_match_gold() -> None:
     case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file():

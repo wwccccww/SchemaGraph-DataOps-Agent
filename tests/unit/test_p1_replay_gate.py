@@ -85,7 +85,7 @@ def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
     assert "bird_0021 other_result_mismatch ex=0" in completed.stderr
 
 
-def test_p1_replay_patch_autofix_unchanged_on_v12_peak() -> None:
+def test_p1_replay_patch_autofix_eighteen_on_v12_peak() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -106,7 +106,7 @@ def test_p1_replay_patch_autofix_unchanged_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
+    assert "matched 17 -> 18" in completed.stderr or "matched 17 -> 18" in completed.stdout
 
 
 def test_p1_offline_ceiling_script_twenty_six_of_fifty() -> None:

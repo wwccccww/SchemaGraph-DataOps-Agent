@@ -122,10 +122,9 @@ def _amend_bird_0061_hickman_frpm(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     out = re.sub(
-        r'f\."Free Meal Count \(K-12\)"[\s\S]{0,120}?AS\s+FRPMPercent',
-        'f."Percent (%) Eligible FRPM (K-12)" AS FRPMPercent',
+        r'f\."Free Meal Count \(K-12\)"\s*\*\s*1\.0\s*/\s*f\."Enrollment \(K-12\)"',
+        'f."Percent (%) Eligible FRPM (K-12)"',
         out,
-        count=1,
         flags=re.IGNORECASE,
     )
     out = out.replace("THEN 'Very High FRPM'", "THEN 'High FRPM'")

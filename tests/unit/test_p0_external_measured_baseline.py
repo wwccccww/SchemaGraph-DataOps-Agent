@@ -46,8 +46,8 @@ def test_p0_bird_measured_baseline_seventeen_of_fifty_on_peak_run() -> None:
     assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
-def test_p0_bird_peak_patch_autofix_replay_unchanged_on_v12_peak() -> None:
-    """v12 峰值保存 SQL 经 PATCH autofix 复分（0002 已在实测中 EX=1）；仍非新 LLM run。"""
+def test_p0_bird_peak_patch_autofix_replay_eighteen_on_v12_peak() -> None:
+    """v12 峰值 PATCH autofix 复分 17→18（0061 hickman_frpm）；仍非新 LLM run。"""
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -68,7 +68,7 @@ def test_p0_bird_peak_patch_autofix_replay_unchanged_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
+    assert "matched 17 -> 18" in completed.stderr or "matched 17 -> 18" in completed.stdout
 
 
 def test_p0_tpcds_measured_baseline_thirty_of_thirty_on_peak_run() -> None:

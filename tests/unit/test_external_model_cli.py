@@ -100,7 +100,7 @@ def test_replay_amend_financial_salary_gap_unchanged_on_v12_peak() -> None:
     assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
-def test_replay_patch_autofix_unchanged_on_v12_peak() -> None:
+def test_replay_patch_autofix_eighteen_on_v12_peak() -> None:
     run = BIRD_PEAK_RUN
     db_root = BIRD_DB_ROOT
     if not run.is_dir() or not db_root.is_dir():
@@ -123,4 +123,4 @@ def test_replay_patch_autofix_unchanged_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
+    assert "matched 17 -> 18" in completed.stderr or "matched 17 -> 18" in completed.stdout
