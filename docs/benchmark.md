@@ -87,16 +87,16 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen`）；BIRD **模型实测** acceptance 默认 **≥19/50×2 stable**（**`P0_BIRD_MIN_MATCHED=19`**，`b2b1884`）；vendored replay 峰值仍 **17/50**（`65bcd64` v12）；**PATCH autofix 复分** v12 峰值 **17→18/50**（**0061** `hickman_frpm`；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen`）；BIRD **模型实测** acceptance 默认 **≥19/50×2 stable**（**`P0_BIRD_MIN_MATCHED=19`**，`bc29bb6` 单 commit **80×2**）；vendored replay 峰值仍 **17/50**（`65bcd64` v12）；**PATCH autofix 复分** v12 峰值 **17→18/50**（**0061** `hickman_frpm`；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
 
 <!-- p0-measured-autogen:start -->
 
 ```text
-p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T132232Z_5fc4fc6b634c93538880e3967f7297f7b10a0ab9 commit=5fc4fc6b634c93538880e3967f7297f7b10a0ab9 prompt=text-to-sql-generic-v59
-p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T132842Z_5fc4fc6b634c93538880e3967f7297f7b10a0ab9 commit=5fc4fc6b634c93538880e3967f7297f7b10a0ab9 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T144946Z_bc29bb6ee0a5336acbea653006d63d6cc8804af4 commit=bc29bb6ee0a5336acbea653006d63d6cc8804af4 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T145612Z_bc29bb6ee0a5336acbea653006d63d6cc8804af4 commit=bc29bb6ee0a5336acbea653006d63d6cc8804af4 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=19/50 ex=0.38 dir=run_20261007T125758Z_b2b1884f5742ab3aa89bd2729a0da2c1b0300899 commit=b2b1884f5742ab3aa89bd2729a0da2c1b0300899 prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=19/50 ex=0.38 dir=run_20261007T130353Z_b2b1884f5742ab3aa89bd2729a0da2c1b0300899 commit=b2b1884f5742ab3aa89bd2729a0da2c1b0300899 prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=19/50 ex=0.38 dir=run_20261007T145123Z_bc29bb6ee0a5336acbea653006d63d6cc8804af4 commit=bc29bb6ee0a5336acbea653006d63d6cc8804af4 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=19/50 ex=0.38 dir=run_20261007T145857Z_bc29bb6ee0a5336acbea653006d63d6cc8804af4 commit=bc29bb6ee0a5336acbea653006d63d6cc8804af4 prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```

@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**，**b2b1884 实测 19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（`test_p0_external_measured_baseline`）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**；当前 **`bc29bb6` 80×2** 实测 **19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（PATCH **17→18**）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -78,7 +78,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 成功条件（脚本末尾）：
 
-- **`p0_acceptance_gate=pass`**（当前 autogen：`docs/benchmark.md` — TPC-DS **30/30×2** @ `5fc4fc6`，BIRD **19/50×2** @ `b2b1884`）
+- **`p0_acceptance_gate=pass`**（当前 autogen：`docs/benchmark.md` — **80×2** @ **`bc29bb6`**：TPC-DS **30/30×2** + BIRD **19/50×2 stable**）
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
 - **`p0_measured_bird_run{1,2}=≥19/50`**（默认 **`P0_BIRD_MIN_MATCHED=19`**）且 **`p0_stability_bird=stable`**
 
@@ -102,6 +102,8 @@ p0_acceptance_gate=pass
 ```
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
+
+**bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
 
@@ -135,7 +137,7 @@ bird	reports/bird/run_…
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ `1fdda70`：**fingerprints + replay-gate + ci quality/integration** 均已绿；本地 **`./scripts/p1_release_gate.sh`**（pytest + **`verify_external_gold.sh`** 80/80 Oracle）@ `1fdda70` 通过；**UTC 06:00** nightly 与 push 同 workflow。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ **`bc29bb6`**：**fingerprints + replay-gate**；**`p0_acceptance_gate=pass`**（**80×2** measured）；本地 **`./scripts/p1_release_gate.sh`**（pytest + Oracle verify）；**UTC 06:00** nightly 与 push 同 workflow。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
 
