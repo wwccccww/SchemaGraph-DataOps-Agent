@@ -13,18 +13,22 @@ from app.evaluation.bird_patch_catalog import bird_gold_align_patch_by_case
 
 _BASE_PATCH_AMEND_PROFILES = frozenset({"tpcds_023_stock"})
 BIRD_GOLD_ALIGN_PATCH: dict[str, str] = bird_gold_align_patch_by_case()
-PATCH_AMEND_PROFILES = _BASE_PATCH_AMEND_PROFILES | frozenset(BIRD_GOLD_ALIGN_PATCH.values()) | frozenset(
-    {
-        "coe_charter",
-        "running_ok",
-        "financial_salary_gap",
-        "hickman_frpm",
-        "top3_sat_poverty",
-        "high_frpm_frpm_pct",
-        "top_frpm_soc66",
-        "weekly_statement_demographics",
-        "virtual_sat_f",
-    }
+PATCH_AMEND_PROFILES = (
+    _BASE_PATCH_AMEND_PROFILES
+    | frozenset(BIRD_GOLD_ALIGN_PATCH.values())
+    | frozenset(
+        {
+            "coe_charter",
+            "running_ok",
+            "financial_salary_gap",
+            "hickman_frpm",
+            "top3_sat_poverty",
+            "high_frpm_frpm_pct",
+            "top_frpm_soc66",
+            "weekly_statement_demographics",
+            "virtual_sat_f",
+        }
+    )
 )
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
