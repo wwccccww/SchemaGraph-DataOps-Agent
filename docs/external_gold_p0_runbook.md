@@ -121,7 +121,8 @@ bird	reports/bird/run_…
 | 命令 | 用途 |
 | --- | --- |
 | `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v11 measured **13/50**） |
-| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v11 峰值与 raw 同为 **13/50**；历史 v15 口径 **9/50**） |
+| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v11 峰值与 raw 同为 **13/50**；历史 v15 口径 **7→9** 见 `bird_v15_patch_autofix_run_dir()`） |
+| PATCH autofix 单测夹具 | `benchmarks/replay_snapshots/bird/run_20261006T001548Z_31113b6…/cases/{bird_0002,bird_0094}.json` | 与 v11 measured peak 分离；CI 不依赖 `reports/` |
 | `./scripts/replay_tpcds_baseline.sh` | TPC-DS **30/30** |
 | `./scripts/replay_bird_offline_ceiling.sh` | 离线 amend 口径（非发布 EX） |
 
