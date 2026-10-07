@@ -129,6 +129,27 @@ def test_v11_measured_ex0_frozen_finding_coverage_floor() -> None:
     assert with_findings >= 37
 
 
+def test_v11_measured_sql_error_ex0_have_frozen_findings() -> None:
+    """v11 峰值 sql_error/no_progress 熔断题（4 条）保存 SQL 须有 frozen 信号供 repair。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    sql_error_ids: list[str] = []
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if payload.get("ex") or payload.get("primary_class") != "sql_error":
+            continue
+        sql = (payload.get("prediction") or {}).get("sql") or ""
+        count = len(check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite"))
+        assert count >= 1, f"{case.id} sql_error saved SQL has 0 frozen findings"
+        sql_error_ids.append(case.id)
+    assert sql_error_ids == ["bird_0006", "bird_0069", "bird_0092", "bird_0119"]
+
+
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
     """Measured v11+ 峰值：EX=0 的 sql_error 保存 SQL 应至少 1 条 frozen finding（inventory）。"""
     if not PEAK_V15_RUN.is_dir():
@@ -142,7 +163,7 @@ def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
             import pytest
 
             pytest.skip(
-                "v11 measured peak (13/50): EX=0 finding-density inventory deferred to v59 peak"
+                "v11 measured peak (13/50): use test_v11_measured_ex0_frozen_finding_coverage_floor"
             )
     weak = []
     for case in load_bird_cases():
