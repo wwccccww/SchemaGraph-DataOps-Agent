@@ -2084,7 +2084,7 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
-                r"SUM\s*\(\s*CASE\s+WHEN\s+frpm_pct\s*>=",
+                r"SUM\s*\(\s*CASE\s+WHEN\s+[\w.\"]*frpm",
                 sql,
                 re.IGNORECASE,
             ):
@@ -3190,11 +3190,41 @@ def check_frozen_semantic_contract(
                         "PercentScoring1500Plus=NumGE1500×100/NumTstTakr，不要用 Enrollment 作分母",
                     )
                 )
-            if re.search(r"FRPMPercentage\s*>=\s*75|FRPMPercentage\s*>=\s*50", sql):
+            if re.search(
+                r"FRPMPercentage\s*[>]=?\s*75|FRPMPercentage\s*[>]=?\s*50|FRPMPercentage\s*[>]=?\s*25",
+                sql,
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "PovertyLevel 分档用 frpm 小数 >0.75/>0.50/>0.25，不要 FRPMPercentage>=75",
+                    )
+                )
+            if re.search(
+                r"CASE\s+Charter\s+WHEN\s+1\s+THEN\s+'Yes'|THEN\s+'No'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter School / Non-Charter School（schools.Charter），"
+                        "不要用 Yes/No",
+                    )
+                )
+            if re.search(
+                r"NumGE1500[\s\S]{0,80}/[\s\S]{0,40}NumTstTakr",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"NumGE1500[\s\S]{0,40}\*\s*100",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentScoring1500Plus=NumGE1500×100.0/NumTstTakr",
                     )
                 )
             if re.search(r"High FRPM|Medium FRPM", sql) and "PovertyLevel" in "".join(

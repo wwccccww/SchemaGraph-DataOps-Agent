@@ -369,6 +369,44 @@ def test_la_meal_stats_frozen_contract_flags_v12_bird_0021() -> None:
     assert any("Enrollment 比例" in message or "绝对阈值" in message for message in messages)
 
 
+def test_top_reading_sat_frozen_contract_flags_v12_bird_0010() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
+    peak = peak_case_path("bird_0010")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0010 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert len(messages) >= 2
+    assert any("小数" in message or "FRPMPercentage" in message for message in messages)
+    assert any("Yes/No" in message or "Charter School" in message for message in messages)
+
+
+def test_adelanto_grade_span_frozen_contract_flags_v12_bird_0078() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0078")
+    peak = peak_case_path("bird_0078")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0078 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("SUM(CASE" in message or "poverty 计数" in message for message in messages)
+
+
 def test_ricci_ulrich_frozen_contract_flags_v12_bird_0045() -> None:
     import json
 
