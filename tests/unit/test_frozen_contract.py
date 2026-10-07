@@ -294,6 +294,35 @@ def test_frozen_contract_rejects_inventory_sold_items_join_store_sales() -> None
     assert any("store_sales" in item.message for item in findings)
 
 
+def test_frozen_contract_rejects_tpcds_023_literal_inventory_year() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_023")
+    bad = (
+        "WITH sold AS (SELECT ss_item_sk, SUM(ss_quantity) AS quantity_sold FROM store_sales "
+        "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk "
+        "WHERE date_dim.d_year = 2001 GROUP BY ss_item_sk), "
+        "stock AS (SELECT warehouse.w_state, item.i_category, item.i_item_sk, "
+        "SUM(inventory.inv_quantity_on_hand) AS quantity_on_hand FROM inventory "
+        "JOIN date_dim ON inventory.inv_date_sk = date_dim.d_date_sk "
+        "JOIN item ON inventory.inv_item_sk = item.i_item_sk "
+        "JOIN warehouse ON inventory.inv_warehouse_sk = warehouse.w_warehouse_sk "
+        "WHERE date_dim.d_year = 2001 "
+        "GROUP BY warehouse.w_state, item.i_category, item.i_item_sk) "
+        "SELECT stock.w_state AS warehouse_state, stock.i_category AS item_category, "
+        "2001 AS inventory_year, SUM(stock.quantity_on_hand) AS quantity_on_hand, "
+        "SUM(sold.quantity_sold) AS quantity_sold FROM stock "
+        "JOIN sold ON stock.i_item_sk = sold.ss_item_sk "
+        "GROUP BY stock.w_state, stock.i_category, inventory_year"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("2001" in item.message and "inventory_year" in item.message for item in findings)
+    assert (
+        check_frozen_semantic_contract(case.semantic_contract, case.gold_sql, dialect="postgres")
+        == ()
+    )
+
+
 def test_frozen_contract_rejects_quantity_sold_from_ss_sales_price() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 

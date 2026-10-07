@@ -2735,7 +2735,15 @@ def check_frozen_semantic_contract(
                 )
             )
     if "inventory_sold_qty=join_sold_cte" in contract.filters:
-        if re.search(r"group\s+by[^;]*quantity_on_hand", lowered_sql, re.IGNORECASE):
+        if re.search(
+            r"from\s+stock\b[\s\S]*group\s+by[^;]*\bquantity_on_hand\b",
+            lowered_sql,
+            re.IGNORECASE,
+        ) or re.search(
+            r"from\s+stock\b[\s\S]*group\s+by[^;]*\bquantity_sold\b",
+            lowered_sql,
+            re.IGNORECASE,
+        ):
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
@@ -2752,6 +2760,27 @@ def check_frozen_semantic_contract(
                 SemanticFinding(
                     "projection_mismatch",
                     "GROUP BY 用 inventory_year 列/别名，不要写裸字面量 2001",
+                )
+            )
+        if re.search(r"\b2001\s+as\s+inventory_year\b", lowered_sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "inventory_year 来自 stock CTE 的 date_dim.d_year，"
+                    "不要 SELECT 2001 AS inventory_year",
+                )
+            )
+        stock_cte = re.search(
+            r"\bstock\s+as\s*\((.*?)\)\s*select\b",
+            lowered_sql,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if stock_cte is not None and "d_year" not in stock_cte.group(1):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "stock CTE 需 JOIN date_dim 并 SELECT date_dim.d_year AS inventory_year，"
+                    "再与 sold CTE 按 inv_item_sk/ss_item_sk JOIN",
                 )
             )
         if "left join sold" in lowered_sql or "left join sold as" in lowered_sql:
@@ -3399,9 +3428,10 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append("出生年份维度需 customer.c_birth_year IS NOT NULL。")
         if item == "inventory_sold_qty=join_sold_cte":
             hints.append(
-                "库存+门店销量：sold CTE 按 ss_item_sk 汇总 ss_quantity，"
-                "stock CTE 按 warehouse/category/item_sk 汇总 inv_quantity_on_hand，"
-                "再 JOIN sold ON item_sk 后外层 SUM quantity_on_hand 与 quantity_sold。"
+                "库存+门店销量：sold CTE 按 ss_item_sk 汇总 ss_quantity；"
+                "stock CTE 含 date_dim.d_year AS inventory_year 与 inv_item_sk，"
+                "再 INNER JOIN sold ON item_sk，外层 GROUP BY warehouse_state/item_category/inventory_year；"
+                "勿用 2001 AS inventory_year。"
             )
         if item == "return_linked_sales=item_store_year":
             hints.append(
