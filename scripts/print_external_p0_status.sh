@@ -64,9 +64,9 @@ else
   fi
 fi
 if [[ -d "$PEAK/cases" ]]; then
-  echo "== peak EX=0 frozen semantic bar (v12: ≥14 EX=0 with ≥1 finding) =="
+  echo "== peak EX=0 frozen semantic bar (v12: ≥17 EX=0 with ≥1 finding) =="
   if python3 -m pytest tests/unit/test_bird_profile_inventory.py::test_v12_measured_ex0_frozen_finding_coverage_floor -q --tb=no; then
-    echo "peak_ex0_frozen_findings=pass_min_14"
+    echo "peak_ex0_frozen_findings=pass_min_17"
   else
     echo "peak_ex0_frozen_findings=fail" >&2
   fi

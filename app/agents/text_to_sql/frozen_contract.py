@@ -421,11 +421,23 @@ def check_frozen_semantic_contract(
                         "LA 餐食题过滤 frpm.`County Name`='Los Angeles'（不要用 schools.County）",
                     )
                 )
-            if re.search(r"SchoolMealStats[\s\S]{0,400}LEFT JOIN satscores", sql, re.I):
+            if re.search(r"SchoolMealStats[\s\S]{0,1200}LEFT JOIN satscores", sql, re.I):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "SAT 用独立 SATData CTE（cname='Los Angeles'），不要 SchoolMealStats 内 JOIN satscores",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)\"?\s*>=\s*0\.\d+\s*\*[\s\S]{0,40}Enrollment",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeMealCategory 按 Free Meal Count 绝对阈值（>600 Very High，>500 High），"
+                        "不要与 Enrollment 比例比较",
                     )
                 )
         if "financial_salary_gap_profile=true" in contract.filters:
@@ -3308,6 +3320,14 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "无 SAT 时 PercentOver1500 输出 '0%'（不要 No SAT Data 文案）",
+                    )
+                )
+            if re.search(r"Very High Poverty|Moderate Poverty", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 用 High/Medium-High/Medium-Low/Low Poverty（frpm 小数），"
+                        "不要用 Very High Poverty 或 Moderate Poverty",
                     )
                 )
         if "virtual_county_compare_profile=true" in contract.filters:
