@@ -4,6 +4,7 @@ Frozen **model prediction traces** for `--replay-run` / `--replay-patch-autofix`
 
 | Snapshot | Source commit / run | Replay bar |
 |----------|---------------------|------------|
+| `bird/run_20261007T093506Z_65bcd64…` | v12 measured peak (`65bcd64`, 2× stable **17/50**) | **17/50** raw; offline amend ceiling **17→26** |
 | `bird/run_20261006T001548Z_31113b6…` | generic v15 peak (partial: `bird_0002` + `bird_0094` for PATCH autofix tests) | **7/50** raw; **7→9** PATCH autofix on full local `reports/` run |
 | `tpcds-derived/run_20261005T230855Z_43c9faa…` | TPC-DS confirm | **30/30** |
 
