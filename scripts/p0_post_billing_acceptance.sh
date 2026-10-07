@@ -43,6 +43,8 @@ if [[ "$GATES_ONLY" -eq 1 ]]; then
   echo "ops_runbook=docs/external_gold_p0_runbook.md"
   echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
   echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
+  echo "e5482a4_replay_baseline=./scripts/replay_e5482a4_baseline.sh"
+  echo "e5482a4_replay_patch=./scripts/replay_e5482a4_patch_autofix.sh"
   echo "P0 gates-only OK: after billing restore, re-run without --gates-only for 2× full LLM + docs/benchmark.md."
   exit 0
 fi
