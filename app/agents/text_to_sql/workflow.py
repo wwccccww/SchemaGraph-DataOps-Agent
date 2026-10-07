@@ -718,9 +718,7 @@ def _repair_sql(
         case_id = state.get("benchmark_case_id")
         if case_id and state["profile"] != "ecommerce":
             payload = state.get("frozen_contract")
-            frozen = (
-                SemanticContract.model_validate(payload) if payload is not None else None
-            )
+            frozen = SemanticContract.model_validate(payload) if payload is not None else None
             fixed = autofix_sql_when_frozen_contract_clean(
                 case_id=case_id,
                 sql=sql,
