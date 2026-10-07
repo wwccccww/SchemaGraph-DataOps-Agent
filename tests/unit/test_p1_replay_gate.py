@@ -34,7 +34,7 @@ def test_replay_profile_catalog() -> None:
     assert len(GOLD_OVERLAY_PROFILES) >= 10
 
 
-def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
+def test_p1_replay_bird_model_baseline_thirteen_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -54,15 +54,15 @@ def test_p1_replay_bird_model_baseline_seven_of_fifty() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
 def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
-    """v15 保存 trace 为 sql_error；--replay-run 用当前 SQLite gate 重算为可执行。"""
+    """峰值保存 trace 重放时 bird_0021 须可执行且非 sql_error。"""
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     saved = json.loads((BIRD_PEAK_RUN / "cases" / "bird_0021.json").read_text())
-    assert saved.get("primary_class") == "sql_error"
+    assert saved.get("primary_class") != "sql_error"
     completed = subprocess.run(
         [
             sys.executable,
@@ -83,7 +83,7 @@ def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
     assert "bird_0021 other_result_mismatch ex=0" in completed.stderr
 
 
-def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
+def test_p1_replay_patch_autofix_thirteen_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -104,10 +104,10 @@ def test_p1_replay_patch_autofix_nine_of_fifty() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 9" in completed.stderr or "matched 7 -> 9" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
-def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:
+def test_p1_offline_ceiling_script_twenty_two_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     script = Path(__file__).resolve().parents[2] / "scripts/replay_bird_offline_ceiling.sh"
@@ -121,7 +121,7 @@ def test_p1_offline_ceiling_script_nineteen_of_fifty() -> None:
         env={**os.environ, "BIRD_DATABASE_ROOT": str(BIRD_DB_ROOT)},
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 19" in completed.stderr or "matched 7 -> 19" in completed.stdout
+    assert "matched 13 -> 22" in completed.stderr or "matched 13 -> 22" in completed.stdout
 
 
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:

@@ -43,7 +43,7 @@ def test_replay_run_rescores_v15_peak_without_llm() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 7" in completed.stderr or "matched 7 -> 7" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
 def test_replay_amend_coe_charter_lifts_peak_run_to_eight() -> None:
@@ -70,7 +70,7 @@ def test_replay_amend_coe_charter_lifts_peak_run_to_eight() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 8" in completed.stderr or "matched 7 -> 8" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
 def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
@@ -97,7 +97,7 @@ def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 8" in completed.stderr or "matched 7 -> 8" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
 def test_replay_patch_autofix_lifts_peak_run_to_nine() -> None:
@@ -123,4 +123,4 @@ def test_replay_patch_autofix_lifts_peak_run_to_nine() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 7 -> 9" in completed.stderr or "matched 7 -> 9" in completed.stdout
+    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout

@@ -1,0 +1,189 @@
+{
+  "case_id": "bird_0006",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    s.School AS School,\n    s.SOCType AS SchoolType,\n    s.EdOpsName AS EducationalOption,\n    sa.NumTstTakr AS TestTakers,\n    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS TotalAvgScore,\n    sa.AvgScrRead AS ReadingScore,\n    sa.AvgScrMath AS MathScore,\n    sa.AvgScrWrite AS WritingScore,\n    ROUND(sa.NumGE1500 * 100.0 / sa.NumTstTakr, 2) AS PercentHighScorers,\n    f.\"Enrollment (K-12)\" AS Enrollment,\n    f.\"Percent (%) Eligible FRPM (K-12)\" AS FreeReducedMealPercentage,\n    s.County AS County\n  FROM schools s\n  JOIN satscores sa ON sa.cds = s.CDSCode\n  LEFT JOIN frpm f ON f.CDSCode = s.CDSCode\n  WHERE s.Magnet = 1\n    AND sa.rtype = 'S'\n    AND sa.NumTstTakr > 500\n)\nSELECT\n  School,\n  SchoolType,\n  EducationalOption,\n  TestTakers,\n  TotalAvgScore,\n  ReadingScore,\n  MathScore,\n  WritingScore,\n  PercentHighScorers,\n  Enrollment,\n  FreeReducedMealPercentage,\n  DENSE_RANK() OVER (ORDER BY TotalAvgScore DESC) AS StateRank,\n  DENSE_RANK() OVER (PARTITION BY County ORDER BY TotalAvgScore DESC) AS CountyRank,\n  CASE\n    WHEN FreeReducedMealPercentage > 0.75 THEN 'High Poverty'\n    WHEN FreeReducedMealPercentage > 0.50 THEN 'Moderate Poverty'\n    WHEN FreeReducedMealPercentage > 0.25 THEN 'Low Poverty'\n    ELSE 'Very Low Poverty'\n  END AS PovertyLevel,\n  CASE\n    WHEN TotalAvgScore > 1800 THEN 'Excellent'\n    WHEN TotalAvgScore > 1500 THEN 'Good'\n    WHEN TotalAvgScore > 1200 THEN 'Average'\n    ELSE 'Below Average'\n  END AS PerformanceCategory\nFROM base\nORDER BY TotalAvgScore DESC;",
+    "sql_hash": "sha256:3413eb1768cd54294306f16e11d380d650e99ac67226ccdb31f16788c79287d6",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "SchoolType",
+      "EducationalOption",
+      "TestTakers",
+      "TotalAvgScore",
+      "ReadingScore",
+      "MathScore",
+      "WritingScore",
+      "PercentHighScorers",
+      "Enrollment",
+      "FreeReducedMealPercentage",
+      "StateRank",
+      "CountyRank",
+      "PovertyLevel",
+      "PerformanceCategory"
+    ],
+    "joins": [
+      "JOIN satscores ON sa.cds = s.CDSCode",
+      "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "dense_rank"
+    ],
+    "order_by": [
+      "TotalAvgScore DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "SchoolType",
+          "EducationalOption",
+          "TestTakers",
+          "TotalAvgScore",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "PercentHighScorers",
+          "Enrollment",
+          "FreeReducedMealPercentage",
+          "StateRank",
+          "CountyRank",
+          "PovertyLevel",
+          "PerformanceCategory"
+        ],
+        "joins": [
+          "JOIN satscores ON sa.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "dense_rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "School",
+          "SchoolType",
+          "EducationalOption",
+          "TestTakers",
+          "TotalAvgScore",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "PercentHighScorers",
+          "Enrollment",
+          "FreeReducedMealPercentage",
+          "County"
+        ],
+        "joins": [
+          "JOIN satscores ON sa.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:082ff66a6124d9ac0c79d920e698f996762d47cd542cd019cd65444c8c3e531b;2:no_progress:sha256:082ff66a6124d9ac0c79d920e698f996762d47cd542cd019cd65444c8c3e531b"
+    ]
+  ]
+}

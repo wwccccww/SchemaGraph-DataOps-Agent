@@ -1,0 +1,195 @@
+{
+  "case_id": "tpcds_complex_008",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "catalog_sales",
+    "store_sales",
+    "web_sales",
+    "item",
+    "catalog_page",
+    "store",
+    "web_page",
+    "web_site",
+    "date_dim"
+  ],
+  "expanded_tables": [
+    "customer",
+    "promotion",
+    "time_dim"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH channel_rows AS (SELECT 'store' AS sales_channel, ss_item_sk AS item_sk, d_year AS sales_year, SUM(ss_ext_sales_price) AS sales_amount FROM store_sales JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk WHERE d_year = 2001 GROUP BY ss_item_sk, d_year UNION ALL SELECT 'catalog' AS sales_channel, cs_item_sk AS item_sk, d_year AS sales_year, SUM(cs_ext_sales_price) AS sales_amount FROM catalog_sales JOIN date_dim ON catalog_sales.cs_sold_date_sk = date_dim.d_date_sk WHERE d_year = 2001 GROUP BY cs_item_sk, d_year UNION ALL SELECT 'web' AS sales_channel, ws_item_sk AS item_sk, d_year AS sales_year, SUM(ws_ext_sales_price) AS sales_amount FROM web_sales JOIN date_dim ON web_sales.ws_sold_date_sk = date_dim.d_date_sk WHERE d_year = 2001 GROUP BY ws_item_sk, d_year) SELECT channel_rows.sales_channel AS sales_channel, item.i_category AS item_category, channel_rows.sales_year AS sales_year, SUM(channel_rows.sales_amount) AS sales_amount FROM channel_rows JOIN item ON channel_rows.item_sk = item.i_item_sk GROUP BY channel_rows.sales_channel, item.i_category, channel_rows.sales_year ORDER BY channel_rows.sales_channel, item.i_category, channel_rows.sales_year",
+    "sql_hash": "sha256:f5c5a9c2687f99d7311d4ca9e35bb5b40f5114b1ee9c5b5313759693e1d729aa",
+    "referenced_tables": [
+      "catalog_sales",
+      "date_dim",
+      "item",
+      "store_sales",
+      "web_sales"
+    ],
+    "projections": [
+      "sales_channel",
+      "item_category",
+      "sales_year",
+      "sales_amount"
+    ],
+    "joins": [
+      "JOIN item ON channel_rows.item_sk = item.i_item_sk",
+      "JOIN date_dim ON web_sales.ws_sold_date_sk = date_dim.d_date_sk",
+      "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk",
+      "JOIN date_dim ON catalog_sales.cs_sold_date_sk = date_dim.d_date_sk"
+    ],
+    "predicates": [],
+    "group_by": [
+      "channel_rows.sales_channel",
+      "item.i_category",
+      "channel_rows.sales_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "channel_rows.sales_channel ASC",
+      "item.i_category ASC",
+      "channel_rows.sales_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "sales_channel",
+          "item_category",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN item ON channel_rows.item_sk = item.i_item_sk",
+          "JOIN date_dim ON web_sales.ws_sold_date_sk = date_dim.d_date_sk",
+          "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk",
+          "JOIN date_dim ON catalog_sales.cs_sold_date_sk = date_dim.d_date_sk"
+        ],
+        "group_by": [
+          "channel_rows.sales_channel",
+          "item.i_category",
+          "channel_rows.sales_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "channel_rows",
+        "projections": [
+          "sales_channel",
+          "item_sk",
+          "sales_year",
+          "sales_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON store_sales.ss_sold_date_sk = date_dim.d_date_sk",
+          "JOIN date_dim ON catalog_sales.cs_sold_date_sk = date_dim.d_date_sk",
+          "JOIN date_dim ON web_sales.ws_sold_date_sk = date_dim.d_date_sk"
+        ],
+        "group_by": [
+          "ss_item_sk",
+          "d_year",
+          "cs_item_sk",
+          "d_year",
+          "ws_item_sk",
+          "d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:channel_rows.channel、item.i_category、channel_rows.sales_year | channel_rows:store_sales.ss_item_sk、date_dim.d_year、catalog_sales.cs_item_sk、date_dim.d_year、web_sales.ws_item_sk、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:channel_rows.sales_channel、item.i_category、channel_rows.sales_year | channel_rows:ss_item_sk、d_year、cs_item_sk、d_year、ws_item_sk、d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

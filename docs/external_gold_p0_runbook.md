@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=7`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=13`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步；历史默认 7）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -100,7 +100,7 @@ p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
 
-若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **7/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
+若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **13/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
 
 ### Measured manifest（2×2 全量）
 

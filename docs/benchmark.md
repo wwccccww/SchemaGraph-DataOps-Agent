@@ -93,7 +93,13 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 <!-- p0-measured-autogen:start -->
 
 ```text
-(pending: billing 后 p0_acceptance_gate=pass — 运行 ./scripts/p0_post_billing_acceptance.sh 或 ./scripts/apply_p0_measured_benchmark.sh)
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T070145Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T070604Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
+p0_stability_tpcds=stable
+p0_measured_bird_run1=13/50 ex=0.26 dir=run_20261007T071120Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=13/50 ex=0.26 dir=run_20261007T071641Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
+p0_stability_bird=stable
+p0_acceptance_gate=pass
 ```
 
 <!-- p0-measured-autogen:end -->
@@ -108,7 +114,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
-| 模型 BIRD 实测 | 峰值 `31113b6` replay | **7/50**（`test_p0_*`）；**80 例综合未完成** |
+| 模型 BIRD 实测 | 峰值 `d502105` replay | **13/50**（`test_p0_*`）；**P0 80×2 measured gate pass**（`p0-measured-autogen`） |
 | BIRD PATCH 复分上界 | `--replay-patch-autofix` | **9/50**（`test_p0_*` / `test_p1_*`；非发布 EX） |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |

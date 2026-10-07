@@ -31,7 +31,7 @@ def test_peak_v15_saved_sql_readonly_failures_only_bird_0094() -> None:
         result = execute_sqlite_readonly(db_path, sql, timeout_seconds=30.0)
         if isinstance(result, SqliteFailure):
             failures.append(payload["case_id"])
-    assert failures == ["bird_0094"], failures
+    assert failures == [], failures
 
 
 def test_peak_circuit_breaker_cases_saved_sql_executable_except_0094() -> None:
@@ -60,4 +60,4 @@ def test_peak_circuit_breaker_cases_saved_sql_executable_except_0094() -> None:
         result = execute_sqlite_readonly(db_path, sql, timeout_seconds=30.0)
         if isinstance(result, SqliteFailure):
             not_exec.append(case_id)
-    assert not_exec == ["bird_0094"], not_exec
+    assert not_exec == [], not_exec

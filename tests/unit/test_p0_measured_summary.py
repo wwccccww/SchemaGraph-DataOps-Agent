@@ -78,15 +78,15 @@ def test_format_report_two_by_two(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
-    _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
+    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
     text = format_report(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
     )
     assert "p0_measured_tpcds_run1=30/30" in text
     assert "p0_stability_tpcds=stable" in text
-    assert "p0_measured_bird_run2=7/50" in text
+    assert "p0_measured_bird_run2=13/50" in text
     assert "p0_stability_bird=stable" in text
 
 
@@ -120,8 +120,8 @@ def test_acceptance_gate_passes_on_stable_full_band(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=8, case_count=50, accuracy=0.16)
-    _write_summary(b2, source="bird", matched=8, case_count=50, accuracy=0.16)
+    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
     assert (
         validate_p0_acceptance_gate(
             [load_run_measured(t1), load_run_measured(t2)],
@@ -138,12 +138,12 @@ def test_acceptance_gate_fails_bird_below_baseline_min(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=6, case_count=50, accuracy=0.12)
-    _write_summary(b2, source="bird", matched=6, case_count=50, accuracy=0.12)
+    _write_summary(b1, source="bird", matched=12, case_count=50, accuracy=0.24)
+    _write_summary(b2, source="bird", matched=12, case_count=50, accuracy=0.24)
     failures = validate_p0_acceptance_gate(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
-        bird_min_matched=7,
+        bird_min_matched=13,
     )
     assert any("below baseline min" in item for item in failures)
 
@@ -155,8 +155,8 @@ def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=29, case_count=30, accuracy=29 / 30)
-    _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
-    _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
+    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
     failures = validate_p0_acceptance_gate(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
@@ -190,8 +190,8 @@ def test_cli_acceptance_gate_passes(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=7, case_count=50, accuracy=0.14)
-    _write_summary(b2, source="bird", matched=7, case_count=50, accuracy=0.14)
+    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
     completed = subprocess.run(
         [
             sys.executable,
@@ -242,7 +242,7 @@ def test_cli_on_peak_bird_fixture() -> None:
     if not peak.is_dir():
         pytest.skip("bird peak run fixture unavailable")
     loaded = load_run_measured(peak)
-    assert loaded.matched == 7
+    assert loaded.matched == 13
     assert loaded.case_count == 50
 
 
@@ -259,14 +259,14 @@ def test_peak_tpcds_pair_satisfies_acceptance_tpcds_rules() -> None:
 
 
 def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
-    """Peak v15 双跑同目录时 BIRD 侧应 stable 且满足默认 7/50 下限（TPC-DS 仍须另补 2 run）。"""
+    """Peak v11 双跑同目录时 BIRD 侧应 stable 且满足默认 13/50 下限（TPC-DS 仍须另补 2 run）。"""
     from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
 
     peak = BIRD_PEAK_RUN
     if not peak.is_dir():
         pytest.skip("bird peak run fixture unavailable")
     pair = [load_run_measured(peak), load_run_measured(peak)]
-    failures = validate_p0_acceptance_gate([], pair, bird_min_matched=7)
+    failures = validate_p0_acceptance_gate([], pair, bird_min_matched=13)
     bird_failures = [item for item in failures if "bird" in item.lower()]
     assert bird_failures == []
 

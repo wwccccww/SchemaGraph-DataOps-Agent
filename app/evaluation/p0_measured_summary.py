@@ -119,7 +119,7 @@ def load_manifest(manifest_path: Path) -> tuple[list[Path], list[Path]]:
 def baseline_followup_hint(
     bird_runs: list[RunMeasured],
     *,
-    documented_bird_min: int = 7,
+    documented_bird_min: int = 13,
 ) -> str | None:
     """When new measured runs beat the documented replay baseline, remind to update tests/env."""
     if not bird_runs:
@@ -141,7 +141,7 @@ def validate_p0_acceptance_gate(
     bird_runs: list[RunMeasured],
     *,
     tpcds_cases: int = 30,
-    bird_min_matched: int = 7,
+    bird_min_matched: int = 13,
 ) -> list[str]:
     """Return human-readable failure reasons; empty list means gate passed."""
     failures: list[str] = []
@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--bird-min-matched",
         type=int,
-        default=7,
+        default=13,
         help="With --acceptance-gate: each BIRD run must have at least this many EX (0=disable)",
     )
     parser.add_argument(

@@ -32,7 +32,7 @@ echo "p0_measured_manifest_format=tpcds-derived<TAB>run_dir per line; bird<TAB>r
 "$ROOT/scripts/run_tpcds_p0_full_eval_twice.sh"
 "$ROOT/scripts/run_bird_p0_full_eval_twice.sh"
 echo "== P0 measured summary (paste into docs/benchmark.md) =="
-BIRD_MIN="${P0_BIRD_MIN_MATCHED:-7}"
+BIRD_MIN="${P0_BIRD_MIN_MATCHED:-13}"
 python3 -m app.evaluation.p0_measured_summary \
   --manifest "$MANIFEST" \
   --acceptance-gate \

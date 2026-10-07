@@ -1,0 +1,177 @@
+{
+  "case_id": "tpcds_complex_020",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "projection_mismatch: 度量应使用目录中的列 ss_sales_price",
+  "attempts": 5,
+  "seed_tables": [
+    "store_sales",
+    "store",
+    "date_dim",
+    "time_dim"
+  ],
+  "expanded_tables": [
+    "customer",
+    "item",
+    "promotion",
+    "call_center",
+    "catalog_page",
+    "inventory",
+    "warehouse",
+    "web_page"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT\n  t.t_shift AS shift_name,\n  s.s_state AS store_state,\n  i.i_category AS item_category,\n  d.d_year AS sales_year,\n  SUM(ss.ss_quantity) AS quantity_sold\nFROM store_sales ss\nJOIN date_dim d ON ss.ss_sold_date_sk = d.d_date_sk\nJOIN time_dim t ON ss.ss_sold_time_sk = t.t_time_sk\nJOIN store s ON ss.ss_store_sk = s.s_store_sk\nJOIN item i ON ss.ss_item_sk = i.i_item_sk\nWHERE d.d_year = 2001\n  AND d.d_date >= DATE '2001-01-01'\n  AND d.d_date < DATE '2002-01-01'\n  AND d.d_weekend = 'Y'\nGROUP BY t.t_shift, s.s_state, i.i_category, d.d_year\nORDER BY t.t_shift, s.s_state, i.i_category, d.d_year;",
+    "sql_hash": "sha256:5421142b911cebe84eac2ce67c0ad11d2c69edd3f0c9b8f758d2a5adaec31c1d",
+    "referenced_tables": [
+      "date_dim",
+      "item",
+      "store",
+      "store_sales",
+      "time_dim"
+    ],
+    "projections": [
+      "shift_name",
+      "store_state",
+      "item_category",
+      "sales_year",
+      "quantity_sold"
+    ],
+    "joins": [
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN time_dim ON ss.ss_sold_time_sk = t.t_time_sk",
+      "JOIN store ON ss.ss_store_sk = s.s_store_sk",
+      "JOIN item ON ss.ss_item_sk = i.i_item_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001 AND d.d_date >= CAST('2001-01-01' AS DATE) AND d.d_date < CAST('2002-01-01' AS DATE) AND d.d_weekend = 'Y'"
+    ],
+    "group_by": [
+      "t.t_shift",
+      "s.s_state",
+      "i.i_category",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "t.t_shift ASC",
+      "s.s_state ASC",
+      "i.i_category ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "shift_name",
+          "store_state",
+          "item_category",
+          "sales_year",
+          "quantity_sold"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN time_dim ON ss.ss_sold_time_sk = t.t_time_sk",
+          "JOIN store ON ss.ss_store_sk = s.s_store_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk"
+        ],
+        "group_by": [
+          "t.t_shift",
+          "s.s_state",
+          "i.i_category",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:time_dim.t_shift、store.s_state、item.i_category、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:t.t_shift、s.s_state、i.i_category、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b1bd5076e44b8204499efae9fca2158d0ec72b81a627abf0cdc216939e141860;2:projection_mismatch:sha256:42fa93dbfc6cfa6a9f58444cd78ea0c1f93b7678959fb15c43899b5569e70331;3:projection_mismatch:sha256:b1bd5076e44b8204499efae9fca2158d0ec72b81a627abf0cdc216939e141860;4:projection_mismatch:sha256:42fa93dbfc6cfa6a9f58444cd78ea0c1f93b7678959fb15c43899b5569e70331;5:projection_mismatch:sha256:b1bd5076e44b8204499efae9fca2158d0ec72b81a627abf0cdc216939e141860"
+    ]
+  ]
+}
