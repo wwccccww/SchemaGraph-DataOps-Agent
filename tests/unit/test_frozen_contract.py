@@ -311,6 +311,24 @@ def test_virtual_sat_f_frozen_contract_flags_v11_bird_0005() -> None:
     )
 
 
+def test_virtual_sat_f_frozen_contract_flags_v12_bird_0005_outer_sat_filter() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0005")
+    peak = peak_case_path("bird_0005")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0005 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("SATPerformance CTE" in message for message in messages)
+
+
 def test_la_meal_stats_frozen_contract_flags_v11_bird_0021() -> None:
     import json
 

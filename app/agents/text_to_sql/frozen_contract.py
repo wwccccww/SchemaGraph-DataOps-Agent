@@ -2897,6 +2897,28 @@ def check_frozen_semantic_contract(
                         "fully virtual：VirtualSchools + SATPerformance + SchoolEnrollmentData CTE",
                     )
                 )
+            sat_cte = re.search(
+                r"SATPerformance\s+AS\s*\(([\s\S]*?)\)\s*,?\s*(?:SchoolEnrollment|SELECT)",
+                sql,
+                re.IGNORECASE,
+            )
+            if sat_cte and re.search(
+                r"(?:sp\.|ss\.)?(?:AvgScrMath|MathScore)\s*>\s*400",
+                sql,
+                re.IGNORECASE,
+            ):
+                if not re.search(
+                    r"(?:AvgScrMath|MathScore)\s*>\s*400",
+                    sat_cte.group(1),
+                    re.IGNORECASE,
+                ):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "SAT>400 须在 SATPerformance CTE 内过滤（AvgScrMath/MathScore），"
+                            "不要仅在外层 WHERE sp.MathScore>400",
+                        )
+                    )
         if "coe_charter_profile=true" in contract.filters:
             if re.search(
                 r"Percent[\s\S]*?\*\s*100\s+AS\s+PercentFRPM|\*\s*100\s+AS\s+PercentFRPM",
