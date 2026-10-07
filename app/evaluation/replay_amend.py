@@ -152,6 +152,30 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     out = re.sub(
+        r"CASE WHEN NumTstTakr IS NULL OR NumTstTakr = 0 THEN NULL "
+        r"ELSE ROUND\(NumGE1500 \* 100\.0 / NumTstTakr, 2\) END AS PercentHighScorers",
+        "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"CASE WHEN NumTstTakr > 0 THEN ROUND\(NumGE1500 \* 100\.0 / NumTstTakr, 2\) "
+        r"ELSE NULL END AS PercentHighScorers",
+        "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"CASE WHEN NumTstTakr IS NULL THEN 'No SAT Data' "
+        r"WHEN TotalSATScore < 1200 THEN 'Below Average' "
+        r"WHEN TotalSATScore <= 1500 THEN 'Average' "
+        r"ELSE 'Above Average' END AS PerformanceCategory",
+        "CASE WHEN TotalSATScore >= 1500 THEN 'High' "
+        "WHEN TotalSATScore >= 1200 THEN 'Medium' ELSE 'Low' END AS PerformanceCategory",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
         r"CASE WHEN NumTstTakr > 0 THEN NumGE1500 \* 100\.0 / NumTstTakr END AS PercentHighScorers",
         "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
         out,
