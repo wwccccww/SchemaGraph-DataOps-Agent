@@ -477,16 +477,28 @@ def test_la_low_free_meal_frozen_contract_flags_v12_bird_0062() -> None:
     assert any("×100" in message and "0.18" in message for message in messages)
 
 
-def test_directly_funded_stanislaus_gold_sql_passes_frozen_contract() -> None:
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        "bird_0066",
+        "bird_0078",
+        "bird_0092",
+        "bird_0097",
+        "bird_0111",
+    ],
+)
+def test_v12_join_semantics_cases_gold_sql_passes_frozen(case_id: str) -> None:
+    """Step-3 join_semantics 五题 Gold 须通过 frozen（峰值 bad SQL 另有专项断言）。"""
     from app.evaluation.bird import load_bird_cases
     from app.evaluation.bird_contracts import contract_for
 
-    case = next(item for item in load_bird_cases() if item.id == "bird_0066")
+    case = next(item for item in load_bird_cases() if item.id == case_id)
+    dialect = "sqlite" if case.database_id != "financial" else "sqlite"
     assert (
         check_frozen_semantic_contract(
             contract_for(case),
             case.gold_sql,
-            dialect="sqlite",
+            dialect=dialect,
         )
         == ()
     )

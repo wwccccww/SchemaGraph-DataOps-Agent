@@ -2268,15 +2268,15 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
-                r"SUM\s*\(\s*CASE\s+WHEN\s+a\.\"FRPMPct\"\s*>\s*0\.75",
+                r"SUM\s*\(\s*CASE\s+WHEN\s+a\.(?:\"FRPMPct\"|frpm_pct)\s*>\s*0\.(?:75|50)",
                 sql,
                 re.IGNORECASE,
             ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "high_poverty_schools 用 COUNT(CASE poverty_level='High Poverty')，"
-                        "不要 SUM(CASE FRPMPct>0.75)",
+                        "high/medium poverty 用 COUNT(CASE poverty_level=…)，"
+                        "不要 SUM(CASE frpm_pct 阈值)",
                     )
                 )
         if "ricci_ulrich_admin_sat_profile=true" in contract.filters:
