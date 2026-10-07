@@ -18,6 +18,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "top3_sat_poverty",
         "high_frpm_frpm_pct",
         "top_frpm_soc66",
+        "weekly_statement_demographics",
         "tpcds_023_stock",
     }
 )
@@ -56,6 +57,8 @@ def apply_replay_amends(
         amended = _amend_bird_0002_coe_charter(amended)
     if "running_ok" in profiles and case_id == "bird_0118":
         amended = _amend_bird_0118_running_ok(amended)
+    if "weekly_statement_demographics" in profiles and case_id == "bird_0096":
+        amended = _amend_bird_0096_weekly_statement_demographics(amended)
     if "magnet_sat" in profiles and case_id == "bird_0006":
         amended = _gold_sql("bird_0006")
     if "top_reading" in profiles and case_id == "bird_0010":
@@ -420,6 +423,35 @@ def _amend_bird_0094_financial_salary_gap(sql: str) -> str:
     if _bird_0094_salary_gap_patch_needed(sql):
         return _CANONICAL_BIRD_0094_SALARY_GAP_SQL
     return sql
+
+
+def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
+    """Weekly POPLATEK TYDNE owners：avg_loan 用 total_loan_amount 均值，非 per-loan 均值。"""
+    out = sql
+    out = re.sub(
+        r"ROUND\(AVG\(CASE WHEN COALESCE\(ltd\.loan_count, 0\) > 0 "
+        r"THEN ltd\.total_loan_amount \* 1\.0 / ltd\.loan_count ELSE 0 END\), 2\) "
+        r"AS avg_loan_amount",
+        "ROUND(AVG(ltd.total_loan_amount), 2) AS avg_loan_amount",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = out.replace(
+        "SUM(CASE WHEN COALESCE(ltd.loan_count, 0) > 0 THEN 1 ELSE 0 END) AS customers_with_loans",
+        "COUNT(DISTINCT CASE WHEN ltd.loan_count > 0 THEN cws.client_id END) AS customers_with_loans",
+    )
+    out = out.replace(
+        "ROUND(SUM(CASE WHEN COALESCE(ltd.loan_count, 0) > 0 THEN 1 ELSE 0 END) * 100.0 "
+        "/ COUNT(DISTINCT cws.client_id), 2) AS percent_with_loans",
+        "ROUND(COUNT(DISTINCT CASE WHEN ltd.loan_count > 0 THEN cws.client_id END) * 100.0 "
+        "/ COUNT(DISTINCT cws.client_id), 2) AS percent_with_loans",
+    )
+    out = out.replace(" AND t.type IN ('PRIJEM', 'VYDAJ')", "")
+    out = out.replace(
+        "LEFT JOIN LoanAndTransactionData AS ltd ON ltd.client_id = cws.client_id",
+        "JOIN LoanAndTransactionData AS ltd ON ltd.client_id = cws.client_id",
+    )
+    return out
 
 
 def _amend_bird_0118_running_ok(sql: str) -> str:
