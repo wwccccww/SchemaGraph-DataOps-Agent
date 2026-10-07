@@ -146,7 +146,7 @@ p0_acceptance_gate=pass
 
 **P1 本地（2026-10-07）**：`POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres BIRD_DATABASE_ROOT=… ./scripts/p1_release_gate.sh` → **exit 0**（日志 **`/tmp/p1-gate-54d1b15.log`**；含 Oracle verify + replay 子集 @ **`54d1b15`**）。**P2 无 LLM**：`./scripts/p2_custom_ablation_gates.sh` → **pass**（实测 Recovery@3 仍须 pgvector Postgres）。
 
-**402 门禁（2026-10-07 @ `f0708ca`）**：`./scripts/p0_post_billing_acceptance.sh --gates-only` → **exit 0**（**`/tmp/p0-gates-f0708ca.log`**，含 `p1_release_gate` + **verify 80/80 Oracle**；须 shell 内 **`POSTGRES_*`/`BIRD_DATABASE_ROOT`** 与运行中 Postgres 一致，勿混用 CI 默认 `text2sql_admin`）；`print_external_p0_status.sh` 含 v12 + **e5482a4** replay 与 **`peak_ex0_frozen_findings=pass_min_33`**。
+**402 门禁（2026-10-07 @ `370ee03`）**：`./scripts/p0_post_billing_acceptance.sh --gates-only` → **exit 0**（**`/tmp/p0-gates-latest.log`**，含 `p1_release_gate` + **verify 80/80 Oracle** + **`e5482a4_replay_baseline`/`e5482a4_replay_patch` 路径**；须 shell 内 **`POSTGRES_*`/`BIRD_DATABASE_ROOT`** 与运行中 Postgres 一致，勿混用 CI 默认 `text2sql_admin`）；`print_external_p0_status.sh` 含 v12 + **e5482a4** replay 与 **`peak_ex0_frozen_findings=pass_min_33`**。
 
 **`e5482a4` BIRD 实测（post-0006 `magnet_sat` PATCH，`/tmp/bird-p0-e5482a4.log`）**：**24/50×2 stable**（`run_20261007T200451Z_*` / `run_20261007T201201Z_*`；当时 scored 口径）；manifest **`reports/p0_measured_manifest_e5482a4.tsv`**。**HEAD** `bird_patch_catalog` + `score_prediction` measured PATCH 对 **同一批 saved SQL** 复分为 **50/50**（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch`，本地 `reports/bird`；**非新 LLM**）。billing 后新 2× 仍须证 **live 生成 SQL** 在 PATCH 下稳定 EX。
 
