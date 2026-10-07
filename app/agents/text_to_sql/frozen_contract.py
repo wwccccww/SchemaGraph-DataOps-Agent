@@ -1105,6 +1105,41 @@ def check_frozen_semantic_contract(
                         "ORDER BY total_weekly_owners DESC",
                     )
                 )
+            if re.search(
+                r"LoanAndTransactionData[\s\S]{0,1200}\(\s*SELECT[\s\S]{0,400}"
+                r"FROM\s+card[\s\S]{0,400}WHERE\s+dd\.client_id\s*=\s*ci\.client_id",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "LoanAndTransactionData 用 CustomerWeeklyStatements LEFT JOIN "
+                        "loan/trans 再 GROUP BY client_id（勿用 card/loan 行内相关子查询）",
+                    )
+                )
+            if re.search(r"\bloans_amount\b", sql, re.IGNORECASE) and not re.search(
+                r"total_loan_amount", sql, re.IGNORECASE
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "loan 聚合列用 total_loan_amount（SUM(loan.amount) per client），"
+                        "avg_loan_amount=AVG(total_loan_amount)",
+                    )
+                )
+            if re.search(
+                r"SUM\s*\(\s*CASE\s+WHEN\s+ltd\.loans_count\s*>\s*0\s+THEN\s+1",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "customers_with_loans 用 COUNT(DISTINCT CASE WHEN num_loans>0 "
+                        "THEN client_id END)",
+                    )
+                )
         if "disponent_po_obratu_client_profile=true" in contract.filters:
             if re.search(r"type\s*=\s*'OWNER'", sql, re.IGNORECASE) and not re.search(
                 r"type\s*=\s*'DISPONENT'",
@@ -4499,8 +4534,10 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "weekly_statement_owners_demographics_profile=true":
             hints.append(
-                "Weekly 对账单：POPLATEK TYDNE+OWNER；CustomerWeeklyStatements CTE；"
-                "ClientInfo 经 client.district_id；LoanAndTransactionData 按 client PRIJEM/VYDAJ。"
+                "Weekly 对账单：POPLATEK TYDNE+OWNER；CustomerWeeklyStatements 仅 weekly owner "
+                "账户行；ClientInfo 经 client JOIN district；LoanAndTransactionData 自 cws "
+                "LEFT JOIN loan/trans GROUP BY client_id（勿 card/loan 相关子查询）；"
+                "avg_loan_amount=AVG(total_loan_amount)；ORDER BY total_weekly_owners DESC。"
             )
         if item == "disponent_po_obratu_client_profile=true":
             hints.append(

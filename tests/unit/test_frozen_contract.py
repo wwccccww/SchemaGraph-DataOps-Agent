@@ -1538,6 +1538,30 @@ def test_transaction_840_19981014_profile_gold_passes_and_flags_peak_sql() -> No
     assert any("LEFT JOIN" in m for m in messages)
 
 
+def test_weekly_statement_frozen_flags_9131bfa_run1_subquery_cohort_sql() -> None:
+    import json
+    from pathlib import Path
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0096")
+    contract = contract_for(case)
+    case_file = Path(
+        "/workspace/reports/bird/run_20261007T175125Z_9131bfadb89c717667eb794eb7fe32f7b8f6fb63"
+        "/cases/bird_0096.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("9131bfa run1 bird_0096 fixture missing")
+    sql = json.loads(case_file.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(contract, sql, dialect="sqlite")
+    ]
+    assert any("相关子查询" in m or "LEFT JOIN loan/trans" in m for m in messages)
+    assert any("loans_amount" in m or "total_loan_amount" in m for m in messages)
+
+
 def test_weekly_statement_owners_demographics_profile_gold_passes_and_flags_peak_sql() -> None:
     import json
     from pathlib import Path
