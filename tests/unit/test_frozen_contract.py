@@ -193,6 +193,65 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
 
 
+def test_la_meal_stats_frozen_contract_flags_v11_bird_0021() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0021")
+    peak = peak_case_path("bird_0021")
+    if not peak.is_file():
+        pytest.skip("peak bird_0021 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("FreeMealCategory" in message for message in messages)
+    assert any("×100" in message or "100" in message for message in messages)
+
+
+def test_high_frpm_unexpected_frozen_contract_flags_v11_bird_0003() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0003")
+    peak = peak_case_path("bird_0003")
+    if not peak.is_file():
+        pytest.skip("peak bird_0003 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("PerformanceClassification" in message for message in messages)
+    assert any("frpm_rank" in message or "SchoolRanking" in message for message in messages)
+
+
+def test_top10_high_frpm_frozen_contract_flags_v11_bird_0008() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0008")
+    peak = peak_case_path("bird_0008")
+    if not peak.is_file():
+        pytest.skip("peak bird_0008 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 2
+    assert any("grade_level" in message or "GSoffered" in message for message in messages)
+
+
 def test_coe_charter_frozen_contract_flags_v11_bird_0002() -> None:
     import json
 
