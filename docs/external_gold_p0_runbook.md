@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**；当前 **`bc29bb6` 80×2** 实测 **19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（PATCH **17→18**）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**；当前 **`bc29bb6` 80×2** 实测 **19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（PATCH **17→19**，**0061** + **0003**）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -103,7 +103,7 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
 
-**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 对齐 Gold 分档与 `PercentHighScorers` 表达式。
+**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 对齐 Gold 分档与 `PercentHighScorers` 表达式（v12 vendored 峰值 + **881dd08** 实测保存 SQL 经 `--replay-patch-autofix` 可 EX=1）。
 
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 
@@ -131,7 +131,7 @@ bird	reports/bird/run_…
 | 命令 | 用途 |
 | --- | --- |
 | `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v12 measured **17/50**） |
-| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v12 峰值 **17→18/50**，**0061** `hickman_frpm`；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**） |
+| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v12 峰值 **17→19/50**，**0061** + **0003**；**881dd08** 实测 run **19→20**；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**） |
 | PATCH autofix 单测夹具 | `benchmarks/replay_snapshots/bird/run_20261006T001548Z_31113b6…/cases/{bird_0002,bird_0094}.json` | 与 v11 measured peak 分离；CI 不依赖 `reports/` |
 | `./scripts/replay_tpcds_baseline.sh` | TPC-DS **30/30** |
 | `./scripts/replay_bird_offline_ceiling.sh` | 离线 amend 口径（非发布 EX） |
