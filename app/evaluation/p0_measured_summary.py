@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--bird-min-matched",
         type=int,
-        default=17,
+        default=19,
         help="With --acceptance-gate: each BIRD run must have at least this many EX (0=disable)",
     )
     parser.add_argument(

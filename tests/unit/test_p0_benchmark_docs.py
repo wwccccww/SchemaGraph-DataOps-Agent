@@ -78,6 +78,8 @@ def test_cli_write_benchmark_on_gate_pass(tmp_path: Path) -> None:
             "--bird-run",
             str(b2),
             "--acceptance-gate",
+            "--bird-min-matched",
+            "17",
             "--write-benchmark",
             str(benchmark),
         ],

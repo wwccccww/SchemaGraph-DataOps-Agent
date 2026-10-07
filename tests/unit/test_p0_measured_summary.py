@@ -120,8 +120,8 @@ def test_acceptance_gate_passes_on_stable_full_band(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
-    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b1, source="bird", matched=19, case_count=50, accuracy=0.38)
+    _write_summary(b2, source="bird", matched=19, case_count=50, accuracy=0.38)
     assert (
         validate_p0_acceptance_gate(
             [load_run_measured(t1), load_run_measured(t2)],
@@ -160,6 +160,7 @@ def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
     failures = validate_p0_acceptance_gate(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
+        bird_min_matched=17,
     )
     assert any("tpcds" in item for item in failures)
 
@@ -190,8 +191,8 @@ def test_cli_acceptance_gate_passes(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
-    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b1, source="bird", matched=19, case_count=50, accuracy=0.38)
+    _write_summary(b2, source="bird", matched=19, case_count=50, accuracy=0.38)
     completed = subprocess.run(
         [
             sys.executable,
@@ -272,7 +273,7 @@ def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
 
 
 def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
-    """文档峰值 run 各 2× 重放目录时，acceptance gate 应 pass（仍非新 LLM 实测）。"""
+    """vendored 峰值 run 各 2× 重放目录时 gate pass（BIRD 17/50 须显式 --bird-min-matched 17）。"""
     from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, TPCDS_PEAK_RUN
 
     if not TPCDS_PEAK_RUN.is_dir() or not BIRD_PEAK_RUN.is_dir():
@@ -291,6 +292,8 @@ def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
             "--bird-run",
             str(BIRD_PEAK_RUN),
             "--acceptance-gate",
+            "--bird-min-matched",
+            "17",
         ],
         check=False,
         capture_output=True,
