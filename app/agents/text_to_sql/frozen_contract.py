@@ -1445,13 +1445,28 @@ def check_frozen_semantic_contract(
                 )
             if re.search(r"borrower_category", sql, re.IGNORECASE):
                 if re.search(
-                    r"Young Active Borrower|Middle-aged|Senior Active", sql, re.IGNORECASE
+                    r"Young Active Borrower|Middle-aged|Senior Active|Senior Borrower",
+                    sql,
+                    re.IGNORECASE,
                 ):
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
                             "borrower_category：loan_count>0 且 age<30→Young borrower，"
                             ">=30→Mature borrower，否则 Non-borrower",
+                        )
+                    )
+                borrower_case = re.search(
+                    r"case[\s\S]*?end\s+as\s+borrower_category",
+                    sql,
+                    re.IGNORECASE,
+                )
+                if borrower_case is not None and "loan_count" not in borrower_case.group(0):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "borrower_category CASE 必须基于 cai.loan_count>0 分档，"
+                            "不要仅按 age_at_card_issue 分 Young/Mature/Senior",
                         )
                     )
                 if re.search(r"active_loans\s*>\s*0[\s\S]{0,80}borrower", sql, re.IGNORECASE):
@@ -3188,7 +3203,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             hints.append(
                 "1994-03-03 card：ClientCardInfo client→disp→card；age 年差；"
                 "ClientAccountInfo account+loan；ClientDistrictInfo client.district_id→A11；"
-                "borrower_category 三档；RANK() age_rank_by_gender。"
+                "borrower_category：loan_count>0 且 age<30→Young borrower，"
+                "loan_count>0 且 age>=30→Mature borrower，否则 Non-borrower；"
+                "RANK() age_rank_by_gender。"
             )
         if item == "female_top3_salary_district_profile=true":
             hints.append(

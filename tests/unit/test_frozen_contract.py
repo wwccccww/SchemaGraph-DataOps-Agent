@@ -1202,6 +1202,26 @@ def test_card_issued_19940303_profile_gold_passes_and_flags_peak_sql() -> None:
     assert any("borrower" in m.lower() for m in messages)
 
 
+def test_card_issued_19940303_rejects_age_only_borrower_category() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0103")
+    contract = contract_for(case)
+    bad = (
+        "WITH ClientCardInfo AS (SELECT 1 AS client_id, 25 AS age_at_card_issue), "
+        "ClientAccountInfo AS (SELECT 1 AS client_id, 0 AS loan_count), "
+        "ClientDistrictInfo AS (SELECT 1 AS client_id) "
+        "SELECT CASE WHEN cci.age_at_card_issue < 30 THEN 'Young Borrower' "
+        "WHEN cci.age_at_card_issue <= 50 THEN 'Mature Borrower' "
+        "ELSE 'Senior Borrower' END AS borrower_category "
+        "FROM ClientCardInfo cci JOIN ClientAccountInfo cai ON cai.client_id = cci.client_id "
+        "JOIN ClientDistrictInfo cdi ON cdi.client_id = cci.client_id"
+    )
+    findings = check_frozen_semantic_contract(contract, bad, dialect="sqlite")
+    assert any("loan_count" in item.message for item in findings)
+
+
 def test_sokolov_pre1950_profile_gold_passes_and_flags_peak_district_and_loan_status() -> None:
     import json
     from pathlib import Path
