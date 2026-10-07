@@ -188,6 +188,43 @@ def check_frozen_semantic_contract(
                         "PovertyLevel 用 High/Medium/Low/Very Low Poverty（frpm 小数阈值）",
                     )
                 )
+            if re.search(r"Very High Poverty", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 最高档用 High Poverty（>0.75），不要用 Very High Poverty",
+                    )
+                )
+            if re.search(r"\bStatusType\s+AS\s+CurrentStatus", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CurrentStatus 用 ClosedDate：NULL→Active，否则 Closed；不要用 StatusType",
+                    )
+                )
+            if re.search(
+                r"ORDER\s+BY\s+frpm\.\s*\"Enrollment \(K-12\)\"\s+DESC",
+                sql,
+                re.IGNORECASE,
+            ) and "EnrollmentRank" in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "排序用 ORDER BY EnrollmentRank ASC（RANK 已在 CTE 计算）",
+                    )
+                )
+            if re.search(
+                r"WHERE\s+schools\.DOCType\s*=\s*'State Special Schools'[\s\S]{0,120}SOC\s+LIKE",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SOC 过滤放在 StateSpecialSchools CTE 外层："
+                        "WHERE ss.SOC='31' OR ss.SOC LIKE '3%'",
+                    )
+                )
             if (
                 re.search(r"AvgTotalScore|Avg.*Read.*\+.*Write", sql, re.I)
                 and "/3" not in sql
@@ -2349,6 +2386,51 @@ def check_frozen_semantic_contract(
                         "CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)",
                     )
                 )
+            if "StateRank" in "".join(contract.projections) and re.search(
+                r"DENSE_RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY\s+TotalAvgScore",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "StateRank 用 RANK() OVER (ORDER BY TotalAvgScore DESC)，不要用 DENSE_RANK",
+                    )
+                )
+            if re.search(
+                r"ROUND\s*\(\s*sa\.NumGE1500\s*\*\s*100",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentHighScorers 用 CAST(NumGE1500 AS FLOAT)/NULLIF(NumTstTakr,0)*100，"
+                        "不要 ROUND(NumGE1500*100/NumTstTakr,2)",
+                    )
+                )
+            if re.search(r"s\.Magnet\s*=\s*1", sql, re.IGNORECASE) and re.search(
+                r"StateRank|CountyRank",
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Magnet=1 放在最外层 WHERE；StateRank/CountyRank 在 CTE 内对全部 "
+                        "NumTstTakr>500 学校先计算",
+                    )
+                )
+            if (
+                "TotalAvgScore DESC" in sql
+                and "PercentHighScorers DESC" not in sql.replace("\n", " ")
+                and "PerformanceCategory" in "".join(contract.projections)
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ORDER BY TotalAvgScore DESC, PercentHighScorers DESC（与 Gold 次序一致）",
+                    )
+                )
         if "top_reading_sat_profile=true" in contract.filters:
             if re.search(r"\bGSserved\s+AS\s+GradeSpan", sql, re.IGNORECASE):
                 findings.append(
@@ -3147,7 +3229,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "state_special_soc3_profile=true":
             hints.append(
                 "State Special Schools：DOCType 过滤；SchoolType Charter/Non-Charter；"
-                "OpeningDate=date(OpenDate)；AvgTotalScore 三科均值/3；SOC 31 或 3%。"
+                "CurrentStatus=ClosedDate NULL→Active else Closed；Poverty High/Medium/Low/Very Low；"
+                "OpeningDate=date(OpenDate)；AvgTotalScore 三科均值/3；SOC 过滤在外层 CTE；"
+                "ORDER BY EnrollmentRank ASC。"
             )
         if item == "la_meal_stats_aggregate_profile=true":
             hints.append(
@@ -3410,11 +3494,11 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "magnet_sat_profile=true":
             hints.append(
-                "Magnet + SAT>500：satscores JOIN schools LEFT JOIN frpm；SchoolType=s.SOCType，"
-                "EducationalOption=s.EdOpsName；FreeReducedMealPercentage=frpm Percent FRPM 小数；"
-                "PovertyLevel 用 >0.75/>0.50/>0.25 与 High/Moderate/Low/Very Low Poverty；"
-                "PerformanceCategory 用 Excellent/Good/Average/Below Average（1800/1500/1200）；"
-                "CountyRank 用 DENSE_RANK；外层 WHERE Magnet=1。"
+                "Magnet + SAT>500：CTE 内对全部 NumTstTakr>500 算 StateRank=RANK()、"
+                "CountyRank=DENSE_RANK(PARTITION BY County)；外层 WHERE Magnet=1；"
+                "PercentHighScorers=CAST(NumGE1500 AS FLOAT)/NULLIF(NumTstTakr,0)*100；"
+                "SchoolType=s.SOCType，EducationalOption=s.EdOpsName；FRPM 小数列；"
+                "ORDER BY TotalAvgScore DESC, PercentHighScorers DESC。"
             )
         if item == "top_reading_sat_profile=true":
             hints.append(

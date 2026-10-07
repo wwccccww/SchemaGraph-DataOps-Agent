@@ -172,27 +172,46 @@ def test_coe_charter_frozen_contract_flags_peak_run_mistakes() -> None:
 
 def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     import json
-    from pathlib import Path
 
     from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
 
     case = next(item for item in load_bird_cases() if item.id == "bird_0006")
     contract = case.semantic_contract
     assert contract is not None
-    peak = Path(
-        "reports/bird/run_20261006T001548Z_31113b64a03d1e965d346333edef538d98aedd49/cases/bird_0006.json"
-    )
+    peak = peak_case_path("bird_0006")
     if not peak.is_file():
-        pytest.skip("peak v15 bird_0006 fixture missing")
+        pytest.skip("peak bird_0006 fixture missing")
     bad = json.loads(peak.read_text())["prediction"]["sql"]
     messages = [
         item.message for item in check_frozen_semantic_contract(contract, bad, dialect="sqlite")
     ]
     assert len(messages) >= 4
-    assert any("SOCType" in message for message in messages)
-    assert any("Poverty" in message and "FRPM" in message for message in messages)
-    assert any("DENSE_RANK" in message for message in messages)
+    assert any("RANK()" in message and "StateRank" in message for message in messages)
+    assert any("Magnet=1" in message for message in messages)
+    assert any("PercentHighScorers" in message for message in messages)
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
+
+
+def test_state_special_soc3_frozen_contract_flags_v11_peak_sql() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0069")
+    peak = peak_case_path("bird_0069")
+    if not peak.is_file():
+        pytest.skip("peak bird_0069 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("CurrentStatus" in message for message in messages)
+    assert any("High Poverty" in message for message in messages)
+    assert any("EnrollmentRank" in message for message in messages)
 
 
 def test_top_reading_frozen_contract_flags_peak_bird_0010() -> None:
