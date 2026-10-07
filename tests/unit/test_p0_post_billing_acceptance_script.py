@@ -214,6 +214,22 @@ exec {real_python} "$@"
 def test_p0_post_billing_exits_4_when_acceptance_lock_held(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[2]
     script = root / "scripts/p0_post_billing_acceptance.sh"
+    real_python = subprocess.run(
+        ["bash", "-lc", "command -v python3"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    fake_python = tmp_path / "python3"
+    fake_python.write_text(
+        f"""#!/usr/bin/env bash
+if [[ "$1" == "-m" && "$2" == "app.evaluation.llm_preflight" ]]; then
+  exit 0
+fi
+exec {real_python} "$@"
+"""
+    )
+    fake_python.chmod(0o755)
     lock = tmp_path / "p0_acceptance.lock"
     lock.touch()
     hold = subprocess.Popen(
@@ -226,6 +242,7 @@ def test_p0_post_billing_exits_4_when_acceptance_lock_held(tmp_path: Path) -> No
         ensure_bird_database_root(env, tmp_path=tmp_path)
         env.setdefault("POSTGRES_USER", "text2sql_admin")
         env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
+        env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
         env["P0_ACCEPTANCE_LOCK_FILE"] = str(lock)
         env["P0_RELEASE_GATE_STUB"] = "1"
         completed = subprocess.run(
