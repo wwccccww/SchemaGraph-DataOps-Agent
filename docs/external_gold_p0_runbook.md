@@ -115,6 +115,8 @@ p0_acceptance_gate=pass
 
 **bird_0006 Magnet SAT**：poverty/performance 标签与 Gold 粒度；measured **`magnet_sat` PATCH** 对齐 Gold SQL（原仅 `--replay-amend` overlay）。
 
+**bird_0010 Top reading SAT**：measured **`top_reading` PATCH**（`top_reading_sat_profile`）对齐 Gold SQL。
+
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
 
 **tpcds_complex_023**：stock CTE 须 item 粒度 `GROUP BY` + `SUM(inv_quantity_on_hand)` 再 JOIN sold；否则 `quantity_sold` 重复计数。frozen + **`tpcds_023_stock` PATCH**；`--replay-patch-autofix` 对 **tpcds-derived** 与 BIRD 同路径。
