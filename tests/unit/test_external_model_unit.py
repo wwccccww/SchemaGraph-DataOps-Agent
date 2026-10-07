@@ -48,7 +48,7 @@ def test_load_replay_cases_from_saved_peak_run() -> None:
         pytest.skip("saved bird run missing")
     pairs = load_replay_cases(run, load_bird_cases())
     assert len(pairs) == 50
-    assert sum(1 for _case, payload in pairs if payload.get("ex") == 1) == 7
+    assert sum(1 for _case, payload in pairs if payload.get("ex") == 1) == 13
 
 
 def test_sample_limits_each_database_without_taking_the_whole_file() -> None:
