@@ -46,7 +46,7 @@ def test_replay_run_rescores_v15_peak_without_llm() -> None:
     assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
-def test_replay_amend_coe_charter_lifts_peak_run_to_eight() -> None:
+def test_replay_amend_coe_charter_lifts_v11_peak_run_to_fourteen() -> None:
     run = BIRD_PEAK_RUN
     db_root = BIRD_DB_ROOT
     if not run.is_dir() or not db_root.is_dir():
@@ -70,10 +70,10 @@ def test_replay_amend_coe_charter_lifts_peak_run_to_eight() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
+    assert "matched 13 -> 14" in completed.stderr or "matched 13 -> 14" in completed.stdout
 
 
-def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
+def test_replay_amend_financial_salary_gap_unchanged_on_v11_peak() -> None:
     run = BIRD_PEAK_RUN
     db_root = BIRD_DB_ROOT
     if not run.is_dir() or not db_root.is_dir():
@@ -100,7 +100,7 @@ def test_replay_amend_financial_salary_gap_lifts_peak_run_to_eight() -> None:
     assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
 
 
-def test_replay_patch_autofix_lifts_peak_run_to_nine() -> None:
+def test_replay_patch_autofix_lifts_v11_peak_run_to_fourteen() -> None:
     run = BIRD_PEAK_RUN
     db_root = BIRD_DB_ROOT
     if not run.is_dir() or not db_root.is_dir():
@@ -123,4 +123,4 @@ def test_replay_patch_autofix_lifts_peak_run_to_nine() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
+    assert "matched 13 -> 14" in completed.stderr or "matched 13 -> 14" in completed.stdout
