@@ -42,33 +42,45 @@ _p0_wait_log "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2
 _p0_wait_log "confirm_polls=${CONFIRM_POLLS} confirm_sleep_seconds=${CONFIRM_SLEEP}"
 echo "polling_llm_preflight every ${INTERVAL}s until ready (402→exit 2 from preflight)"
 echo "confirm_polls=${CONFIRM_POLLS}"
-ready_streak=0
 while true; do
-  if python3 -m app.evaluation.llm_preflight 2>/tmp/wait_for_billing_preflight.err; then
-    ready_streak=$((ready_streak + 1))
-    _p0_wait_log "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
-    echo "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
-    if [[ "$ready_streak" -ge "$CONFIRM_POLLS" ]]; then
-      _p0_wait_log "llm_preflight=ready"
-      echo "llm_preflight=ready"
-      break
+  ready_streak=0
+  while true; do
+    if python3 -m app.evaluation.llm_preflight 2>/tmp/wait_for_billing_preflight.err; then
+      ready_streak=$((ready_streak + 1))
+      _p0_wait_log "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
+      echo "llm_preflight=ready_streak=${ready_streak}/${CONFIRM_POLLS}"
+      if [[ "$ready_streak" -ge "$CONFIRM_POLLS" ]]; then
+        _p0_wait_log "llm_preflight=ready"
+        echo "llm_preflight=ready"
+        break
+      fi
+      sleep "$CONFIRM_SLEEP"
+      continue
     fi
-    sleep "$CONFIRM_SLEEP"
+    ready_streak=0
+    if ! grep -q "402" /tmp/wait_for_billing_preflight.err 2>/dev/null; then
+      cat /tmp/wait_for_billing_preflight.err >&2
+      _p0_wait_log "llm_preflight=failed_non_402"
+      exit 2
+    fi
+    _p0_wait_log "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s"
+    echo "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s" >&2
+    sleep "$INTERVAL"
+  done
+  if [[ -n "${P0_WAIT_STUB_ACCEPTANCE:-}" ]]; then
+    echo "p0_post_billing=stub"
+    exit 0
+  fi
+  export P0_FROM_BILLING_WAIT=1
+  if "$ROOT/scripts/p0_post_billing_acceptance.sh"; then
+    _p0_wait_log "p0_post_billing=success"
+    exit 0
+  fi
+  rc=$?
+  if [[ "$rc" -eq 2 ]]; then
+    _p0_wait_log "p0_post_billing=blocked_resume_poll interval=${INTERVAL}s"
+    echo "p0_post_billing=blocked_resume_poll interval=${INTERVAL}s" >&2
     continue
   fi
-  ready_streak=0
-  if ! grep -q "402" /tmp/wait_for_billing_preflight.err 2>/dev/null; then
-    cat /tmp/wait_for_billing_preflight.err >&2
-    _p0_wait_log "llm_preflight=failed_non_402"
-    exit 2
-  fi
-  _p0_wait_log "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s"
-  echo "llm_preflight=blocked_billing_402 sleep=${INTERVAL}s" >&2
-  sleep "$INTERVAL"
+  exit "$rc"
 done
-if [[ -n "${P0_WAIT_STUB_ACCEPTANCE:-}" ]]; then
-  echo "p0_post_billing=stub"
-  exit 0
-fi
-export P0_FROM_BILLING_WAIT=1
-exec "$ROOT/scripts/p0_post_billing_acceptance.sh"
