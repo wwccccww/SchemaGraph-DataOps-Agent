@@ -193,6 +193,48 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
 
 
+def test_financial_1993_poplatek_frozen_contract_flags_v11_bird_0119() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0119")
+    peak = peak_case_path("bird_0119")
+    if not peak.is_file():
+        pytest.skip("peak bird_0119 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 5
+    assert any("AccountsIn1993" in message for message in messages)
+    assert any("High Risk" in message for message in messages)
+    assert any("balance_volatility" in message for message in messages)
+    assert any("urbanization" in message.lower() for message in messages)
+
+
+def test_female_top3_salary_frozen_contract_flags_v11_bird_0092() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0092")
+    peak = peak_case_path("bird_0092")
+    if not peak.is_file():
+        pytest.skip("peak bird_0092 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("total_female_clients" in message for message in messages)
+    assert any("total_loans" in message for message in messages)
+
+
 def test_state_special_soc3_frozen_contract_flags_v11_peak_sql() -> None:
     import json
 

@@ -161,6 +161,89 @@ def check_frozen_semantic_contract(
                         "1993 账户用 frequency='POPLATEK PO OBRATU' 且 STRFTIME('%Y',date)='1993'",
                     )
                 )
+            if re.search(r"\bd\.A5\s+AS\s+urbanization_category", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "urbanization_category 用 district.A10：>75 Highly Urban，>50 Moderately Urban，"
+                        "否则 Rural",
+                    )
+                )
+            if re.search(
+                r"AVG\s*\(\s*t\.balance\s*\)\s+AS\s+balance_volatility",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "balance_volatility 用 MAX(balance)-MIN(balance)，不要用 AVG(balance)",
+                    )
+                )
+            if re.search(r"2026-10-01|2026\s*-", sql) and re.search(
+                r"avg_client_age",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "avg_client_age 用 JULIANDAY(account_open_date)-JULIANDAY(birth_date)/365.25，"
+                        "不要用固定 2026 年差",
+                    )
+                )
+            if "risk_category" in sql and "High Risk" not in sql and re.search(
+                r"THEN\s+'High'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "risk_category 用 High Risk / Low Risk / No Loans",
+                    )
+                )
+            if re.search(
+                r"FROM\s+trans\s+t\s+WHERE\s+t\.type\s+IN\s*\(\s*'PRIJEM'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "交易统计须 FROM AccountsIn1993 a LEFT JOIN trans t（不要全库 trans 聚合）",
+                    )
+                )
+            if re.search(
+                r"ClientStats\s+AS\s+\(\s*SELECT[\s\S]{0,500}?FROM\s+disp\s+d\s+JOIN\s+client",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"ClientStats\s+AS\s+\(\s*SELECT[\s\S]{0,500}?AccountsIn1993",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "ClientStats 须从 AccountsIn1993 JOIN disp/client，不要全库 disp 聚合",
+                    )
+                )
+            if re.search(
+                r"LoanStats\s+AS\s+\(\s*SELECT[\s\S]{0,300}?FROM\s+loan\s+l\s+GROUP",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"LoanStats\s+AS\s+\(\s*SELECT[\s\S]{0,300}?AccountsIn1993",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "LoanStats 须 FROM AccountsIn1993 LEFT JOIN loan（不要全库 loan 聚合）",
+                    )
+                )
         if "state_special_soc3_profile=true" in contract.filters:
             if re.search(r"SOC\s+LIKE\s+'3%'", sql, re.I) and "State Special Schools" not in sql:
                 findings.append(
@@ -1460,6 +1543,51 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "average_female_age 用 AVG(ds.avg_age)，不要在最终 SELECT 再 JOIN 全部 female_clients",
+                    )
+                )
+            if re.search(
+                r"COUNT\s*\(\s*DISTINCT\s+aa\.client_id\s*\)\s+AS\s+total_female_clients",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "total_female_clients 用 SUM(ds.female_clients)，不要 COUNT(DISTINCT client)",
+                    )
+                )
+            if re.search(r"average_female_age", sql, re.IGNORECASE) and re.search(
+                r"AVG\s*\(\s*2026\s*-",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "average_female_age 用 ROUND(AVG(ds.avg_age), 1)（DistrictStats 已算 avg_age）",
+                    )
+                )
+            if re.search(
+                r"(total_female_loans|active_female_loans)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"total_loans\s*>\s*0", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "外层 WHERE 须 aa.total_loans > 0（仅统计有活跃贷款账户的区县）",
+                    )
+                )
+            if re.search(
+                r"female_clients\s+AS\s+\([\s\S]*?FROM\s+client",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"DistrictStats|district_stats", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "DistrictStats 内 JOIN client(gender='F') 一次算 female_clients 与 avg_age，"
+                        "不要单独 female_clients CTE 再 JOIN",
                     )
                 )
         if "card_issued_19940303_profile=true" in contract.filters:
@@ -3223,8 +3351,10 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "financial_1993_poplatek_profile=true":
             hints.append(
-                "1993 POPLATEK PO OBRATU 账户：AccountsIn1993 CTE；trans PRIJEM/VYDAJ；"
-                "loan status A/B/C=running/finished/defaulted；risk High/Low/No Loans。"
+                "1993 POPLATEK PO OBRATU：AccountsIn1993；AccountStats/ClientDetails/LoanInfo "
+                "均 FROM AccountsIn1993 LEFT JOIN 子表；PRIJEM/VYDAJ 分列；"
+                "urbanization=A10 分档；balance_volatility=MAX-MIN balance；"
+                "avg_client_age=JULIANDAY 差/365.25；risk=High Risk/Low Risk/No Loans。"
             )
         if item == "state_special_soc3_profile=true":
             hints.append(
