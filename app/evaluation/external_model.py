@@ -168,6 +168,58 @@ def load_replay_cases(
     return pairs
 
 
+def _repair_trace_from_replay_symptoms(
+    payload: Mapping[str, object],
+) -> tuple[dict[str, object], ...]:
+    """从 replay case JSON 的 symptoms.repair_trace 还原 workflow 步骤。"""
+
+    symptoms = payload.get("symptoms")
+    if not isinstance(symptoms, list):
+        return ()
+    trace_text = ""
+    for item in symptoms:
+        if isinstance(item, list) and len(item) >= 2 and item[0] == "repair_trace":
+            trace_text = str(item[1])
+            break
+        if isinstance(item, dict) and item.get("name") == "repair_trace":
+            trace_text = str(item.get("value", ""))
+            break
+    if not trace_text.strip():
+        return ()
+    steps: list[dict[str, object]] = []
+    for chunk in trace_text.split(";"):
+        piece = chunk.strip()
+        if not piece:
+            continue
+        parts = piece.split(":", 2)
+        if len(parts) < 2:
+            continue
+        attempt, category = parts[0], parts[1]
+        symptom = parts[2] if len(parts) > 2 else ""
+        sql_hash = symptom if symptom.startswith("sha256:") else ""
+        steps.append(
+            {
+                "attempt": attempt,
+                "category": category,
+                "symptom": symptom,
+                "sql_hash": sql_hash,
+            }
+        )
+    return tuple(steps)
+
+
+def _assert_external_p2_repair_trace(
+    *,
+    case_id: str,
+    attempts: int,
+    repair_trace: Sequence[Mapping[str, object]],
+) -> None:
+    if attempts <= 1 or repair_trace:
+        return
+    msg = f"case {case_id}: attempts={attempts} but repair_trace is empty (§11.5 P2 external)"
+    raise RuntimeError(msg)
+
+
 def inspection_from_replay(
     payload: Mapping[str, object],
     *,
@@ -221,6 +273,7 @@ def inspection_from_replay(
             ),
         ),
         generated_sql=sql,
+        repair_trace=_repair_trace_from_replay_symptoms(payload),
     )
 
 
@@ -303,6 +356,12 @@ async def score_prediction(
     """比较一条已经生成的 SQL。Gold 不会回到生成 Prompt。"""
 
     response = inspection.response
+    attempts = response.attempts or 0
+    _assert_external_p2_repair_trace(
+        case_id=case.id,
+        attempts=attempts,
+        repair_trace=inspection.repair_trace,
+    )
     context = response.schema_context
     seeds = tuple(context.seed_tables) if context is not None else ()
     expanded = tuple(context.expanded_tables) if context is not None else ()

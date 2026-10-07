@@ -256,6 +256,18 @@ def build_summary(
     }
 
 
+def validate_p2_repair_traces(records: Sequence[CaseResult]) -> None:
+    """§11.5 P2：写入报告前校验 self_healing 多轮均含 repair_trace。"""
+
+    for record in records:
+        _assert_p2_repair_trace(
+            variant=record.variant,
+            attempts=record.attempts,
+            trace=record.repair_trace,
+            case_id=record.case_id,
+        )
+
+
 def write_ablation_report(
     root: Path,
     *,
@@ -266,6 +278,7 @@ def write_ablation_report(
 ) -> Path:
     """写入 run_<utc>_<commit>。目录已存在时拒绝，避免覆盖历史报告。"""
 
+    validate_p2_repair_traces(records)
     _check_stamp(stamp)
     _check_commit(commit)
     root.mkdir(parents=True, exist_ok=True)

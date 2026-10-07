@@ -40,6 +40,19 @@ def test_inspection_from_replay_extracts_sql() -> None:
     assert inspection.response.attempts == 2
 
 
+def test_inspection_from_replay_restores_repair_trace_from_symptoms() -> None:
+    payload = {
+        "prediction": {"sql": "SELECT 1"},
+        "attempts": 3,
+        "symptoms": [
+            ["repair_trace", "1:not_read_only:sha256:abc;2:accepted:"],
+        ],
+    }
+    inspection = inspection_from_replay(payload)
+    assert len(inspection.repair_trace) == 2
+    assert inspection.repair_trace[-1]["category"] == "accepted"
+
+
 def test_load_replay_cases_from_saved_peak_run() -> None:
     from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
 
@@ -109,6 +122,38 @@ async def test_scoring_executes_gold_only_after_the_prediction() -> None:
     assert trace.leaked_tables == ()
 
 
+async def test_scoring_rejects_multattempt_inspection_without_repair_trace() -> None:
+    case = _case("bird_0001", "california_schools")
+
+    async def execute(sql: str) -> ExecutionSuccess:
+        return ExecutionSuccess(
+            columns=(("total", "integer"),),
+            rows=((1,),),
+            row_count=1,
+            truncated=False,
+            execution_time_ms=1,
+        )
+
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req",
+            status="failed",
+            sql=None,
+            attempts=2,
+            error=ApiError(category="no_progress", message="熔断", retryable=False),
+        ),
+        generated_sql="SELECT 1 AS total",
+        repair_trace=(),
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        await score_prediction(
+            case,
+            inspection,
+            execute=execute,
+            catalog_tables=("schools",),
+        )
+
+
 async def test_scoring_matches_ex_when_sql_runs_despite_failed_workflow_status() -> None:
     case = _case("bird_0001", "california_schools")
 
@@ -139,6 +184,10 @@ async def test_scoring_matches_ex_when_sql_runs_despite_failed_workflow_status()
         ),
         generated_sql="SELECT 1 AS total",
         prompt="generic",
+        repair_trace=(
+            {"attempt": "1", "category": "not_read_only", "symptom": "", "sql_hash": ""},
+            {"attempt": "2", "category": "accepted", "symptom": "", "sql_hash": ""},
+        ),
     )
     trace = await score_prediction(
         case,

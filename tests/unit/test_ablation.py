@@ -484,6 +484,36 @@ def test_ablation_report_json_includes_repair_trace_when_attempts_gt_one(tmp_pat
     assert payload["repair_trace"][-1]["category"] == "accepted"
 
 
+def test_write_ablation_report_rejects_self_healing_without_repair_trace(tmp_path: Path) -> None:
+    records = [
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            passed=False,
+            ex=0,
+            repair_trace=(),
+        )
+    ]
+    summary = build_summary(
+        records,
+        case_ids=["custom_basic_001"],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-04T15:12:00Z",
+        baseline_tokens=None,
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        write_ablation_report(
+            tmp_path,
+            stamp="20261004T151200Z",
+            commit="abc1234",
+            summary=summary,
+            records=records,
+        )
+
+
 def test_report_directory_is_immutable(tmp_path: Path) -> None:
     records = [_result("custom_basic_001", "zero_shot", passed=True, ex=1)]
     summary = build_summary(
