@@ -95,8 +95,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T194508Z_54d1b15aec2508359c774c7c79179eb2c6666934 commit=54d1b15aec2508359c774c7c79179eb2c6666934 prompt=text-to-sql-generic-v59
 p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T195104Z_54d1b15aec2508359c774c7c79179eb2c6666934 commit=54d1b15aec2508359c774c7c79179eb2c6666934 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=23/50 ex=0.46 dir=run_20261007T193040Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d commit=1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=23/50 ex=0.46 dir=run_20261007T193754Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d commit=1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=24/50 ex=0.48 dir=run_20261007T200451Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032 commit=e5482a49f6da08e09e0033a4c55ca9e2562d2032 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=24/50 ex=0.48 dir=run_20261007T201201Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032 commit=e5482a49f6da08e09e0033a4c55ca9e2562d2032 prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
@@ -114,7 +114,7 @@ p0_acceptance_gate=pass
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `54d1b15`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**；acceptance **24/50×2 stable @ `e5482a4`**（`p0-measured-autogen`；**0005/0006/0096** PATCH）；floor **`P0_BIRD_MIN_MATCHED=19`** |
-| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→23/50**（measured PATCH 集，含 **0005/0006/0010/0096**）；**4eab7cd** 保存 run **21→22**（**0005** PATCH）；**7645bbb** **21→22** / **19→22**（**0003** + **0032** + **0096**）；非新 LLM 实测 |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→23/50**（measured PATCH 集，含 **0005/0006/0010/0096**）；**e5482a4** 保存 run **24→25**（**0010** `top_reading` PATCH @ **`56621c6`**）；**4eab7cd** **21→22**（**0005**）；**7645bbb** **21→22** / **19→22**（**0003** + **0032** + **0096**）；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集（含 **`test_external_model_unit.py`** 外部 P2 写入门禁 + **`test_ablation.py`** 自建 P2）+ verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | … + **`peak_ex0_frozen_findings=pass_min_33`**（v12 EX=0 inventory **33/33**） |

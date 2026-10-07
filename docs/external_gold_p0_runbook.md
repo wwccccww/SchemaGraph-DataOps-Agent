@@ -143,6 +143,8 @@ p0_acceptance_gate=pass
 
 **`e5482a4` BIRD 实测（post-0006 `magnet_sat` PATCH，`/tmp/bird-p0-e5482a4.log`）**：**24/50×2 stable**（`run_20261007T200451Z_*` / `run_20261007T201201Z_*`；**0005/0006/0096 ex=1**）；manifest **`reports/p0_measured_manifest_e5482a4.tsv`**。
 
+**`56621c6` BIRD（post-0010 `top_reading` measured PATCH）**：保存 run **`run_20261007T201201Z_e5482a4_*`** 上 **`--replay-patch-autofix` → 24→25/50**（`run_20261007T201709Z_56621c6_*`）；单测 **`test_score_prediction_patches_e5482a4_bird_0010_top_reading`** 绿。全量 2× @ HEAD 在 **`/tmp/bird-p0-56621c6.log`**：**402 @ bird_0066** 前 live **`bird_0010 ex=1`**（16 题已匹配）；计费恢复后重跑 **`./scripts/run_bird_p0_full_eval_twice.sh`** 以证 **25×2 stable**。
+
 **`54d1b15` TPC-DS 实测**：`./scripts/run_tpcds_p0_full_eval_twice.sh` → **30/30×2 stable**（`/tmp/tpcds-p0-1c55f6d.log`；`run_20261007T194508Z_*` / `run_20261007T195104Z_*`）；manifest **`reports/p0_measured_manifest_54d1b15.tsv`**（BIRD 仍 **`1c55f6d` 23×2**）。
 
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **19/50** 与 **18/50**，差分常为 **bird_0013** poverty 标签/`ROUND` 或 **bird_0061** FRPM 列），则 **`p0_stability_bird=unstable`**；优先 **`top3_sat_poverty` / `hickman_frpm` PATCH** 与 frozen 后再跑 2×。
