@@ -1555,8 +1555,7 @@ def test_weekly_statement_frozen_flags_9131bfa_run1_subquery_cohort_sql() -> Non
         pytest.skip("9131bfa run1 bird_0096 fixture missing")
     sql = json.loads(case_file.read_text())["prediction"]["sql"]
     messages = [
-        item.message
-        for item in check_frozen_semantic_contract(contract, sql, dialect="sqlite")
+        item.message for item in check_frozen_semantic_contract(contract, sql, dialect="sqlite")
     ]
     assert any("相关子查询" in m or "LEFT JOIN loan/trans" in m for m in messages)
     assert any("loans_amount" in m or "total_loan_amount" in m for m in messages)
