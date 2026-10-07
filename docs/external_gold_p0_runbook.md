@@ -37,7 +37,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |
 | **`replay_skipped=external_p0_status_skip_replay`** | `print_external_p0_status.sh` 在 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 时（单测 / 快速扫键；**运维 acceptance 勿设**，须看 replay EX 行） |
 | **`p0_acceptance_lock=free\|held`** | `print_external_p0_status.sh`：全量 acceptance **`flock`** 锁是否被占用（**`P0_ACCEPTANCE_LOCK_FILE`**） |
-| **`peak_ex0_frozen_findings=pass_min_30`** | `print_external_p0_status.sh`：v12 峰值 EX=0 inventory（`test_v12_measured_ex0_frozen_finding_coverage_floor`） |
+| **`peak_ex0_frozen_findings=pass_min_31`** | `print_external_p0_status.sh`：v12 峰值 EX=0 inventory（`test_v12_measured_ex0_frozen_finding_coverage_floor` ≥31/33） |
 | **`p0_post_billing=blocked_resume_poll`** | `wait_for_billing_and_run_p0.sh`：全量 acceptance 仍 **402→exit 2** 时写 wait 日志并**继续轮询**（不退出 tmux） |
 | **`p0_post_billing=skipped_already_running`** | wait 触发全量时 acceptance **exit 4**（`flock` 锁）；另一路（timer/手动）已在跑，wait **exit 0** |
 | **`p0_acceptance=already_running`** | `p0_post_billing_acceptance.sh` 全量路径：**exit 4**（默认锁 **`/tmp/p0_post_billing_acceptance.lock`**，可 `P0_ACCEPTANCE_LOCK_FILE`） |
@@ -129,13 +129,13 @@ bird	reports/bird/run_…
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
 
 P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM 全量**（非 replay alone）。**v12 峰值**（`65bcd64`，**17/50**）**33** 条 EX=0；**8** 条 `sql_error`（`test_v12_measured_sql_error_ex0_have_frozen_findings`，**0069/0119** 仍靠 Gold overlay amend）。**v11 归档**（`d502105`，13/50）仍用于 frozen-contract 回归夹具。建议顺序：
 
-1. **Prompt + frozen 契约**：按 `badcase_diagnosis.md` / `test_bird_profile_inventory` 扩 v12 EX=0 保存 SQL 的 frozen 信号（当前下限 **`test_v12_measured_ex0_frozen_finding_coverage_floor` ≥30/33**；`print_external_p0_status.sh` → **`peak_ex0_frozen_findings=pass_min_30`**；余 **0069/0119** 为 sql_error overlay、**0097** 待补）。每题加 profile 规则 + `test_frozen_contract` 钉住 peak saved SQL（示例：**`bird_0005`** SAT>400 须在 **SATPerformance** CTE；**`bird_0021`** LA 餐食 SATData CTE）。**不替代** measured EX。
+1. **Prompt + frozen 契约**：按 `badcase_diagnosis.md` / `test_bird_profile_inventory` 扩 v12 EX=0 保存 SQL 的 frozen 信号（当前下限 **`test_v12_measured_ex0_frozen_finding_coverage_floor` ≥31/33**；`print_external_p0_status.sh` → **`peak_ex0_frozen_findings=pass_min_31`**；余 **0069/0119** 为 sql_error + Gold overlay amend）。每题加 profile 规则 + `test_frozen_contract` 钉住 peak saved SQL（示例：**`bird_0005`** SAT>400 须在 **SATPerformance** CTE；**`bird_0097`** client_category 勿加 transaction_count 门槛）。**不替代** measured EX。
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）。
 3. **方言**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名。
 4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`；`P0_BIRD_MIN_MATCHED` 与 `test_p0_external_measured_baseline.py` 同步上调。
