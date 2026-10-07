@@ -73,7 +73,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 非 402 的 preflight 失败会**立即 exit 2**（不无限轮询）。默认 **`P0_WAIT_CONFIRM_POLLS=2`**：连续两次 preflight 成功才启动全量（间隔 **`P0_WAIT_CONFIRM_SECONDS`** 默认 15s），避免偶发误报。wait 触发全量时会 **`export P0_FROM_BILLING_WAIT=1`**；acceptance 入口 preflight 对 402 默认再重试 **6** 次（间隔 **`P0_PREFLIGHT_WAIT_SLEEP`** 默认 20s），避免确认通过后立刻 402 导致全量未启动。若 acceptance 仍以 **exit 2** 结束，wait 记录 **`p0_post_billing=blocked_resume_poll`** 并回到 preflight 轮询（acceptance gate 失败 **exit 3** 则 wait **exit 3**，不无限重试）。
 
-**退出码**（`p0_post_billing_acceptance.sh` 全量）：**0** 成功；**1** 环境缺失；**2** `llm_preflight`（含 402）；**3** acceptance gate 未 pass（`set -e` 自 `run_external_p0_full_eval_twice.sh` 传播）；**4** 已有全量实例在跑（`flock`，避免 wait + timer 双启 80×2）。
+**退出码**（`p0_post_billing_acceptance.sh` 全量）：**0** 成功；**1** 环境缺失；**2** `llm_preflight`（含 402）；**3** acceptance gate 未 pass（`set -e` 自 `run_external_p0_full_eval_twice.sh` 传播）；**4** 已有 **2× 全量**在跑（**`p1_release_gate` 之后** `flock`，避免 gate 内单测再启 acceptance 时自锁；仍防 wait + timer 双启 80×2）。
 
 成功条件（脚本末尾）：
 

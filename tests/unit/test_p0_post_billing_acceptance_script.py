@@ -25,8 +25,14 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "P0_FROM_BILLING_WAIT" in text
     assert "P0_PREFLIGHT_WAIT_RETRIES" in text
     assert "P0_ACCEPTANCE_LOCK_FILE" in text
+    assert "P0_RELEASE_GATE_STUB" in text
     assert "p0_acceptance=already_running" in text
     assert "flock -n 9" in text
+    assert "run_external_p0_full_eval_twice.sh" in text
+    gate_idx = text.index("p1_release_gate.sh")
+    flock_idx = text.index("flock -n 9")
+    eval_idx = text.index("run_external_p0_full_eval_twice.sh")
+    assert gate_idx < flock_idx < eval_idx
 
 
 def test_p0_post_billing_acceptance_requires_bird_root_directory() -> None:
@@ -221,7 +227,7 @@ def test_p0_post_billing_exits_4_when_acceptance_lock_held(tmp_path: Path) -> No
         env.setdefault("POSTGRES_USER", "text2sql_admin")
         env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
         env["P0_ACCEPTANCE_LOCK_FILE"] = str(lock)
-        env["P0_ACCEPTANCE_PREFLIGHT_ONLY"] = "1"
+        env["P0_RELEASE_GATE_STUB"] = "1"
         completed = subprocess.run(
             [str(script)],
             check=False,
