@@ -30,11 +30,9 @@ for run in 1 2; do
     echo -e "tpcds-derived\t$latest" >> "$P0_MEASURED_MANIFEST"
   fi
   echo "wrote $latest"
-  set +o pipefail
   python3 -m app.evaluation.external_model \
     --source tpcds-derived \
-    --replay-run "$latest" 2>&1 | grep "replay EX:" || true
-  set -o pipefail
+    --replay-run "$latest"
 done
 echo "P0 TPC-DS runs: ${RUN_DIRS[0]:-?} ; ${RUN_DIRS[1]:-?}"
 echo "Target band: 30/30 on both runs (LLM variance)."
