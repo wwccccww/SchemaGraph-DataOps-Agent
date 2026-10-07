@@ -109,6 +109,26 @@ def test_peak_v15_ex1_cases_all_have_explicit_profile() -> None:
     assert missing == []
 
 
+def test_v11_measured_ex0_frozen_finding_coverage_floor() -> None:
+    """Step-3：v11 峰值 EX=0 保存 SQL 上至少 13 题须有 ≥1 frozen finding（repair 信号）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    with_findings = 0
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if payload.get("ex"):
+            continue
+        sql = (payload.get("prediction") or {}).get("sql") or ""
+        if check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite"):
+            with_findings += 1
+    assert with_findings >= 13
+
+
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
     """Measured v11+ 峰值：EX=0 的 sql_error 保存 SQL 应至少 1 条 frozen finding（inventory）。"""
     if not PEAK_V15_RUN.is_dir():

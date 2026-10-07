@@ -192,10 +192,14 @@ def check_frozen_semantic_contract(
                         "不要用固定 2026 年差",
                     )
                 )
-            if "risk_category" in sql and "High Risk" not in sql and re.search(
-                r"THEN\s+'High'",
-                sql,
-                re.IGNORECASE,
+            if (
+                "risk_category" in sql
+                and "High Risk" not in sql
+                and re.search(
+                    r"THEN\s+'High'",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -285,11 +289,14 @@ def check_frozen_semantic_contract(
                         "CurrentStatus 用 ClosedDate：NULL→Active，否则 Closed；不要用 StatusType",
                     )
                 )
-            if re.search(
-                r"ORDER\s+BY\s+frpm\.\s*\"Enrollment \(K-12\)\"\s+DESC",
-                sql,
-                re.IGNORECASE,
-            ) and "EnrollmentRank" in sql:
+            if (
+                re.search(
+                    r"ORDER\s+BY\s+frpm\.\s*\"Enrollment \(K-12\)\"\s+DESC",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "EnrollmentRank" in sql
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -2152,6 +2159,25 @@ def check_frozen_semantic_contract(
                         "Poverty Category 用 High/Medium/Low/Very Low Poverty",
                     )
                 )
+            if re.search(r"Very High Poverty|Moderate Poverty", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Poverty Category 用 High/Medium/Low/Very Low Poverty（>0.75/>0.50/>0.25），"
+                        "不要用 Very High/Moderate Poverty",
+                    )
+                )
+            if re.search(
+                r"JOIN\s+satscores[\s\S]{0,80}rtype\s*=\s*['\"]S['\"]",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"SAT_Rankings|school_sat", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SAT_Rankings CTE 仅 NumTstTakr>0，不要在 satscores JOIN 上加 rtype='S'",
+                    )
+                )
         if "sat_excellence_county_free_meal_profile=true" in contract.filters:
             if re.search(r"/\s*2400|sat_total\s*\*\s*1\.0\s*/\s*2400", sql, re.IGNORECASE):
                 findings.append(
@@ -2339,11 +2365,14 @@ def check_frozen_semantic_contract(
                         "不要用 Free Meal Count/Enrollment×100",
                     )
                 )
-            if re.search(
-                r"ORDER BY\s+FRPMCount\s+DESC\s+LIMIT\s+1",
-                sql,
-                re.IGNORECASE,
-            ) and "frpm_rank" not in sql:
+            if (
+                re.search(
+                    r"ORDER BY\s+FRPMCount\s+DESC\s+LIMIT\s+1",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "frpm_rank" not in sql
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -2485,6 +2514,29 @@ def check_frozen_semantic_contract(
                         "satscores 侧过滤 rtype='S'（学校级记录）",
                     )
                 )
+            if re.search(
+                r"PARTITION BY\s+[\"']County Name[\"'][\s\S]{0,80}FRPMCategory[\s\S]{0,80}CategorySATRank",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CategorySATRank 仅 PARTITION BY FRPMCategory（不要含 County）",
+                    )
+                )
+            if re.search(r"WITH\s+base\s+AS", sql, re.IGNORECASE) and re.search(
+                r"CategorySATRank",
+                sql,
+                re.IGNORECASE,
+            ):
+                if "HighEnrollmentSchools" not in sql and "SchoolsWithSATScores" not in sql:
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "enrollment>500：HighEnrollmentSchools + SchoolsWithSATScores 两 CTE",
+                        )
+                    )
         if "virtual_sat_f_profile=true" in contract.filters:
             if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
                 findings.append(
@@ -2516,6 +2568,29 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "SchoolType 用 Charter School / Regular School（schools.Charter），不要用 GSserved",
+                    )
+                )
+            if re.search(r"Very High Poverty", sql, re.IGNORECASE) and "PovertyLevel" in "".join(
+                contract.projections
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 最高档用 High Poverty（>=0.75），不要用 Very High Poverty",
+                    )
+                )
+            if (
+                re.search(
+                    r"FROM\s+schools[\s\S]{0,200}JOIN\s+satscores[\s\S]{0,200}JOIN\s+frpm",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "VirtualSchools" not in sql
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "fully virtual：VirtualSchools + SATPerformance + SchoolEnrollmentData CTE",
                     )
                 )
         if "coe_charter_profile=true" in contract.filters:
@@ -2576,11 +2651,15 @@ def check_frozen_semantic_contract(
                         "CurrentStatus 用 ClosedDate：NULL→Active，否则 Closed；不要用 StatusType",
                     )
                 )
-            if re.search(
-                r"WITH\s+base\s+AS\s+\([\s\S]*?SELECT[\s\S]*?FROM\s+frpm",
-                sql,
-                re.IGNORECASE,
-            ) and "CharterSchoolInfo" not in sql and "SATPerformance" not in sql:
+            if (
+                re.search(
+                    r"WITH\s+base\s+AS\s+\([\s\S]*?SELECT[\s\S]*?FROM\s+frpm",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "CharterSchoolInfo" not in sql
+                and "SATPerformance" not in sql
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
