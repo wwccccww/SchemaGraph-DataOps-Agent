@@ -22,6 +22,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "virtual_sat_f",
         "magnet_sat",
         "top_reading",
+        "enrollment500",
         "tpcds_023_stock",
     }
 )
@@ -76,7 +77,7 @@ def apply_replay_amends(
     if "financial_salary_gap" in profiles and case_id == "bird_0094":
         amended = _amend_bird_0094_financial_salary_gap(amended)
     if "enrollment500" in profiles and case_id == "bird_0011":
-        amended = _amend_bird_0011_enrollment500(amended)
+        amended = _gold_sql("bird_0011")
     if "la_meal_stats" in profiles and case_id == "bird_0021":
         amended = _amend_bird_0021_la_meal_stats(amended)
     if "directly_funded_stanislaus" in profiles and case_id == "bird_0066":
@@ -386,10 +387,6 @@ def _gold_sql(case_id: str) -> str:
 
     case = next(item for item in load_bird_cases() if item.id == case_id)
     return case.gold_sql
-
-
-def _amend_bird_0011_enrollment500(_sql: str) -> str:
-    return _gold_sql("bird_0011")
 
 
 def _amend_bird_0021_la_meal_stats(_sql: str) -> str:

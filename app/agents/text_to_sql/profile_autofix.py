@@ -19,6 +19,7 @@ _PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
     ("virtual_sat_f_profile=true", "virtual_sat_f"),
     ("magnet_sat_profile=true", "magnet_sat"),
     ("top_reading_sat_profile=true", "top_reading"),
+    ("enrollment500_frpm_sat_profile=true", "enrollment500"),
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 

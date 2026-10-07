@@ -123,4 +123,4 @@ def test_replay_patch_autofix_twenty_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 23" in completed.stderr or "matched 17 -> 23" in completed.stdout
+    assert "matched 17 -> 24" in completed.stderr or "matched 17 -> 24" in completed.stdout

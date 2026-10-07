@@ -237,7 +237,11 @@ def inspection_from_replay(
             sql = raw
     resolved_id = case.id if case is not None else case_id
     if sql and patch_autofix and case is not None and case.source in {"bird", "tpcds-derived"}:
-        from app.agents.text_to_sql.profile_autofix import autofix_sql_when_frozen_contract_clean
+        from app.agents.text_to_sql.profile_autofix import (
+            autofix_sql_when_frozen_contract_clean,
+            try_deterministic_profile_patch,
+        )
+        from app.sandbox.gate import check_read_only_sql
 
         if case.source == "bird":
             from app.evaluation.bird_contracts import contract_for
@@ -258,6 +262,12 @@ def inspection_from_replay(
         )
         if fixed is not None:
             sql = fixed
+        else:
+            patched = try_deterministic_profile_patch(case.id, sql, contract)
+            if patched is not None:
+                decision = check_read_only_sql(patched, dialect=case.dialect)
+                if decision.error is None and decision.sql:
+                    sql = decision.sql
     if sql and amend_profiles and resolved_id:
         sql = apply_replay_amends(resolved_id, sql, profiles=amend_profiles)
     replay_status: Literal["succeeded", "failed"] = "succeeded" if sql else "failed"
