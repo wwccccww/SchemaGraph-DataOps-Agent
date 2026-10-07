@@ -92,8 +92,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 <!-- p0-measured-autogen:start -->
 
 ```text
-p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T172025Z_e16efe8a6ce0a4a2d8b03ceae9a9c12608a96d82 commit=e16efe8a6ce0a4a2d8b03ceae9a9c12608a96d82 prompt=text-to-sql-generic-v59
-p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T172639Z_e16efe8a6ce0a4a2d8b03ceae9a9c12608a96d82 commit=e16efe8a6ce0a4a2d8b03ceae9a9c12608a96d82 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T173416Z_01343cc30ad0a787a93118077240b785996d0400 commit=01343cc30ad0a787a93118077240b785996d0400 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T174022Z_01343cc30ad0a787a93118077240b785996d0400 commit=01343cc30ad0a787a93118077240b785996d0400 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
 p0_measured_bird_run1=21/50 ex=0.42 dir=run_20261007T164356Z_1e812c39cfb63632aae51e7e177ab6b986ac6ba6 commit=1e812c39cfb63632aae51e7e177ab6b986ac6ba6 prompt=text-to-sql-generic-v59
 p0_measured_bird_run2=21/50 ex=0.42 dir=run_20261007T164907Z_1e812c39cfb63632aae51e7e177ab6b986ac6ba6 commit=1e812c39cfb63632aae51e7e177ab6b986ac6ba6 prompt=text-to-sql-generic-v59
@@ -112,7 +112,7 @@ p0_acceptance_gate=pass
 | Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
-| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `e16efe8`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
+| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `01343cc`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**；acceptance **21/50×2 stable @ `1e812c3`**（`p0-measured-autogen`，`p0_acceptance_gate=pass`；floor **`P0_BIRD_MIN_MATCHED=19`**） |
 | BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→20/50**（measured PATCH 集）；**7645bbb** 保存 run **21→22** / **19→22**（**0003** + **0032** + **0096** 口径 PATCH，**PATCH 复分 22×2 stable**）；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |

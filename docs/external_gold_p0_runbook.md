@@ -115,6 +115,8 @@ p0_acceptance_gate=pass
 
 **tpcds_complex_023**：stock CTE 须 item 粒度 `GROUP BY` + `SUM(inv_quantity_on_hand)` 再 JOIN sold；否则 `quantity_sold` 重复计数。frozen + **`tpcds_023_stock` PATCH**；`--replay-patch-autofix` 对 **tpcds-derived** 与 BIRD 同路径。
 
+**`01343cc` 单 commit 80×2（进行中）**：TPC-DS **`run_tpcds_p0_full_eval_twice.sh`** → **30/30×2**；BIRD 首轮 **21 vs 20**（**0096** 新 SQL 形 → **`0399688` PATCH**）；复测见 **`/tmp/bird-p0-post-0096fix.log`**。
+
 **`e16efe8` TPC-DS（2026-10-07）**：`POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./scripts/run_tpcds_p0_full_eval_twice.sh` → **30/30×2 stable**（`run_20261007T172025Z_*` / `run_20261007T172639Z_*`）。
 
 **`1e812c3` BIRD 实测（2026-10-07）**：`./scripts/run_bird_p0_full_eval_twice.sh` → **21/50×2 stable**（live **`bird_0003`/`0096`/`0013` 等 PATCH 路径 ex=1**）；manifest 见 **`reports/p0_measured_manifest_1e812c3.tsv`**（TPC-DS 仍 **bc29bb6** 30/30×2 hybrid gate）。
