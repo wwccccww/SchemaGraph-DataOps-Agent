@@ -8,7 +8,6 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-
 from app.agents.text_to_sql.workflow import (
     ZERO_SHOT_SCHEMA,
     ServiceBundle,

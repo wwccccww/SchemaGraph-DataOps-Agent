@@ -478,10 +478,7 @@ def _assert_p2_repair_trace(
         return
     if trace:
         return
-    msg = (
-        f"case {case_id}: self_healing attempts={attempts} "
-        "but repair_trace is empty (§11.5 P2)"
-    )
+    msg = f"case {case_id}: self_healing attempts={attempts} but repair_trace is empty (§11.5 P2)"
     raise RuntimeError(msg)
 
 
