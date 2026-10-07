@@ -32,6 +32,7 @@ def test_replay_profile_catalog() -> None:
     assert "tpcds_023_stock" in PATCH_AMEND_PROFILES
     assert "virtual_sat_f" in PATCH_AMEND_PROFILES
     assert "magnet_sat" in PATCH_AMEND_PROFILES
+    assert "top_reading" in PATCH_AMEND_PROFILES
     assert "financial_salary_gap" in PATCH_AMEND_PROFILES
     assert GOLD_OVERLAY_PROFILES["bird_0006"] == "magnet_sat"
     assert GOLD_OVERLAY_PROFILES["bird_0021"] == "la_meal_stats"
@@ -110,7 +111,7 @@ def test_p1_replay_patch_autofix_twenty_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 22" in completed.stderr or "matched 17 -> 22" in completed.stdout
+    assert "matched 17 -> 23" in completed.stderr or "matched 17 -> 23" in completed.stdout
 
 
 def test_p1_offline_ceiling_script_twenty_six_of_fifty() -> None:

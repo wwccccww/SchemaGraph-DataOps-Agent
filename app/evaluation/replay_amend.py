@@ -21,6 +21,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "weekly_statement_demographics",
         "virtual_sat_f",
         "magnet_sat",
+        "top_reading",
         "tpcds_023_stock",
     }
 )
