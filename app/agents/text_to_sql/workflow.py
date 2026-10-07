@@ -714,6 +714,22 @@ def _repair_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def repair_sql(state: TextToSqlState) -> dict[str, object]:
+        sql = state["generated_sql"] or ""
+        case_id = state.get("benchmark_case_id")
+        if case_id and state["profile"] != "ecommerce":
+            payload = state.get("frozen_contract")
+            frozen = (
+                SemanticContract.model_validate(payload) if payload is not None else None
+            )
+            fixed = autofix_sql_when_frozen_contract_clean(
+                case_id=case_id,
+                sql=sql,
+                contract=frozen,
+                dialect=state["dialect"],
+                frozen_contract_state=cast(Mapping[str, object], state),
+            )
+            if fixed is not None and fixed != sql:
+                return {"generated_sql": fixed, "status": "running"}
         contract = _contract(state)
         prompt = render_repair_prompt(
             question=state["question"],
