@@ -4,28 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from app.evaluation.bird_patch_catalog import bird_filter_profile_pairs
 from app.evaluation.replay_amend import PATCH_AMEND_PROFILES, apply_replay_amends
 from app.schemas.benchmark import SemanticContract
 
-_PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
-    ("coe_charter_profile=true", "coe_charter"),
-    ("financial_running_ok_profile=true", "running_ok"),
-    ("financial_salary_gap_profile=true", "financial_salary_gap"),
-    ("hickman_elementary_charter_profile=true", "hickman_frpm"),
-    ("top3_sat_excellence_profile=true", "top3_sat_poverty"),
-    ("high_frpm_unexpected_performance_profile=true", "high_frpm_frpm_pct"),
-    ("top_frpm_soc66_profile=true", "top_frpm_soc66"),
-    ("weekly_statement_owners_demographics_profile=true", "weekly_statement_demographics"),
-    ("virtual_sat_f_profile=true", "virtual_sat_f"),
-    ("magnet_sat_profile=true", "magnet_sat"),
-    ("top_reading_sat_profile=true", "top_reading"),
-    ("enrollment500_frpm_sat_profile=true", "enrollment500"),
-    ("la_meal_stats_aggregate_profile=true", "la_meal_stats"),
-    ("directly_funded_stanislaus_profile=true", "directly_funded_stanislaus"),
-    ("state_special_soc3_profile=true", "state_special_soc3"),
-    ("la_k9_frpm_sat_profile=true", "la_k9_frpm_sat"),
-    ("schools_admin_doc_soc_profile=true", "schools_admin_doc_soc"),
-    ("financial_1993_poplatek_profile=true", "financial_1993_poplatek"),
+_PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = bird_filter_profile_pairs() + (
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 

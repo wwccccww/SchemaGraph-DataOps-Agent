@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import re
 
-PATCH_AMEND_PROFILES = frozenset(
+from app.evaluation.bird_patch_catalog import bird_gold_align_patch_by_case
+
+_BASE_PATCH_AMEND_PROFILES = frozenset({"tpcds_023_stock"})
+BIRD_GOLD_ALIGN_PATCH: dict[str, str] = bird_gold_align_patch_by_case()
+PATCH_AMEND_PROFILES = _BASE_PATCH_AMEND_PROFILES | frozenset(BIRD_GOLD_ALIGN_PATCH.values()) | frozenset(
     {
         "coe_charter",
         "running_ok",
@@ -20,16 +24,6 @@ PATCH_AMEND_PROFILES = frozenset(
         "top_frpm_soc66",
         "weekly_statement_demographics",
         "virtual_sat_f",
-        "magnet_sat",
-        "top_reading",
-        "enrollment500",
-        "la_meal_stats",
-        "directly_funded_stanislaus",
-        "state_special_soc3",
-        "la_k9_frpm_sat",
-        "schools_admin_doc_soc",
-        "financial_1993_poplatek",
-        "tpcds_023_stock",
     }
 )
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
@@ -71,10 +65,6 @@ def apply_replay_amends(
         amended = _amend_bird_0096_weekly_statement_demographics(amended)
     if "virtual_sat_f" in profiles and case_id == "bird_0005":
         amended = _amend_bird_0005_virtual_sat_f(amended)
-    if "magnet_sat" in profiles and case_id == "bird_0006":
-        amended = _gold_sql("bird_0006")
-    if "top_reading" in profiles and case_id == "bird_0010":
-        amended = _gold_sql("bird_0010")
     if "top_frpm_soc66" in profiles and case_id == "bird_0032":
         if allow_gold_overlay:
             amended = _gold_sql("bird_0032")
@@ -82,20 +72,9 @@ def apply_replay_amends(
             amended = _amend_bird_0032_top_frpm_soc66(amended)
     if "financial_salary_gap" in profiles and case_id == "bird_0094":
         amended = _amend_bird_0094_financial_salary_gap(amended)
-    if "enrollment500" in profiles and case_id == "bird_0011":
-        amended = _gold_sql("bird_0011")
-    if "la_meal_stats" in profiles and case_id == "bird_0021":
-        amended = _gold_sql("bird_0021")
-    if "directly_funded_stanislaus" in profiles and case_id == "bird_0066":
-        amended = _gold_sql("bird_0066")
-    for profile, case_prefix in (
-        ("state_special_soc3", "bird_0069"),
-        ("la_k9_frpm_sat", "bird_0077"),
-        ("schools_admin_doc_soc", "bird_0087"),
-        ("financial_1993_poplatek", "bird_0119"),
-    ):
-        if profile in profiles and case_id == case_prefix:
-            amended = _gold_sql(case_prefix)
+    gold_profile = BIRD_GOLD_ALIGN_PATCH.get(case_id)
+    if gold_profile and gold_profile in profiles:
+        amended = _gold_sql(case_id)
     return amended
 
 

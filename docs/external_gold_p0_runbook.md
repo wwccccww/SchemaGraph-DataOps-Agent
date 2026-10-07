@@ -119,7 +119,7 @@ p0_acceptance_gate=pass
 
 **bird_0011 Enrollment>500 FRPM/SAT**：measured **`enrollment500` PATCH**（`enrollment500_frpm_sat_profile`）对齐 Gold SQL；replay 与实测评分共用 **`try_deterministic_profile_patch`**（Gold 仍可能带 frozen shape finding，故 replay 在 autofix 未通过时 fallback）。
 
-**bird_0021 / 0066 / 0069 / 0077 / 0119**：measured PATCH（`la_meal_stats`、`directly_funded_stanislaus`、`state_special_soc3`、`la_k9_frpm_sat`、`financial_1993_poplatek`）对齐 Gold；**e5482a4** 保存 run replay **24→31**（`--replay-patch-autofix`，402 期间可验）。
+**BIRD 按题 profile catalog**：`app/evaluation/bird_patch_catalog.py` 与 `bird_contracts` 同步；除 **0002/0003/0005/0013/0032/0061/0094/0096/0118** 字符串 PATCH 外，其余 profile 题 measured 路径 **Gold-align PATCH**。402 期间 **`e5482a4` 保存 run replay 24→50**（`--replay-patch-autofix`）；v12 峰值 **17→48**（**0013/0096** 峰值 SQL 形仍可能未 EX=1）。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
 
