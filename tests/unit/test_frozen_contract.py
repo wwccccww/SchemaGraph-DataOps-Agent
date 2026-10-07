@@ -193,6 +193,46 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
 
 
+def test_coe_charter_frozen_contract_flags_v11_bird_0002() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0002")
+    peak = peak_case_path("bird_0002")
+    if not peak.is_file():
+        pytest.skip("peak bird_0002 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("Very High FRPM" in message for message in messages)
+    assert any("CurrentStatus" in message for message in messages)
+
+
+def test_top_reading_frozen_contract_flags_v11_bird_0010() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
+    peak = peak_case_path("bird_0010")
+    if not peak.is_file():
+        pytest.skip("peak bird_0010 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 3
+    assert any("Very High Poverty" in message for message in messages)
+    assert any("PercentScoring1500Plus" in message or "ROUND" in message for message in messages)
+
+
 def test_financial_1993_poplatek_frozen_contract_flags_v11_bird_0119() -> None:
     import json
 

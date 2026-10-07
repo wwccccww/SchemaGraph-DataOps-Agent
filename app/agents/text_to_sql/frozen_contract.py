@@ -2446,6 +2446,32 @@ def check_frozen_semantic_contract(
                         "YearOpened 用 STRFTIME('%Y', OpenDate) 文本，不要 CAST INTEGER",
                     )
                 )
+            if re.search(r"Very High FRPM", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCategory 用 High FRPM / Medium FRPM / Low FRPM（>0.75/>0.50），"
+                        "不要用 Very High FRPM",
+                    )
+                )
+            if re.search(r"\bStatusType\s+AS\s+CurrentStatus", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CurrentStatus 用 ClosedDate：NULL→Active，否则 Closed；不要用 StatusType",
+                    )
+                )
+            if re.search(
+                r"WITH\s+base\s+AS\s+\([\s\S]*?SELECT[\s\S]*?FROM\s+frpm",
+                sql,
+                re.IGNORECASE,
+            ) and "CharterSchoolInfo" not in sql and "SATPerformance" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Fresno COE charter：CharterSchoolInfo + SATPerformance 两 CTE LEFT JOIN",
+                    )
+                )
         if "magnet_sat_profile=true" in contract.filters:
             if re.search(r'School Type"', sql, re.IGNORECASE) and not re.search(
                 r"\bSOCType\s+AS\s+SchoolType",
@@ -2618,6 +2644,46 @@ def check_frozen_semantic_contract(
                         "projection_mismatch",
                         "SchoolType 用 Charter School / Non-Charter School（schools.Charter），"
                         "不要用 frpm.`School Type`",
+                    )
+                )
+            if re.search(r"Very High Poverty", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 最高档用 High Poverty (>75%)，不要用 Very High Poverty",
+                    )
+                )
+            if re.search(
+                r"THEN\s+'High Poverty'|THEN\s+'Moderate Poverty'|THEN\s+'Low Poverty'",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"Poverty\s*\(>", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PovertyLevel 标签含区间：High Poverty (>75%)、Moderate Poverty (50-75%) 等",
+                    )
+                )
+            if re.search(
+                r"ROUND\s*\(\s*r\.NumGE1500\s*\*\s*100",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentScoring1500Plus=NumGE1500*100.0/NumTstTakr（勿 ROUND）",
+                    )
+                )
+            if re.search(
+                r"FROM\s+satscores[\s\S]{0,120}rtype\s*=\s*'S'",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"NumTstTakr\s*>\s*10", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolRankings 仅 NumTstTakr>10，不要额外 rtype='S' 过滤",
                     )
                 )
         if "top_frpm_soc66_profile=true" in contract.filters:
@@ -3613,9 +3679,9 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "coe_charter_profile=true":
             hints.append(
-                "Fresno COE charter：frpm.`District Name` + `Charter School (Y/N)`=1；"
-                "CharterSchoolName=frpm.`School Name`；PercentFRPM 用小数列（不×100）；"
-                "FRPMCategory 严格 >0.75/>0.50；YearOpened 文本年。"
+                "Fresno COE charter：CharterSchoolInfo + SATPerformance 两 CTE；"
+                "CharterSchoolName=frpm.`School Name`；PercentFRPM 小数列；"
+                "FRPMCategory=High/Medium/Low FRPM；CurrentStatus=ClosedDate Active/Closed。"
             )
         if item == "financial_running_ok_profile=true":
             hints.append(
