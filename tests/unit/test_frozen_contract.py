@@ -477,6 +477,23 @@ def test_la_low_free_meal_frozen_contract_flags_v12_bird_0062() -> None:
     assert any("×100" in message and "0.18" in message for message in messages)
 
 
+@pytest.mark.parametrize("case_id", ["bird_0055", "bird_0113"])
+def test_v12_response_shape_cases_gold_sql_passes_frozen(case_id: str) -> None:
+    """Step-3 response_shape 两题 Gold 须通过 frozen。"""
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == case_id)
+    assert (
+        check_frozen_semantic_contract(
+            contract_for(case),
+            case.gold_sql,
+            dialect="sqlite",
+        )
+        == ()
+    )
+
+
 @pytest.mark.parametrize(
     "case_id",
     [

@@ -657,6 +657,35 @@ async def test_evaluate_case_self_healing_persists_repair_trace_when_attempts_gt
     assert result.error_category == "no_progress"
 
 
+def test_validate_p2_repair_traces_accepts_zero_shot_skeleton_for_all_custom_cases() -> None:
+    """§11.5 P2：132 条自建用例 zero_shot/首轮 self_healing 须可通过 write 前校验。"""
+    from app.evaluation.ablation import validate_p2_repair_traces
+    from app.evaluation.custom_cases import load_custom_cases
+
+    cases = load_custom_cases()
+    assert len(cases) == 132
+    records = [
+        _result(
+            case.id,
+            "zero_shot",
+            passed=True,
+            ex=1,
+            difficulty=case.difficulty,
+        )
+        for case in cases
+    ]
+    validate_p2_repair_traces(records)
+    records.append(
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            repair_trace=(("1", "not_read_only", "sha256:s1", "sha256:q1"),),
+        )
+    )
+    validate_p2_repair_traces(records)
+
+
 def test_assert_p2_repair_trace_requires_trace_for_self_healing_multattempt() -> None:
     from app.evaluation.ablation import _assert_p2_repair_trace
 
