@@ -26,6 +26,8 @@ from app.evaluation.bird import (
     CASES_PATH,
     CHECKSUMS_PATH,
     DATABASE_DRIVE_ID,
+    DATABASE_MIRROR_URL,
+    DATABASE_MIRROR_ZIP_SHA256,
     DATABASE_ZIP_SHA256,
     DATASET_COMMIT,
     EXCLUSIONS_PATH,
@@ -339,7 +341,19 @@ def fetch_bird_questions(dest: Path) -> None:
 def fetch_bird_databases(dest: Path) -> None:
     """下载固定的开发库压缩包并核对摘要。压缩包不进入 Git。"""
 
-    _download(DATABASE_URL, dest, DATABASE_ZIP_SHA256)
+    last_error: RuntimeError | None = None
+    for url, expected in (
+        (DATABASE_URL, DATABASE_ZIP_SHA256),
+        (DATABASE_MIRROR_URL, DATABASE_MIRROR_ZIP_SHA256),
+    ):
+        try:
+            _download(url, dest, expected)
+            break
+        except RuntimeError as exc:
+            last_error = exc
+            dest.unlink(missing_ok=True)
+    else:
+        raise last_error or RuntimeError("BIRD database download failed")
     if dest.read_bytes()[:2] != b"PK":
         raise RuntimeError("BIRD database download was not a zip file")
 
@@ -692,7 +706,12 @@ def _download(url: str, dest: Path, expected: str) -> None:
             handle.write(chunk)
     digest = sha256_file(dest)
     if digest != expected:
+        preview = dest.read_bytes()[:64].lstrip().lower()
         dest.unlink(missing_ok=True)
+        if preview.startswith(b"<!doctype html") or preview.startswith(b"<html"):
+            raise RuntimeError(
+                "download returned HTML instead of the pinned archive (upstream quota or auth page)"
+            )
         raise RuntimeError("downloaded file did not match the pinned digest")
 
 

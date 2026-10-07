@@ -21,6 +21,8 @@
 - 文件：`minidev_0703.zip`
 - Google Drive id：`13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG`
 - sha256：`aeb211c0e39010bbdae3838bb5e8bd27dc446ed77495b1709f85ccc9bf67f2be`
+- CI 镜像（官方 Alibaba OSS，同 `minidev/MINIDEV/dev_databases` 树）：`https://bird-bench.oss-cn-beijing.aliyuncs.com/minidev.zip`
+- 镜像 sha256：`cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f`（`fetch-bird-databases` 在 Drive 失败时自动回退）
 
 压缩包和 SQLite 文件不进入 Git。`database_checksums.json` 记录入选用例实际打开的数据库摘要。执行前要核对摘要。
 
