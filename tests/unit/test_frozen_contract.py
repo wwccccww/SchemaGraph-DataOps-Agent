@@ -369,6 +369,78 @@ def test_la_meal_stats_frozen_contract_flags_v12_bird_0021() -> None:
     assert any("Enrollment 比例" in message or "绝对阈值" in message for message in messages)
 
 
+def test_weekly_statement_frozen_contract_flags_v12_bird_0096() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0096")
+    peak = peak_case_path("bird_0096")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0096 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("Young" in message for message in messages)
+
+
+def test_transaction_840_frozen_contract_flags_v12_bird_0104() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0104")
+    peak = peak_case_path("bird_0104")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0104 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("365.25" in message or "age_at_transaction" in message for message in messages)
+
+
+def test_litomerice_frozen_contract_flags_v12_bird_0111() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0111")
+    peak = peak_case_path("bird_0111")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0111 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("1996" in message and "average_client_age" in message for message in messages)
+
+
+def test_loan_98832_frozen_contract_flags_v12_bird_0113() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0113")
+    peak = peak_case_path("bird_0113")
+    if not peak.is_file():
+        pytest.skip("v12 peak bird_0113 fixture missing")
+    saved = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("age_at_loan" in message for message in messages)
+
+
 def test_la_low_free_meal_frozen_contract_flags_v12_bird_0062() -> None:
     import json
 

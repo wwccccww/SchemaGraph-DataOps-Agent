@@ -933,7 +933,8 @@ def check_frozen_semantic_contract(
             if re.search(r"840", sql) and re.search(r"1998-10-14", sql):
                 if re.search(
                     r"JULIANDAY\s*\([^)]+\)\s*/\s*365\.25|"
-                    r"JULIANDAY\s*\(\s*[^)]*transaction[^)]*\)\s*-\s*JULIANDAY\s*\(\s*[^)]*birth",
+                    r"JULIANDAY\s*\(\s*[^)]*transaction[^)]*\)\s*-\s*JULIANDAY\s*\(\s*[^)]*birth|"
+                    r"\*\s*365\.25",
                     sql,
                     re.IGNORECASE,
                 ):
@@ -1031,6 +1032,13 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "age_group 用 strftime 年差与生日校正（anchor 2026-10-01）",
+                    )
+                )
+            if re.search(r"THEN\s+'Young'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "weekly owners 题 age_group 仅 Middle-aged 与 Senior（不要 Young 档）",
                     )
                 )
             if (
@@ -1447,6 +1455,18 @@ def check_frozen_semantic_contract(
                         "age_at_loan 用 strftime 年差并校正月日（LoanClient CTE）",
                     )
                 )
+            if re.search(r"age_at_loan", sql, re.IGNORECASE) and re.search(
+                r"STRFTIME\s*\(\s*'%Y'[\s\S]{0,120}birth_date",
+                sql,
+                re.IGNORECASE,
+            ):
+                if not re.search(r"STRFTIME\s*\(\s*'%m-%d'", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "age_at_loan 用 strftime 年差并校正月日（LoanClient CTE）",
+                        )
+                    )
             if re.search(
                 r"amount\s*>\s*0[\s\S]{0,60}total_income|amount\s*<\s*0[\s\S]{0,60}total_expense",
                 sql,
@@ -1573,6 +1593,17 @@ def check_frozen_semantic_contract(
                 )
             if re.search(r"average_client_age", sql, re.IGNORECASE) and re.search(
                 r"2026-10-01[\s\S]{0,80}average_client_age|average_client_age[\s\S]{0,80}2026-10-01",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "average_client_age 用 1996 年与 birth_date 年差（ClientInfo 按 account）",
+                    )
+                )
+            if re.search(r"average_client_age", sql, re.IGNORECASE) and re.search(
+                r"AVG\s*\(\s*2026\s*-",
                 sql,
                 re.IGNORECASE,
             ):
