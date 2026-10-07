@@ -115,6 +115,8 @@ p0_acceptance_gate=pass
 
 **tpcds_complex_023**：stock CTE 须 item 粒度 `GROUP BY` + `SUM(inv_quantity_on_hand)` 再 JOIN sold；否则 `quantity_sold` 重复计数。frozen + **`tpcds_023_stock` PATCH**；`--replay-patch-autofix` 对 **tpcds-derived** 与 BIRD 同路径。
 
+**`1e812c3` 实测（2026-10-07）**：`./scripts/run_bird_p0_full_eval_twice.sh` → **21/50×2 stable**（live **`bird_0003`/`0096`/`0013` 等 PATCH 路径 ex=1**）；manifest 见 **`reports/p0_measured_manifest_1e812c3.tsv`**（TPC-DS 仍 **bc29bb6** 30/30×2 hybrid gate）。
+
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **19/50** 与 **18/50**，差分常为 **bird_0013** poverty 标签/`ROUND` 或 **bird_0061** FRPM 列），则 **`p0_stability_bird=unstable`**；优先 **`top3_sat_poverty` / `hickman_frpm` PATCH** 与 frozen 后再跑 2×。
 
 ### Measured manifest（2×2 全量）
