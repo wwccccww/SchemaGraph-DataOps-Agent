@@ -12,3 +12,4 @@ def test_run_custom_ablation_script_exists_and_invokes_ablation_module() -> None
     assert "check-external-release" in text
     assert "llm_preflight" in text
     assert "app.evaluation.ablation" in text
+    assert "SANDBOX_DB_PASSWORD" in text

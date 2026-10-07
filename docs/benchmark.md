@@ -612,7 +612,7 @@ P2：
 
 - 所有 `attempts > 1` 的 case 都保存“触发症状 → 修复变化 → 最终结果”链路；
 - 相同 SQL 或相同症状不允许无变化地连续消耗三轮；
-- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；全量实测入口 **`./scripts/run_custom_ablation.sh`**（`python -m app.evaluation.ablation`，132×4 variant，写入 `reports/custom/run_*`）；
+- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**（Oracle 132 + repair_trace/Recovery@3 schema 单测）；全量实测 **`./scripts/run_custom_ablation.sh`**（132×4 variant，写入 `reports/custom/run_*`）；
 - Schema Graph 的 Junction Table Recall 和 Required Table Recall 不得回退；
 - EX、分类计数和组间转移矩阵由原始 case JSON 重算，不能手工填写。
 
