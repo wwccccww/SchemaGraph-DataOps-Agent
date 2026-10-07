@@ -76,6 +76,15 @@ echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
 echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
 echo "wait_log=${P0_WAIT_LOG:-/tmp/p0-wait-billing.log}"
 echo "confirm_polls=${P0_WAIT_CONFIRM_POLLS:-2}"
+P0_ACCEPTANCE_LOCK_FILE="${P0_ACCEPTANCE_LOCK_FILE:-/tmp/p0_post_billing_acceptance.lock}"
+if [[ ! -e "$P0_ACCEPTANCE_LOCK_FILE" ]] || (
+  exec 9<>"$P0_ACCEPTANCE_LOCK_FILE"
+  flock -n 9
+); then
+  echo "p0_acceptance_lock=free path=${P0_ACCEPTANCE_LOCK_FILE}"
+else
+  echo "p0_acceptance_lock=held path=${P0_ACCEPTANCE_LOCK_FILE}"
+fi
 echo "post_billing_docs=python3 -m app.evaluation.p0_measured_summary --acceptance-gate (via run_external_p0_full_eval_twice.sh)"
 if grep -q "402" "$PREFLIGHT_LOG" 2>/dev/null; then
   echo "while_billing_blocked=./scripts/p0_post_billing_acceptance.sh --gates-only"
