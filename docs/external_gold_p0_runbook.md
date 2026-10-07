@@ -78,7 +78,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 成功条件（脚本末尾）：
 
-- **`p0_acceptance_gate=pass`**
+- **`p0_acceptance_gate=pass`**（当前 autogen：`docs/benchmark.md` — TPC-DS **30/30×2** @ `5fc4fc6`，BIRD **19/50×2** @ `b2b1884`）
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
 - **`p0_measured_bird_run{1,2}=≥19/50`**（默认 **`P0_BIRD_MIN_MATCHED=19`**）且 **`p0_stability_bird=stable`**
 

@@ -112,7 +112,7 @@ p0_acceptance_gate=pass
 | Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
-| 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
+| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable** measured（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**；acceptance **19/50×2 stable**（`p0-measured-autogen`，`p0_acceptance_gate=pass`） |
 | BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→17/50**；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
