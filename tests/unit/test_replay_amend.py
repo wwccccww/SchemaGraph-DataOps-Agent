@@ -265,6 +265,44 @@ def test_top3_sat_poverty_amend_makes_unstable_run2_0013_match_gold() -> None:
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_top3_sat_poverty_amend_makes_v12_peak_0013_free_meal_match_gold() -> None:
+    """v12 峰值 Free-Meal poverty 形经 cohort Gold PATCH（peak replay 17→50 之一）。"""
+    case_file, conn = _require_peak("bird_0013")
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    assert "Free Meal Count (K-12)" in sql
+    case = next(c for c in load_bird_cases() if c.id == "bird_0013")
+    amended = apply_replay_amends(
+        "bird_0013",
+        sql,
+        profiles=frozenset({"top3_sat_poverty"}),
+        allow_gold_overlay=False,
+    )
+    assert amended != sql
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+
+
+def test_weekly_statement_amend_makes_v12_peak_0096_cohort_match_gold() -> None:
+    """v12 峰值 CustomerWeeklyStatements 形经 cohort Gold PATCH（peak replay 17→50 之一）。"""
+    case_file, conn = _require_peak("bird_0096", db=FINANCIAL_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    assert "CustomerWeeklyStatements" in sql
+    case = next(c for c in load_bird_cases() if c.id == "bird_0096")
+    amended = apply_replay_amends(
+        "bird_0096",
+        sql,
+        profiles=frozenset({"weekly_statement_demographics"}),
+        allow_gold_overlay=False,
+    )
+    assert amended != sql
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+
+
 def test_hickman_frpm_amend_makes_v12_peak_0061_match_gold() -> None:
     """v12 峰值 bird_0061 经 hickman_frpm PATCH 离线 EX=1（对齐 b2b1884 实测 +2 题之一）。"""
     case_file, conn = _require_peak("bird_0061")
