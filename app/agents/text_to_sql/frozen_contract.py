@@ -558,7 +558,11 @@ def check_frozen_semantic_contract(
                         "Stanislaus 过滤用 schools.County = 'Stanislaus'",
                     )
                 )
-            if re.search(r"cross\s+join\s+county", sql, re.I):
+            if re.search(r"cross\s+join\s+county", sql, re.I) or re.search(
+                r"JOIN\s+countystats\s+AS\s+c\s+ON\s+1\s*=\s*1",
+                sql,
+                re.IGNORECASE,
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -928,6 +932,17 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "age_group 标签用 Middle-aged 与 Senior（不是 Middle/Old）",
+                    )
+                )
+            if re.search(
+                r"2026-10-01[\s\S]{0,120}<\s*60\s+THEN\s+'Middle-aged'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "age_group Middle-aged 用 30–50 岁（含 strftime 生日校正），不要用 <60",
                     )
                 )
             if (
@@ -1543,6 +1558,39 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "total_income_before_loan 仅 SUM PRIJEM 交易（t.date<贷款日）",
+                    )
+                )
+            if re.search(r"\bA13\s+AS\s+unemployment_rate_1995", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "unemployment_rate_1995 用 district.A12，不是 A13",
+                    )
+                )
+            if re.search(
+                r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY\s+d\.A13",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "unemployment_rank 用 RANK() OVER (ORDER BY A12)，不是 ORDER BY A13 DESC",
+                    )
+                )
+            if re.search(
+                r"district_info\s+AS\s+\(\s*SELECT[\s\S]{0,500}?FROM\s+district",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"district_info\s+AS\s+\(\s*SELECT[\s\S]{0,500}?LoanAccounts",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "DistrictInfo 须 INNER JOIN LoanAccounts（仅贷款所在 district）",
                     )
                 )
         if "female_top3_salary_district_profile=true" in contract.filters:

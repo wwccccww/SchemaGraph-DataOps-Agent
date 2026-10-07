@@ -193,6 +193,63 @@ def test_magnet_sat_frozen_contract_flags_peak_run_mistakes() -> None:
     assert not check_frozen_semantic_contract(contract, case.gold_sql, dialect="sqlite")
 
 
+def test_loan_approved_frozen_contract_flags_v11_bird_0105() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0105")
+    peak = peak_case_path("bird_0105")
+    if not peak.is_file():
+        pytest.skip("peak bird_0105 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 2
+    assert any("A12" in message for message in messages)
+
+
+def test_directly_funded_stanislaus_frozen_contract_flags_v11_bird_0066() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0066")
+    peak = peak_case_path("bird_0066")
+    if not peak.is_file():
+        pytest.skip("peak bird_0066 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 1
+    assert any("CountyStats" in message or "CROSS JOIN" in message for message in messages)
+
+
+def test_weekly_statement_frozen_contract_flags_v11_bird_0096() -> None:
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from tests.unit.bird_replay_fixtures import peak_case_path
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0096")
+    peak = peak_case_path("bird_0096")
+    if not peak.is_file():
+        pytest.skip("peak bird_0096 fixture missing")
+    bad = json.loads(peak.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
+    ]
+    assert len(messages) >= 1
+    assert any("Middle-aged" in message for message in messages)
+
+
 def test_enrollment500_frozen_contract_flags_v11_bird_0011() -> None:
     import json
 
@@ -209,7 +266,9 @@ def test_enrollment500_frozen_contract_flags_v11_bird_0011() -> None:
         for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
     ]
     assert len(messages) >= 2
-    assert any("CategorySATRank" in message or "HighEnrollmentSchools" in message for message in messages)
+    assert any(
+        "CategorySATRank" in message or "HighEnrollmentSchools" in message for message in messages
+    )
 
 
 def test_top3_excellence_frozen_contract_flags_v11_bird_0013() -> None:
@@ -247,7 +306,9 @@ def test_virtual_sat_f_frozen_contract_flags_v11_bird_0005() -> None:
         for item in check_frozen_semantic_contract(case.semantic_contract, bad, dialect="sqlite")
     ]
     assert len(messages) >= 2
-    assert any("VirtualSchools" in message or "Very High Poverty" in message for message in messages)
+    assert any(
+        "VirtualSchools" in message or "Very High Poverty" in message for message in messages
+    )
 
 
 def test_la_meal_stats_frozen_contract_flags_v11_bird_0021() -> None:
