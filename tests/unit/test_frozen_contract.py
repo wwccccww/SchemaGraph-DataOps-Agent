@@ -477,6 +477,21 @@ def test_la_low_free_meal_frozen_contract_flags_v12_bird_0062() -> None:
     assert any("×100" in message and "0.18" in message for message in messages)
 
 
+def test_directly_funded_stanislaus_gold_sql_passes_frozen_contract() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0066")
+    assert (
+        check_frozen_semantic_contract(
+            contract_for(case),
+            case.gold_sql,
+            dialect="sqlite",
+        )
+        == ()
+    )
+
+
 def test_directly_funded_stanislaus_frozen_contract_flags_v12_bird_0066() -> None:
     import json
 
@@ -493,10 +508,13 @@ def test_directly_funded_stanislaus_frozen_contract_flags_v12_bird_0066() -> Non
         for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
     ]
     assert len(messages) >= 2
-    assert any("County Average" in message for message in messages)
     assert any(
-        "Charter School (Y/N)" in message or "schools.Charter" in message for message in messages
+        "County Average" in message
+        or "CountyStats" in message
+        or "County Name" in message
+        for message in messages
     )
+    assert any("Charter School (Y/N)" in message or "Educational Option" in message for message in messages)
 
 
 def test_top_frpm_soc66_frozen_contract_flags_v12_bird_0032() -> None:

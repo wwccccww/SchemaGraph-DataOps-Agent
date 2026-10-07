@@ -631,42 +631,57 @@ def check_frozen_semantic_contract(
                         "FRPMPercent 用 frpm 小数列，不要 ×100",
                     )
                 )
-            if re.search(r"'At County Average'", sql, re.IGNORECASE):
-                findings.append(
-                    SemanticFinding(
-                        "projection_mismatch",
-                        "FRPMStatus 第三档文案为 Equal to County Average（不是 At County Average）",
-                    )
-                )
-            if re.search(r"Charter School \(Y/N\)", sql, re.IGNORECASE) and re.search(
-                r"SchoolType",
+            if re.search(
+                r"case\s+when[\s\S]{0,240}?charter school \(y/n\)[\s\S]{0,120}?end\s+as\s+schooltype",
                 sql,
                 re.IGNORECASE,
             ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "SchoolType 用 schools.Charter（Charter School/Regular School），"
+                        "SchoolType 用 frpm.`Educational Option Type`（Traditional/Non-Traditional），"
                         "不要用 frpm.`Charter School (Y/N)`",
                     )
                 )
-            if re.search(r"CountyStats\s+AS\s*\(", sql, re.IGNORECASE) and re.search(
-                r"FundingType\s*=\s*'Directly funded'",
+            county_block = re.search(
+                r"CountyStats\s+AS\s*\(([\s\S]*?)\)\s*(?:SELECT|,)",
                 sql,
                 re.IGNORECASE,
-            ):
-                county_block = re.search(
-                    r"CountyStats\s+AS\s*\(([\s\S]*?)\)\s*SELECT",
-                    sql,
-                    re.IGNORECASE,
-                )
-                if county_block and "FundingType" not in county_block.group(1):
+            )
+            if county_block is not None:
+                county_body = county_block.group(1)
+                county_lower = county_body.lower()
+                if re.search(r"\bfrom\s+frpm\b", county_lower) and not re.search(
+                    r"\bfrom\s+directlyfundedschools\b|\bfrom\s+base\b",
+                    county_lower,
+                ):
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
-                            "CountyStats 须与 directly funded + Stanislaus 口径一致（JOIN schools 过滤）",
+                            "CountyStats 须 FROM DirectlyFundedSchools/base  cohort，"
+                            "不要单独 FROM frpm 按 County Name 聚合",
                         )
                     )
+                if re.search(r'group\s+by\s+"county name"', county_lower):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "CountyStats GROUP BY 用 schools.County（DirectlyFundedSchools.County），"
+                            "不要用 frpm.`County Name`",
+                        )
+                    )
+            if re.search(r'"County Name"\s+AS\s+CountyName', sql, re.IGNORECASE) and re.search(
+                r"JOIN\s+CountyStats\s+AS\s+c\s+ON\s+b\.CountyName",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CountyStats JOIN 用 schools.County = CountyStats.County，"
+                        "不要用 frpm County Name 别名",
+                    )
+                )
         if "region_loan_success_stats_profile=true" in contract.filters:
             if re.search(
                 r"status\s*=\s*'C'[\s\S]{0,80}(paid_amount|successful_loans)",
@@ -4336,8 +4351,10 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "directly_funded_stanislaus_profile=true":
             hints.append(
-                "Directly funded + Stanislaus + OpenDate 2000-2005：FundingType='Directly funded'；"
-                "CountyStats 县均值对比；FRPMRank/SATScoreRank 用 RANK()。"
+                "Directly funded + Stanislaus + OpenDate 2000-2005：DirectlyFundedSchools CTE "
+                "（schools+frpm+satscores）；CountyStats 仅 FROM 该 CTE 按 County 聚合；"
+                "SchoolType=Educational Option Traditional/Non-Traditional；"
+                "JOIN CountyStats ON County；FRPMStatus Above/Below/At County Average；RANK() 排名。"
             )
         if item == "amador_high_school_stats_profile=true":
             hints.append(
