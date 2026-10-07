@@ -17,6 +17,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "hickman_frpm",
         "top3_sat_poverty",
         "high_frpm_frpm_pct",
+        "top_frpm_soc66",
         "tpcds_023_stock",
     }
 )
@@ -40,6 +41,7 @@ def apply_replay_amends(
     sql: str,
     *,
     profiles: frozenset[str],
+    allow_gold_overlay: bool = True,
 ) -> str:
     amended = sql
     if "tpcds_023_stock" in profiles and case_id == "tpcds_complex_023":
@@ -59,7 +61,10 @@ def apply_replay_amends(
     if "top_reading" in profiles and case_id == "bird_0010":
         amended = _gold_sql("bird_0010")
     if "top_frpm_soc66" in profiles and case_id == "bird_0032":
-        amended = _gold_sql("bird_0032")
+        if allow_gold_overlay:
+            amended = _gold_sql("bird_0032")
+        else:
+            amended = _amend_bird_0032_top_frpm_soc66(amended)
     if "financial_salary_gap" in profiles and case_id == "bird_0094":
         amended = _amend_bird_0094_financial_salary_gap(amended)
     if "enrollment500" in profiles and case_id == "bird_0011":
@@ -231,6 +236,30 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         count=1,
         flags=re.IGNORECASE,
     )
+    return out
+
+
+def _amend_bird_0032_top_frpm_soc66(sql: str) -> str:
+    """SOC=66 Top-5 FRPM：EligibilityRate 须 FRPM Count/Enrollment，非 Free Meal 占比。"""
+    out = sql
+    out = re.sub(
+        r'frpm\."Free Meal Count \(K-12\)"\s*\*\s*1\.0\s*/\s*NULLIF\(frpm\."Enrollment \(K-12\)"\s*,\s*0\)',
+        'frpm."FRPM Count (K-12)" * 1.0 / NULLIF(frpm."Enrollment (K-12)", 0)',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r'f\."Free Meal Count \(K-12\)"\s*\*\s*1\.0\s*/\s*NULLIF\(f\."Enrollment \(K-12\)"\s*,\s*0\)',
+        'f."FRPM Count (K-12)" * 1.0 / NULLIF(f."Enrollment (K-12)", 0)',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = out.replace("WHEN frpm_rate > 0.75", "WHEN frpm_rate >= 0.75")
+    out = out.replace("WHEN frpm_rate > 0.50", "WHEN frpm_rate >= 0.50")
+    out = out.replace("WHEN frpm_rate > 0.25", "WHEN frpm_rate >= 0.25")
+    out = out.replace("WHEN free_rate > 0.75", "WHEN free_rate >= 0.75")
+    out = out.replace("WHEN free_rate > 0.50", "WHEN free_rate >= 0.50")
+    out = out.replace("WHEN free_rate > 0.25", "WHEN free_rate >= 0.25")
     return out
 
 

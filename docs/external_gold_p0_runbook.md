@@ -105,6 +105,8 @@ p0_acceptance_gate=pass
 
 **bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 在 **validate**、**repair** 与 **实测 `score_prediction`**（非 replay）均会尝试；**`--replay-run`** 仍用 **`--replay-patch-autofix`**。另修正实测常见 **`ROUND(..., 2) AS PercentHighScorers`** 与 **Below/Average/Above** 分档 → Gold **High/Medium/Low**（**7645bbb** 两 run 保存 SQL offline 可 EX=1）。v12 vendored 峰值 + **881dd08** / **a78b594** 同理。
 
+**bird_0032 Top FRPM (SOC=66)**：实测勿用 **Free Meal/Enrollment** 充当 eligibility；**`top_frpm_soc66` PATCH**（实测路径，非 Gold overlay）改 **FRPM Count/Enrollment** 与 `>=` 分档；**`--replay-amend top_frpm_soc66`** 仍为 Gold 上界估算。
+
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。

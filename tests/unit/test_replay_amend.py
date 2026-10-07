@@ -116,6 +116,29 @@ def test_high_frpm_frpm_pct_amend_makes_7645bbb_run1_measured_0003_match_gold() 
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_top_frpm_soc66_patch_amend_makes_7645bbb_run2_measured_0032_match_gold() -> None:
+    case_file = Path(
+        "/workspace/reports/bird/run_20261007T163012Z_7645bbbdf4185664fa86fbee5f7d137cb00312fb/cases/bird_0032.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("7645bbb run2 measured bird_0032 fixture missing")
+    if not CA_SCHOOLS_DB.is_file():
+        pytest.skip("bird sqlite snapshot missing")
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0032")
+    amended = apply_replay_amends(
+        "bird_0032",
+        sql,
+        profiles=frozenset({"top_frpm_soc66"}),
+        allow_gold_overlay=False,
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_high_frpm_frpm_pct_amend_makes_7645bbb_run2_measured_0003_match_gold() -> None:
     case_file = Path(
         "/workspace/reports/bird/run_20261007T163012Z_7645bbbdf4185664fa86fbee5f7d137cb00312fb/cases/bird_0003.json"

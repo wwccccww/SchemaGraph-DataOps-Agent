@@ -14,6 +14,7 @@ _PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
     ("hickman_elementary_charter_profile=true", "hickman_frpm"),
     ("top3_sat_excellence_profile=true", "top3_sat_poverty"),
     ("high_frpm_unexpected_performance_profile=true", "high_frpm_frpm_pct"),
+    ("top_frpm_soc66_profile=true", "top_frpm_soc66"),
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 
@@ -36,7 +37,7 @@ def try_deterministic_profile_patch(
     profiles = patch_profiles_for_contract(contract)
     if not profiles:
         return None
-    patched = apply_replay_amends(case_id, sql, profiles=profiles)
+    patched = apply_replay_amends(case_id, sql, profiles=profiles, allow_gold_overlay=False)
     if patched == sql:
         return None
     return patched
