@@ -31,6 +31,13 @@ def test_replay_baseline_scripts_source_env() -> None:
         assert 'source "$ROOT/.env"' in text, name
 
 
+def test_p1_release_gate_script_invokes_verify_external_gold() -> None:
+    root = Path(__file__).resolve().parents[2]
+    script = (root / "scripts/p1_release_gate.sh").read_text(encoding="utf-8")
+    assert "verify_external_gold.sh" in script
+    assert script.strip().endswith('"$ROOT/scripts/verify_external_gold.sh"')
+
+
 def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "scripts/p1_release_gate.sh").read_text()
