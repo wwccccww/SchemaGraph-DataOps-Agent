@@ -9,6 +9,7 @@ on:
       - main
       - "cursor/**"
     paths:
+      - ".github/workflows/external-gold.yml"
       - "app/evaluation/**"
       - "app/agents/text_to_sql/**"
       - "benchmarks/bird_complex/**"
@@ -38,6 +39,11 @@ on:
       - "tests/unit/test_external_*.py"
       - "tests/unit/test_p0_external_measured_baseline.py"
       - "tests/unit/test_p1_replay_gate.py"
+      - "tests/unit/test_replay_amend.py"
+      - "tests/unit/test_profile_autofix.py"
+      - "tests/unit/test_bird_autofix_measured_path.py"
+      - "tests/unit/test_bird_patch_catalog.py"
+      - "tests/unit/test_workflow_profile_autofix_validate.py"
       - "tests/unit/test_bird_profile_inventory.py"
       - "tests/unit/test_bird_contracts.py"
       - "tests/unit/test_frozen_contract.py"
