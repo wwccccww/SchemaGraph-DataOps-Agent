@@ -761,7 +761,7 @@ async def _run(
         api_key=llm.deepseek_api_key,
         base_url=llm.deepseek_base_url,
         model=llm.deepseek_model,
-        timeout_seconds=120,
+        timeout_seconds=max(timeout_seconds, 180.0),
     )
     counter = DeepSeekTokenCounter()
     bundles: dict[str, ServiceBundle] = {}
