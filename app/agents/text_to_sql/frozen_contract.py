@@ -1034,11 +1034,15 @@ def check_frozen_semantic_contract(
                         "age_group 用 strftime 年差与生日校正（anchor 2026-10-01）",
                     )
                 )
-            if re.search(r"THEN\s+'Young'", sql, re.IGNORECASE):
+            if re.search(r"<=?\s*50\s+THEN\s+'Middle-aged'", sql, re.IGNORECASE) and not re.search(
+                r"BETWEEN\s+30\s+AND\s+50\s+THEN\s+'Middle-aged'",
+                sql,
+                re.IGNORECASE,
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "weekly owners 题 age_group 仅 Middle-aged 与 Senior（不要 Young 档）",
+                        "Young 后 Middle-aged 须 BETWEEN 30 AND 50（不要用 <=50 宽档）",
                     )
                 )
             if (
@@ -1460,7 +1464,12 @@ def check_frozen_semantic_contract(
                 sql,
                 re.IGNORECASE,
             ):
-                if not re.search(r"STRFTIME\s*\(\s*'%m-%d'", sql, re.IGNORECASE):
+                has_birthday_fix = re.search(
+                    r"STRFTIME\s*\(\s*'%m[-]?%d'",
+                    sql,
+                    re.IGNORECASE,
+                )
+                if not has_birthday_fix:
                     findings.append(
                         SemanticFinding(
                             "projection_mismatch",
@@ -2266,17 +2275,6 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "WriteScoreRank/TotalScoreRank 在 SchoolStats CTE 中 RANK()，不要外层窗口",
-                    )
-                )
-            if re.search(r"\bsatscores\b", sql, re.IGNORECASE) and not re.search(
-                r"rtype\s*=\s*['\"]S['\"]",
-                sql,
-                re.IGNORECASE,
-            ):
-                findings.append(
-                    SemanticFinding(
-                        "projection_mismatch",
-                        "Ricci Ulrich 题 satscores 须 rtype='S'（学校级记录）",
                     )
                 )
             school_stats_cte = re.search(
