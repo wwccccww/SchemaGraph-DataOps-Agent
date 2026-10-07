@@ -129,6 +129,33 @@ def test_v12_measured_ex0_frozen_finding_coverage_floor() -> None:
     assert with_findings >= 33
 
 
+def test_v12_measured_join_semantics_ex0_have_frozen_findings() -> None:
+    """Step-3 Join：v12 join_semantics 保存 SQL 须有 frozen 信号（跟进 measured EX，非 Gold amend）。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    expected_ids: list[str] = []
+    for case in load_bird_cases():
+        case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
+        if not case_file.is_file():
+            continue
+        payload = json.loads(case_file.read_text())
+        if payload.get("ex") or payload.get("diagnosis_class") != "join_semantics":
+            continue
+        sql = (payload.get("prediction") or {}).get("sql") or ""
+        count = len(check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite"))
+        assert count >= 1, f"{case.id} join_semantics saved SQL has 0 frozen findings"
+        expected_ids.append(case.id)
+    assert expected_ids == [
+        "bird_0066",
+        "bird_0078",
+        "bird_0092",
+        "bird_0097",
+        "bird_0111",
+    ]
+
+
 def test_v12_measured_sql_error_ex0_have_frozen_findings() -> None:
     """v12 峰值 sql_error 保存 SQL 须有 frozen 信号（0069/0119 仍靠 Gold overlay amend）。"""
     if not PEAK_V15_RUN.is_dir():
