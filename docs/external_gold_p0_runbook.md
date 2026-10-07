@@ -103,7 +103,7 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
 
-**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 在 **validate**、**repair** 与 **`score_prediction`**（实测评分前，validate 同款、非 Gold overlay）均会尝试，对齐 Gold 分档与 `PercentHighScorers`；v12 vendored 峰值 + **881dd08** 保存 SQL 经 `--replay-patch-autofix` 可 EX=1。
+**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 在 **validate**、**repair** 与 **实测 `score_prediction`**（非 replay）均会尝试；**`--replay-run`** 仍用 **`--replay-patch-autofix`**。v12 vendored 峰值 + **881dd08** 保存 SQL offline 可 EX=1。
 
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 

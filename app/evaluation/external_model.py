@@ -351,9 +351,16 @@ async def evaluate_predictions(
     return traces
 
 
-def _profile_patch_predicted_sql(case: BenchmarkCase, sql: str | None) -> str | None:
-    """实测评分前应用 validate 同款 PATCH（非 Gold overlay）。"""
+def _profile_patch_predicted_sql(
+    case: BenchmarkCase,
+    sql: str | None,
+    *,
+    inspection: TextToSqlInspection,
+) -> str | None:
+    """实测评分前应用 validate 同款 PATCH（非 Gold overlay；replay 走 --replay-patch-autofix）。"""
 
+    if inspection.response.request_id == "replay":
+        return sql
     if not sql or case.semantic_contract is None:
         return sql
     if case.source not in {"bird", "tpcds-derived"}:
@@ -393,7 +400,7 @@ async def score_prediction(
         question=case.question,
         categories=categories,
     )
-    predicted = _profile_patch_predicted_sql(case, inspection.generated_sql)
+    predicted = _profile_patch_predicted_sql(case, inspection.generated_sql, inspection=inspection)
     error_category = None if response.error is None else response.error.category
     ex = 0
     primary = "sql_error"
