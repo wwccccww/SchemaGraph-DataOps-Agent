@@ -248,6 +248,18 @@ def check_frozen_semantic_contract(
                         "LoanStats 须 FROM AccountsIn1993 LEFT JOIN loan（不要全库 loan 聚合）",
                     )
                 )
+            if re.search(r"AccountsIn1993", sql, re.IGNORECASE) and re.search(
+                r"ORDER\s+BY\s+\w+\.account_id\s*;?\s*$",
+                sql,
+                re.IGNORECASE,
+            ):
+                if not re.search(r"ORDER\s+BY[\s\S]{0,120}\.A3\s*,", sql, re.IGNORECASE):
+                    findings.append(
+                        SemanticFinding(
+                            "projection_mismatch",
+                            "ORDER BY district.A3, district.A2, account_id",
+                        )
+                    )
         if "state_special_soc3_profile=true" in contract.filters:
             if re.search(r"SOC\s+LIKE\s+'3%'", sql, re.I) and "State Special Schools" not in sql:
                 findings.append(
@@ -304,7 +316,7 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
-                r"WHERE\s+schools\.DOCType\s*=\s*'State Special Schools'[\s\S]{0,120}SOC\s+LIKE",
+                r"WHERE[\s\S]{0,200}DOCType\s*=\s*'State Special Schools'[\s\S]{0,120}SOC\s+LIKE",
                 sql,
                 re.IGNORECASE,
             ):
@@ -313,6 +325,24 @@ def check_frozen_semantic_contract(
                         "projection_mismatch",
                         "SOC 过滤放在 StateSpecialSchools CTE 外层："
                         "WHERE ss.SOC='31' OR ss.SOC LIKE '3%'",
+                    )
+                )
+            if re.search(
+                r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY\s+[\w.\"]*Enrollment",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"EnrollmentRank", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EnrollmentRank 用 RANK() OVER (ORDER BY Enrollment DESC) 在 SchoolMetrics CTE",
+                    )
+                )
+            if re.search(r"Charter School|Non-Charter School", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolType 用 Charter / Non-Charter（不是 Charter School / Non-Charter School）",
                     )
                 )
             if (
