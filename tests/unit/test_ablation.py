@@ -443,6 +443,46 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
     assert TARGETS["execution_accuracy"] == 0.83
 
 
+def test_ablation_report_json_includes_repair_trace_when_attempts_gt_one(tmp_path: Path) -> None:
+    """§11.5 P2：自建 attempts>1 的 case JSON 须持久化 repair_trace 结构化数组。"""
+    trace = (
+        ("1", "not_read_only", "sha256:s1", "sha256:q1"),
+        ("2", "accepted", "", "sha256:q2"),
+    )
+    records = [
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            passed=True,
+            ex=1,
+            repair_trace=trace,
+        )
+    ]
+    summary = build_summary(
+        records,
+        case_ids=["custom_basic_001"],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-04T15:12:00Z",
+        baseline_tokens=None,
+    )
+    run_dir = write_ablation_report(
+        tmp_path,
+        stamp="20261004T151200Z",
+        commit="abc1234",
+        summary=summary,
+        records=records,
+    )
+    payload = json.loads(
+        (run_dir / "cases" / "custom_basic_001__self_healing.json").read_text(encoding="utf-8")
+    )
+    assert payload["attempts"] == 2
+    assert len(payload["repair_trace"]) == 2
+    assert payload["repair_trace"][-1]["category"] == "accepted"
+
+
 def test_report_directory_is_immutable(tmp_path: Path) -> None:
     records = [_result("custom_basic_001", "zero_shot", passed=True, ex=1)]
     summary = build_summary(
