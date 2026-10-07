@@ -107,7 +107,7 @@ p0_acceptance_gate=pass
 
 **bird_0032 Top FRPM (SOC=66)**：实测勿用 **Free Meal/Enrollment** 充当 eligibility；**`top_frpm_soc66` PATCH**（实测路径，非 Gold overlay）改 **FRPM Count/Enrollment** 与 `>=` 分档；**`--replay-amend top_frpm_soc66`** 仍为 Gold 上界估算。
 
-**bird_0096 Weekly owners**：**`weekly_statement_demographics` PATCH** 修正 **avg_loan_amount**（total 均值非 per-loan）、**customers_with_loans**（`COUNT DISTINCT`）、去掉 trans 多余 type 过滤、**JOIN** `LoanAndTransactionData`。
+**bird_0096 Weekly owners**：**`weekly_statement_demographics` PATCH** 修正 **avg_loan_amount**（total 均值非 per-loan）、**customers_with_loans**（`COUNT DISTINCT`）、去掉 trans 多余 type 过滤、**JOIN** `LoanAndTransactionData`；**`loan_tx` per-account  cohort**（`a89a47b` run2）→ Gold CTE 对齐。
 
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 

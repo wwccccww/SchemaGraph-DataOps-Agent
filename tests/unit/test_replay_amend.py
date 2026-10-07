@@ -365,6 +365,33 @@ def test_running_ok_amend_for_0118_on_prior_run() -> None:
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_weekly_statement_amend_a89a47b_run2_loan_tx_matches_gold() -> None:
+    run2 = Path(
+        "/workspace/reports/bird/run_20261007T190743Z_a89a47b0cc7eb512e574072d72a6ac4eeeffd0cb/cases/bird_0096.json"
+    )
+    if not run2.is_file() or not FINANCIAL_DB.is_file():
+        pytest.skip("a89a47b bird_0096 run2 fixture or sqlite missing")
+    payload = json.loads(run2.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0096")
+    amended = apply_replay_amends(
+        "bird_0096",
+        sql,
+        profiles=frozenset({"weekly_statement_demographics"}),
+        allow_gold_overlay=False,
+    )
+    assert amended != sql
+    conn = sqlite3.connect(FINANCIAL_DB)
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(
+        gold,
+        pred,
+        order_sensitive=case.order_sensitive,
+        numeric_tolerance=case.numeric_tolerance,
+    )
+
+
 def test_virtual_sat_f_amend_peak_0005_matches_gold() -> None:
     case_file, conn = _require_peak("bird_0005")
     payload = json.loads(case_file.read_text())

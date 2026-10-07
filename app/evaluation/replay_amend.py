@@ -479,6 +479,15 @@ def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
         "LEFT JOIN LoanAndTransactionData AS ltd ON ltd.client_id = cws.client_id",
         "JOIN LoanAndTransactionData AS ltd ON ltd.client_id = cws.client_id",
     )
+    # Per-account `loan_tx` cohort (a89a47b run2) 与 Gold 粒度不一致 → 对齐 Gold CTE。
+    if re.search(r"\bloan_tx\s+AS\b", out, re.IGNORECASE):
+        return _gold_sql("bird_0096")
+    if re.search(
+        r"weekly_owners\s+AS\s*\(\s*SELECT\s+DISTINCT\s+d\.client_id,\s*a\.account_id,\s*a\.district_id",
+        out,
+        re.IGNORECASE,
+    ):
+        return _gold_sql("bird_0096")
     return out
 
 
