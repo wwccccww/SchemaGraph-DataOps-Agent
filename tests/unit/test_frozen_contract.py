@@ -493,12 +493,11 @@ def test_v12_join_semantics_cases_gold_sql_passes_frozen(case_id: str) -> None:
     from app.evaluation.bird_contracts import contract_for
 
     case = next(item for item in load_bird_cases() if item.id == case_id)
-    dialect = "sqlite" if case.database_id != "financial" else "sqlite"
     assert (
         check_frozen_semantic_contract(
             contract_for(case),
             case.gold_sql,
-            dialect=dialect,
+            dialect="sqlite",
         )
         == ()
     )
