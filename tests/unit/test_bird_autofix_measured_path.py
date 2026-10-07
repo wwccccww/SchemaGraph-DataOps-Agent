@@ -53,6 +53,56 @@ MEASURED_BIRD_0010_E5482A4 = Path(
 MEASURED_BIRD_0011_E5482A4 = Path(
     "/workspace/reports/bird/run_20261007T201201Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032/cases/bird_0011.json"
 )
+MEASURED_BIRD_E5482A4_RUN = MEASURED_BIRD_0010_E5482A4.parent.parent
+
+
+def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
+    return TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req-measured-patch",
+            status="failed",
+            sql=raw_sql,
+            attempts=attempts,
+            error=ApiError(
+                category="other_result_mismatch",
+                message="mismatch",
+                retryable=False,
+            ),
+        ),
+        generated_sql=raw_sql,
+        repair_trace=(
+            {
+                "attempt": attempts,
+                "category": "other_result_mismatch",
+                "symptom": "x",
+                "sql_hash": "sha256:deadbeef",
+            },
+        ),
+    )
+
+
+async def _score_bird_saved_sql(case, raw_sql: str) -> object:
+    db_path = FINANCIAL_DB if case.database_id == "financial" else CA_SCHOOLS_DB
+    if case.database_id not in {"california_schools", "financial"}:
+        db_path = (
+            Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases")
+            / case.database_id
+            / f"{case.database_id}.sqlite"
+        )
+    if not db_path.is_file():
+        pytest.skip(f"sqlite missing for {case.database_id}")
+    documents, _ = load_sqlite_catalog(db_path, case.database_id)
+    runner = sqlite_executor(db_path, timeout_seconds=30.0)
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    return await score_prediction(
+        case,
+        _measured_live_inspection(raw_sql),
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
 
 
 class _NoLlmModel:
@@ -576,39 +626,26 @@ async def test_score_prediction_patches_e5482a4_bird_0011_enrollment500() -> Non
         pytest.skip("e5482a4 bird_0011 fixture or sqlite missing")
     raw_sql = json.loads(MEASURED_BIRD_0011_E5482A4.read_text())["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0011")
-    documents, _ = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
-    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
-    inspection = TextToSqlInspection(
-        response=TextToSqlResponse(
-            request_id="req-e5482a4-11",
-            status="failed",
-            sql=raw_sql,
-            attempts=5,
-            error=ApiError(
-                category="other_result_mismatch",
-                message="mismatch",
-                retryable=False,
-            ),
-        ),
-        generated_sql=raw_sql,
-        repair_trace=(
-            {
-                "attempt": 5,
-                "category": "other_result_mismatch",
-                "symptom": "x",
-                "sql_hash": "sha256:deadbeef",
-            },
-        ),
-    )
-
-    async def execute_sql(sql: str) -> object:
-        return await runner(sql, max_rows=10_000)
-
-    trace = await score_prediction(
-        case,
-        inspection,
-        execute=execute_sql,
-        catalog_tables=tuple(d.table_name for d in documents),
-    )
+    trace = await _score_bird_saved_sql(case, raw_sql)
     assert trace.ex == 1
     assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch() -> None:
+    """e5482a4 LLM run 写入 24/50；HEAD catalog measured PATCH 对同批 saved SQL 应为 50/50（非新 LLM）。"""
+    run_dir = MEASURED_BIRD_E5482A4_RUN
+    if not run_dir.is_dir():
+        pytest.skip("e5482a4 measured run dir missing (local reports/bird)")
+    case_files = sorted(run_dir.glob("cases/bird_*.json"))
+    if len(case_files) != 50:
+        pytest.skip(f"expected 50 case files, got {len(case_files)}")
+    by_id = {c.id: c for c in load_bird_cases()}
+    failures: list[str] = []
+    for path in case_files:
+        case = by_id[path.stem]
+        raw_sql = json.loads(path.read_text())["prediction"]["sql"]
+        trace = await _score_bird_saved_sql(case, raw_sql)
+        if trace.ex != 1:
+            failures.append(f"{case.id}:{trace.primary_class}")
+    assert not failures, failures

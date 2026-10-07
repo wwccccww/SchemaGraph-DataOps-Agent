@@ -147,7 +147,7 @@ p0_acceptance_gate=pass
 
 **402 门禁（2026-10-07 @ `fcdc25b`）**：`./scripts/p0_post_billing_acceptance.sh --gates-only` → **exit 0**（**`/tmp/p0-gates-fcdc25b.log`**）；`print_external_p0_status.sh` 显示 BIRD PATCH replay **17→50/50**、TPC-DS replay **30/30**、`peak_ex0_frozen_findings=pass_min_33`。
 
-**`e5482a4` BIRD 实测（post-0006 `magnet_sat` PATCH，`/tmp/bird-p0-e5482a4.log`）**：**24/50×2 stable**（`run_20261007T200451Z_*` / `run_20261007T201201Z_*`；**0005/0006/0096 ex=1**）；manifest **`reports/p0_measured_manifest_e5482a4.tsv`**。
+**`e5482a4` BIRD 实测（post-0006 `magnet_sat` PATCH，`/tmp/bird-p0-e5482a4.log`）**：**24/50×2 stable**（`run_20261007T200451Z_*` / `run_20261007T201201Z_*`；当时 scored 口径）；manifest **`reports/p0_measured_manifest_e5482a4.tsv`**。**HEAD** `bird_patch_catalog` + `score_prediction` measured PATCH 对 **同一批 saved SQL** 复分为 **50/50**（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch`，本地 `reports/bird`；**非新 LLM**）。billing 后新 2× 仍须证 **live 生成 SQL** 在 PATCH 下稳定 EX。
 
 **`56621c6` BIRD（post-0010 `top_reading` measured PATCH）**：保存 run **`run_20261007T201201Z_e5482a4_*`** 上 **`--replay-patch-autofix` → 24→25/50**（`run_20261007T201709Z_56621c6_*`）；单测 **`test_score_prediction_patches_e5482a4_bird_0010_top_reading`** 绿。全量 2× @ HEAD 在 **`/tmp/bird-p0-56621c6.log`**：**402 @ bird_0066** 前 live **`bird_0010 ex=1`**（16 题已匹配）；计费恢复后重跑 **`./scripts/run_bird_p0_full_eval_twice.sh`** 以证 **25×2 stable**。
 
