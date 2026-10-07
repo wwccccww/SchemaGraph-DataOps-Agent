@@ -273,6 +273,47 @@ def test_slim_loan_core_tables_reject_disp_and_status_filter() -> None:
     assert any("loan.status" in item.message for item in findings)
 
 
+def test_frozen_contract_rejects_quantity_sold_from_ss_sales_price() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_020")
+    bad = (
+        "SELECT t.t_shift AS shift_name, s.s_state AS store_state, "
+        "i.i_category AS item_category, d.d_year AS sales_year, "
+        "SUM(ss.ss_sales_price) AS quantity_sold "
+        "FROM store_sales ss "
+        "JOIN date_dim d ON ss.ss_sold_date_sk = d.d_date_sk "
+        "JOIN time_dim t ON ss.ss_sold_time_sk = t.t_time_sk "
+        "JOIN store s ON ss.ss_store_sk = s.s_store_sk "
+        "JOIN item i ON ss.ss_item_sk = i.i_item_sk "
+        "WHERE d.d_year = 2001 AND d.d_weekend = 'Y' "
+        "GROUP BY 1,2,3,4"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("ss_quantity" in item.message for item in findings)
+
+
+def test_frozen_contract_rejects_ss_cdemo_for_gender_promo_sales() -> None:
+    from app.evaluation.tpcds import load_tpcds_cases
+
+    case = next(item for item in load_tpcds_cases() if item.id == "tpcds_complex_025")
+    bad = (
+        "SELECT p.p_purpose AS promo_purpose, cd.cd_gender AS gender, "
+        "i.i_category AS item_category, d.d_year AS sales_year, "
+        "SUM(ss.ss_ext_sales_price) AS sales_amount "
+        "FROM store_sales ss "
+        "JOIN customer c ON ss.ss_customer_sk = c.c_customer_sk "
+        "JOIN customer_demographics cd ON ss.ss_cdemo_sk = cd.cd_demo_sk "
+        "JOIN date_dim d ON ss.ss_sold_date_sk = d.d_date_sk "
+        "JOIN item i ON ss.ss_item_sk = i.i_item_sk "
+        "JOIN promotion p ON ss.ss_promo_sk = p.p_promo_sk "
+        "WHERE d.d_year = 2001 "
+        "GROUP BY 1,2,3,4"
+    )
+    findings = check_frozen_semantic_contract(case.semantic_contract, bad, dialect="postgres")
+    assert any("c_current_cdemo_sk" in item.message for item in findings)
+
+
 def test_frozen_contract_rejects_extra_output_columns() -> None:
     from app.evaluation.tpcds import load_tpcds_cases
 

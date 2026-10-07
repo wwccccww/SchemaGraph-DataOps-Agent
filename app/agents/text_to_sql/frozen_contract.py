@@ -2797,7 +2797,7 @@ def check_frozen_semantic_contract(
                     "账单/收货地址过滤时仍需 JOIN customer ON ws_bill_customer_sk = c_customer_sk",
                 )
             )
-    demo_dims = {"marital_status", "education_status", "credit_rating"} & {
+    demo_dims = {"marital_status", "education_status", "credit_rating", "gender"} & {
         name.lower() for name in contract.projections
     }
     if demo_dims and "store_sales" in referenced and "customer" in referenced:
@@ -2805,8 +2805,20 @@ def check_frozen_semantic_contract(
             findings.append(
                 SemanticFinding(
                     "projection_mismatch",
-                    "store_sales 按教育/信用等汇总时应用 customer.c_current_cdemo_sk → "
-                    "customer_demographics，不要仅用 ss_cdemo_sk",
+                    "store_sales 顾客人口统计经 customer.c_current_cdemo_sk → customer_demographics，"
+                    "不要仅用 ss_cdemo_sk",
+                )
+            )
+    if "quantity_sold" in {p.lower() for p in contract.projections} and "store_sales" in referenced:
+        if re.search(
+            r"sum\s*\(\s*[^)]*\bss_sales_price\b[^)]*\)\s*as\s*quantity_sold",
+            lowered_sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "quantity_sold 用 SUM(store_sales.ss_quantity)，不要用 ss_sales_price",
                 )
             )
     if demo_dims and "catalog_sales" in referenced and "customer" in referenced:
