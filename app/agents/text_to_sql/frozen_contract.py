@@ -1128,6 +1128,28 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
+                r"transaction_count\s*>\s*0[\s\S]{0,100}Full Service Client",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Full Service Client 看 loan+card（不要额外 transaction_count>0）",
+                    )
+                )
+            if re.search(
+                r"card_count\s*=\s*0[\s\S]{0,100}Loan Only Client",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Loan Only Client 用 loan_count>0 分支（不要 card_count=0 互斥写法）",
+                    )
+                )
+            if re.search(
                 r"t\.date\s*>\s*\(\s*SELECT\s+a\.date",
                 sql,
                 re.IGNORECASE,
