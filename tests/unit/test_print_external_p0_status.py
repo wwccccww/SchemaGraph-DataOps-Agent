@@ -39,9 +39,7 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
     assert "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh" in completed.stdout
     assert "wait_log=" in completed.stdout
     assert "confirm_polls=2" in completed.stdout
-    assert any(
-        line.startswith("p0_acceptance_lock=") for line in completed.stdout.splitlines()
-    )
+    assert any(line.startswith("p0_acceptance_lock=") for line in completed.stdout.splitlines())
     assert (
         "post_billing_docs=python3 -m app.evaluation.p0_measured_summary --acceptance-gate"
         in completed.stdout
