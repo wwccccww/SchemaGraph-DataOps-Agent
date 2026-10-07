@@ -22,6 +22,7 @@ from app.evaluation.external_model import (
 from app.evaluation.external_report import (
     ModelCaseTrace,
     build_external_model_summary,
+    validate_external_p2_repair_traces,
     write_external_model_report,
     write_external_report,
 )
@@ -372,6 +373,60 @@ def test_diagnosis_truncates_a_very_long_prediction() -> None:
 
     assert "-- truncated" in text
     assert "A" * 3000 not in text
+
+
+def test_model_report_rejects_multattempt_trace_without_repair_symptom(tmp_path: Path) -> None:
+    trace = ModelCaseTrace(
+        case_id="bird_0006",
+        database_id="california_schools",
+        primary_class="sql_error",
+        ex=0,
+        error_category="no_progress",
+        attempts=3,
+        seed_tables=("schools",),
+        expanded_tables=(),
+        leaked_tables=(),
+        ecommerce_rule_hits=(),
+        prediction=describe_sql("SELECT 1", dialect="sqlite").as_json(),
+        symptoms=(),
+    )
+    summary = build_external_model_summary(
+        [trace],
+        source="bird",
+        benchmark_version="bird-test",
+        git_commit="abc1234",
+        database_snapshot="snapshot",
+        started_at="2026-10-05T00:00:00Z",
+        model="deepseek-chat",
+        prompt_version="text-to-sql-generic-v1",
+        environment={},
+    )
+    with pytest.raises(RuntimeError, match=r"symptoms\.repair_trace is empty"):
+        write_external_model_report(
+            tmp_path,
+            stamp="20261005T000300Z",
+            commit="abc1234",
+            summary=summary,
+            traces=[trace],
+        )
+
+
+def test_validate_external_p2_repair_traces_accepts_symptom_string() -> None:
+    trace = ModelCaseTrace(
+        case_id="bird_0006",
+        database_id="california_schools",
+        primary_class="sql_error",
+        ex=0,
+        error_category="no_progress",
+        attempts=2,
+        seed_tables=("schools",),
+        expanded_tables=(),
+        leaked_tables=(),
+        ecommerce_rule_hits=(),
+        prediction={},
+        symptoms=(("repair_trace", "1:not_read_only:sha256:abc"),),
+    )
+    validate_external_p2_repair_traces([trace])
 
 
 def test_model_report_rejects_an_empty_model_and_custom_targets(tmp_path: Path) -> None:

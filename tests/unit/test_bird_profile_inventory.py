@@ -178,6 +178,51 @@ def test_v12_peak_multattempt_cases_include_repair_trace_symptoms() -> None:
     assert missing == [], f"multi-attempt cases missing repair_trace symptom: {missing}"
 
 
+def test_v12_peak_traces_pass_external_p2_write_validation() -> None:
+    """v12 峰值 case JSON 须满足 write_external_model_report 的 P2 校验。"""
+    if not PEAK_V15_RUN.is_dir():
+        import pytest
+
+        pytest.skip("peak run fixture missing")
+    from app.evaluation.external_report import ModelCaseTrace, validate_external_p2_repair_traces
+
+    traces: list[ModelCaseTrace] = []
+    for case_file in sorted((PEAK_V15_RUN / "cases").glob("bird_*.json")):
+        payload = json.loads(case_file.read_text())
+        attempts = payload.get("attempts") or 0
+        if attempts <= 1:
+            continue
+        raw_symptoms = payload.get("symptoms") or []
+        symptoms = tuple(
+            (str(row[0]), str(row[1]))
+            for row in raw_symptoms
+            if isinstance(row, list) and len(row) >= 2
+        )
+        prediction = payload.get("prediction")
+        pred_map = dict(prediction) if isinstance(prediction, dict) else {}
+        traces.append(
+            ModelCaseTrace(
+                case_id=str(payload["case_id"]),
+                database_id=str(payload["database_id"]),
+                primary_class=str(payload.get("primary_class") or ""),
+                ex=int(payload.get("ex") or 0),
+                error_category=(
+                    None
+                    if payload.get("error_category") is None
+                    else str(payload["error_category"])
+                ),
+                attempts=attempts,
+                seed_tables=tuple(payload.get("seed_tables") or ()),
+                expanded_tables=tuple(payload.get("expanded_tables") or ()),
+                leaked_tables=tuple(payload.get("leaked_tables") or ()),
+                ecommerce_rule_hits=tuple(payload.get("ecommerce_rule_hits") or ()),
+                prediction=pred_map,
+                symptoms=symptoms,
+            )
+        )
+    validate_external_p2_repair_traces(traces)
+
+
 def test_v12_peak_replay_inspection_restores_repair_trace() -> None:
     """P1 replay：`inspection_from_replay` 须从 symptoms 还原 trace（对接 score_prediction P2 门禁）。"""
     if not PEAK_V15_RUN.is_dir():

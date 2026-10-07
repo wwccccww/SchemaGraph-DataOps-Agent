@@ -289,6 +289,23 @@ def _diagnosis_histogram(traces: Sequence[ModelCaseTrace]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def validate_external_p2_repair_traces(traces: Sequence[ModelCaseTrace]) -> None:
+    """§11.5 P2 外部口径：attempts>1 的 case JSON 须在 symptoms 含 repair_trace。"""
+
+    for trace in traces:
+        if trace.attempts <= 1:
+            continue
+        symptoms = dict(trace.symptoms)
+        text = str(symptoms.get("repair_trace", "")).strip()
+        if text:
+            continue
+        msg = (
+            f"case {trace.case_id}: attempts={trace.attempts} "
+            "but symptoms.repair_trace is empty (§11.5 P2 external)"
+        )
+        raise RuntimeError(msg)
+
+
 def write_external_model_report(
     root: Path,
     *,
@@ -299,6 +316,7 @@ def write_external_model_report(
 ) -> Path:
     """写入带执行准确率的模型报告。不放宽 Gold 报告的空准确率约束。"""
 
+    validate_external_p2_repair_traces(traces)
     _check_stamp(stamp)
     _check_commit(commit)
     _guard_model_summary(summary, traces)
