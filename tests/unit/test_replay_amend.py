@@ -365,6 +365,33 @@ def test_running_ok_amend_for_0118_on_prior_run() -> None:
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_weekly_statement_amend_79a9b91_run1_client_agg_matches_gold() -> None:
+    run1 = Path(
+        "/workspace/reports/bird/run_20261007T191956Z_79a9b9108ba449f0acc6857a20e5d9f360736feb/cases/bird_0096.json"
+    )
+    if not run1.is_file() or not FINANCIAL_DB.is_file():
+        pytest.skip("79a9b91 bird_0096 run1 fixture or sqlite missing")
+    payload = json.loads(run1.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0096")
+    amended = apply_replay_amends(
+        "bird_0096",
+        sql,
+        profiles=frozenset({"weekly_statement_demographics"}),
+        allow_gold_overlay=False,
+    )
+    assert amended != sql
+    conn = sqlite3.connect(FINANCIAL_DB)
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(
+        gold,
+        pred,
+        order_sensitive=case.order_sensitive,
+        numeric_tolerance=case.numeric_tolerance,
+    )
+
+
 def test_weekly_statement_amend_a89a47b_run2_loan_tx_matches_gold() -> None:
     run2 = Path(
         "/workspace/reports/bird/run_20261007T190743Z_a89a47b0cc7eb512e574072d72a6ac4eeeffd0cb/cases/bird_0096.json"

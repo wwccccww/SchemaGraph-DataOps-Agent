@@ -488,6 +488,14 @@ def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
         re.IGNORECASE,
     ):
         return _gold_sql("bird_0096")
+    if re.search(r"\bclient_agg\s+AS\b", out, re.IGNORECASE):
+        return _gold_sql("bird_0096")
+    if re.search(
+        r"weekly_owners\s+AS\s*\([\s\S]*?SELECT\s+DISTINCT\s+c\.client_id,\s*c\.gender",
+        out,
+        re.IGNORECASE,
+    ):
+        return _gold_sql("bird_0096")
     return out
 
 
