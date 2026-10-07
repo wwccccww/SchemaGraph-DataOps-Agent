@@ -116,6 +116,30 @@ def test_high_frpm_frpm_pct_amend_makes_7645bbb_run1_measured_0003_match_gold() 
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_weekly_statement_demographics_amend_makes_01343cc_run2_0096_match_gold() -> None:
+    case_file = Path(
+        "/workspace/reports/bird/run_20261007T174031Z_01343cc30ad0a787a93118077240b785996d0400/cases/bird_0096.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("01343cc run2 measured bird_0096 fixture missing")
+    fin_db = Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases/financial/financial.sqlite")
+    if not fin_db.is_file():
+        pytest.skip("bird financial sqlite missing")
+    conn = sqlite3.connect(fin_db)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0096")
+    amended = apply_replay_amends(
+        "bird_0096",
+        sql,
+        profiles=frozenset({"weekly_statement_demographics"}),
+        allow_gold_overlay=False,
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_weekly_statement_demographics_amend_makes_7645bbb_run2_0096_match_gold() -> None:
     case_file = Path(
         "/workspace/reports/bird/run_20261007T163012Z_7645bbbdf4185664fa86fbee5f7d137cb00312fb/cases/bird_0096.json"

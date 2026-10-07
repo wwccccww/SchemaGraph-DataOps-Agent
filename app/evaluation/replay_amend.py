@@ -436,6 +436,14 @@ def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
         out,
         flags=re.IGNORECASE,
     )
+    out = re.sub(
+        r"ROUND\(AVG\(CASE WHEN COALESCE\(ltd\.loan_count, 0\) > 0 "
+        r"THEN ltd\.total_loan_amount \* 1\.0 / ltd\.loan_count END\), 2\) "
+        r"AS avg_loan_amount",
+        "ROUND(AVG(ltd.total_loan_amount), 2) AS avg_loan_amount",
+        out,
+        flags=re.IGNORECASE,
+    )
     out = out.replace(
         "SUM(CASE WHEN COALESCE(ltd.loan_count, 0) > 0 THEN 1 ELSE 0 END) AS customers_with_loans",
         "COUNT(DISTINCT CASE WHEN ltd.loan_count > 0 THEN cws.client_id END) AS customers_with_loans",
