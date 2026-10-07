@@ -40,9 +40,7 @@ DATABASE_ZIP_SHA256 = "aeb211c0e39010bbdae3838bb5e8bd27dc446ed77495b1709f85ccc9b
 DATABASE_DRIVE_ID = "13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG"
 # Official BIRD mini_dev mirror (same minidev/MINIDEV/dev_databases tree; CI fallback when Drive quota hits).
 DATABASE_MIRROR_URL = "https://bird-bench.oss-cn-beijing.aliyuncs.com/minidev.zip"
-DATABASE_MIRROR_ZIP_SHA256 = (
-    "cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f"
-)
+DATABASE_MIRROR_ZIP_SHA256 = "cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f"
 BIRD_CASE_COUNT = 50
 ANCHOR = date(2026, 10, 1)
 _STRFTIME_NOW = re.compile(
