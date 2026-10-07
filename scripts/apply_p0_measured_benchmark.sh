@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 MANIFEST="${P0_MEASURED_MANIFEST:-$ROOT/reports/p0_measured_manifest.tsv}"
 BENCHMARK="${P0_BENCHMARK_MD:-$ROOT/docs/benchmark.md}"
-BIRD_MIN="${P0_BIRD_MIN_MATCHED:-13}"
+BIRD_MIN="${P0_BIRD_MIN_MATCHED:-17}"
 if [[ ! -f "$MANIFEST" ]]; then
   echo "missing manifest: $MANIFEST (run ./scripts/run_external_p0_full_eval_twice.sh first)" >&2
   exit 1

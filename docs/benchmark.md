@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`d502105` measured，`--replay-run` **30→30**）；BIRD **模型实测**当前峰值 **13/50×2 stable**（`d502105` v11，`p0-measured-autogen`）；**PATCH autofix 复分** v11 峰值 **13→14/50**（`coe_charter` 吸收 v11 **0002** FRPM/Status；raw 实测仍 **13/50**；历史 v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（与 **50** 条冻结契约 profile 不同层）。**v11 峰值**上 **37/37** EX=0 保存 SQL 具备 ≥1 frozen finding（`test_v11_measured_ex0_frozen_finding_coverage_floor`），**13/13** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）；**更高 measured EX** 仍须 billing 后 **2×** 全量 LLM。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile**（`test_bird_explicit_profile_case_ids`）+ SQLite 分号修复 + workflow PATCH（历史 v15 峰值 **0094** 等）为全量复跑准备。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen`）；BIRD **模型实测** **17/50×2 stable**（`65bcd64` v12，`p0-measured-autogen`）；**PATCH autofix 复分** v12 峰值 **17→17/50**（**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
 
 <!-- p0-measured-autogen:start -->
 
@@ -95,8 +95,8 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T070145Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
 p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T070604Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=13/50 ex=0.26 dir=run_20261007T071120Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=13/50 ex=0.26 dir=run_20261007T071641Z_d50210522e66ad6f6a1da08075574f0fa03ba1a0 commit=d50210522e66ad6f6a1da08075574f0fa03ba1a0 prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=17/50 ex=0.34 dir=run_20261007T092158Z_65bcd64da44fbc066ac662c9d6695441f24edd19 commit=65bcd64da44fbc066ac662c9d6695441f24edd19 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=17/50 ex=0.34 dir=run_20261007T093506Z_65bcd64da44fbc066ac662c9d6695441f24edd19 commit=65bcd64da44fbc066ac662c9d6695441f24edd19 prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
@@ -113,18 +113,18 @@ p0_acceptance_gate=pass
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
-| 模型 BIRD 实测 | 峰值 `d502105` replay | **13/50**（`test_p0_*`）；**P0 80×2 measured gate pass**（`p0-measured-autogen`） |
-| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v11 峰值 **13→14/50**（`test_p0_bird_peak_patch_autofix_replay_fourteen_of_fifty`）；raw 实测 **13/50**；非新 LLM 实测 |
+| 模型 BIRD 实测 | 峰值 `65bcd64` replay | **17/50×2 stable**（`test_p0_*`）；**P0 80×2 measured gate pass**（`p0-measured-autogen`） |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v12 峰值 **17→17/50**；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
-| 402 运维摘要 | `./scripts/print_external_p0_status.sh` | 自动 `source` 项目根 `.env`（若有）；stdout **`ops_runbook=…`** / **`unattended_after_billing=…`** / **`wait_log=…`** / **`confirm_polls=2`** / **`p0_acceptance_lock=free\|held`**（**`P0_ACCEPTANCE_LOCK_FILE`**）/ **`tpcds_postgres_catalog=ready\|unreachable`** / **`bird_sqlite=ready\|missing\|unset\|invalid_root`**（missing 指向 **`fetch_bird_dev_databases.sh`**）；release + `llm_preflight=blocked_billing_402` 时 **`while_billing_blocked=… --gates-only`** + replay（须 **`bird_sqlite=ready`**）+ **`peak_ex0_frozen_findings=pass_min_37`**（v11 EX=0 inventory）；`llm_preflight` 402 stderr 同指 runbook |
+| 402 运维摘要 | `./scripts/print_external_p0_status.sh` | … + **`peak_ex0_frozen_findings=pass_min_14`**（v12 EX=0 inventory） |
 | P0 无人值守（402 解除后轮询） | `./scripts/wait_for_billing_and_run_p0.sh` | 须 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（缺则 exit **1**）；默认每 **300s** 探测 `llm_preflight`（`P0_BILLING_POLL_SECONDS`）；日志 **`P0_WAIT_LOG`**（默认 `/tmp/p0-wait-billing.log`，stdout **`wait_log=`**）；**`P0_WAIT_CONFIRM_POLLS=2`** 连续 preflight 成功才跑全量；acceptance **402→exit 2** 时 **`p0_post_billing=blocked_resume_poll`** 并继续轮询；acceptance **exit 4**（`flock`）时 **`p0_post_billing=skipped_already_running`** 且 wait **exit 0**；gate 失败 **exit 3**；非 402 preflight 失败立即 exit **2** |
 | P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`**（存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`，与 `p1_release_gate.sh` 一致）→ `llm_preflight` → gate → **`flock`**（**`P0_ACCEPTANCE_LOCK_FILE`**，并发 **2× 全量 exit 4**）→ 2× 全量（402→exit 2）；写入 **`reports/p0_measured_manifest.tsv`**（stdout **`p0_measured_manifest=`**）；结束 **`p0_measured_summary --acceptance-gate`**（TPC-DS **30/30×2 stable** + BIRD **2× stable** 且每轮 **≥13/50** 实测基线（**`P0_BIRD_MIN_MATCHED`**），失败 exit **3**；调高目标用 `--bird-min-matched N` 或 export **`P0_BIRD_MIN_MATCHED=N`**（与 `test_p0_external_measured_baseline` 同步））；默认 **`P0_APPLY_BENCHMARK=1`** 时 gate pass 后 **`apply_p0_measured_benchmark.sh`** 更新上文 **`p0-measured-autogen`** 段（`test_p0_benchmark_docs.py`）；402 期间 **`--gates-only`** 仅跑 P1 门禁，成功时打印 **`ops_runbook`** / **`next_after_billing`** |
 | LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |
 | CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **quality + integration + fingerprints** 绿；`replay-gate` 需仓库变量 `BIRD_DATABASE_ROOT`；**`p1_release_gate.sh` pytest 模块**须为 fingerprints 子集（`test_p1_release_gate_pytest_modules_subset_of_external_gold_ci_fingerprints`） |
 | 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | v11 measured：**37/37** EX=0 绑定 profile |
-| 峰值 EX=0 frozen 可纠偏 | `test_v11_measured_ex0_frozen_finding_coverage_floor` | v11：**37/37** 保存 SQL **≥1** finding（repair 信号；历史 v15 **≥3** 见 `test_peak_v15_ex0_saved_sql_surfaces_frozen_findings`，v11 上 skip） |
-| 峰值 sql_error 熔断题 | `test_v11_measured_sql_error_ex0_have_frozen_findings` | v11：**4/4**（`bird_0006/0069/0092/0119`）保存 SQL **≥1** finding |
+| 峰值 EX=0 frozen 可纠偏 | `test_v12_measured_ex0_frozen_finding_coverage_floor` | v12：**≥14/33** EX=0 保存 SQL **≥1** finding |
+| 峰值 sql_error 熔断题 | `test_v12_measured_sql_error_ex0_have_frozen_findings` | v12：**8** 条 sql_error（0069/0119 例外仍靠 overlay amend） |
 | 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **13/13** ex=1 题绑定 profile（v11 measured） |
 | P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表（含 `test_wait_for_billing_and_run_p0_script.py`）、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
 | P0/P1 runbook 交叉引用 | `test_external_gold_runbook_docs.py` | runbook 存在且 `benchmark.md` / `README.md` / `external-gold.yml` 路径一致 |

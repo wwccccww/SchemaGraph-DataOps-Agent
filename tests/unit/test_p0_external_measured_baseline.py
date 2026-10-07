@@ -1,6 +1,6 @@
 """P0 外部模型实测基线回归（无 LLM replay，gateway 402 时仍可用）。
 
-产品条：TPC-DS 30/30 可复分；BIRD 峰值 run 实测 13/50 可复分（P0 v11 measured gate pass）。提升实测 EX 需新全量 run，不在此断言。
+产品条：TPC-DS 30/30 可复分；BIRD 峰值 run 实测 17/50 可复分（P0 v12 measured gate pass）。提升实测 EX 需新全量 run，不在此断言。
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def test_p0_oracle_release_gate() -> None:
     assert release_ready() is True
 
 
-def test_p0_bird_measured_baseline_thirteen_of_fifty_on_peak_run() -> None:
+def test_p0_bird_measured_baseline_seventeen_of_fifty_on_peak_run() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -43,11 +43,11 @@ def test_p0_bird_measured_baseline_thirteen_of_fifty_on_peak_run() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
+    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
-def test_p0_bird_peak_patch_autofix_replay_fourteen_of_fifty() -> None:
-    """峰值 v11 保存 SQL 经 PATCH autofix 复分（含 v11 0002 FRPM/Status 口径）；仍非新 LLM run。"""
+def test_p0_bird_peak_patch_autofix_replay_unchanged_on_v12_peak() -> None:
+    """v12 峰值保存 SQL 经 PATCH autofix 复分（0002 已在实测中 EX=1）；仍非新 LLM run。"""
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -68,7 +68,7 @@ def test_p0_bird_peak_patch_autofix_replay_fourteen_of_fifty() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 14" in completed.stderr or "matched 13 -> 14" in completed.stdout
+    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
 def test_p0_tpcds_measured_baseline_thirty_of_thirty_on_peak_run() -> None:

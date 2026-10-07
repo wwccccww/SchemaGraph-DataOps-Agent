@@ -1,0 +1,203 @@
+{
+  "case_id": "bird_0062",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 3,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 0.6666666666666666,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT frpm.CDSCode AS CDSCode, frpm.\"School Name\" AS School, frpm.\"District Name\" AS District, frpm.\"County Name\" AS County, frpm.\"Enrollment (K-12)\" AS Enrollment, frpm.\"Free Meal Count (K-12)\" AS FreeMealCount, frpm.\"Free Meal Count (K-12)\" * 1.0 / frpm.\"Enrollment (K-12)\" * 100 AS FreePercentage FROM frpm JOIN schools ON frpm.CDSCode = schools.CDSCode WHERE schools.Charter = 0 AND frpm.\"County Name\" = 'Los Angeles' AND frpm.\"Enrollment (K-12)\" > 0), lowfree AS (SELECT * FROM base WHERE FreePercentage < 0.18), countystats AS (SELECT County, COUNT(*) AS TotalSchools, SUM(CASE WHEN FreePercentage < 0.18 THEN 1 ELSE 0 END) AS LowFreeSchools, AVG(FreePercentage) AS CountyAvgFreePercent FROM base GROUP BY County) SELECT lf.CDSCode AS CDSCode, lf.School AS School, lf.District AS District, lf.County AS County, lf.Enrollment AS Enrollment, lf.FreeMealCount AS FreeMealCount, ROUND(lf.FreePercentage, 4) AS FreePercentage, CASE WHEN lf.FreePercentage < 0.06 THEN 'Very Low' WHEN lf.FreePercentage < 0.12 THEN 'Low' ELSE 'Medium' END AS FreeCategory, ROW_NUMBER() OVER (PARTITION BY lf.County ORDER BY lf.FreePercentage ASC) AS CountyRank, cs.TotalSchools AS TotalSchools, cs.LowFreeSchools AS LowFreeSchools, ROUND(cs.CountyAvgFreePercent, 4) AS CountyAvgFreePercent, ROUND(cs.LowFreeSchools * 100.0 / cs.TotalSchools, 2) || '%' AS PctLowFreeInCounty, cs.LowFreeSchools AS LATotalLowFree FROM lowfree AS lf JOIN countystats AS cs ON lf.County = cs.County ORDER BY lf.FreePercentage ASC",
+    "sql_hash": "sha256:7e909c36f132b7f534f4518b79af58bfe596affda977005384fc47f59312aa38",
+    "referenced_tables": [
+      "frpm",
+      "schools"
+    ],
+    "projections": [
+      "CDSCode",
+      "School",
+      "District",
+      "County",
+      "Enrollment",
+      "FreeMealCount",
+      "FreePercentage",
+      "FreeCategory",
+      "CountyRank",
+      "TotalSchools",
+      "LowFreeSchools",
+      "CountyAvgFreePercent",
+      "PctLowFreeInCounty",
+      "LATotalLowFree"
+    ],
+    "joins": [
+      "JOIN countystats ON lf.County = cs.County",
+      "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "lf.FreePercentage ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "County",
+          "Enrollment",
+          "FreeMealCount",
+          "FreePercentage",
+          "FreeCategory",
+          "CountyRank",
+          "TotalSchools",
+          "LowFreeSchools",
+          "CountyAvgFreePercent",
+          "PctLowFreeInCounty",
+          "LATotalLowFree"
+        ],
+        "joins": [
+          "JOIN countystats ON lf.County = cs.County",
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "County",
+          "Enrollment",
+          "FreeMealCount",
+          "FreePercentage"
+        ],
+        "joins": [
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "lowfree",
+        "projections": [
+          "*"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "countystats",
+        "projections": [
+          "County",
+          "TotalSchools",
+          "LowFreeSchools",
+          "CountyAvgFreePercent"
+        ],
+        "joins": [],
+        "group_by": [
+          "County"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "missing_required_table",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CountyStats:County"
+    ],
+    [
+      "predicted_group_by",
+      "countystats:County"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "countystats"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:97215383a5cea8815aec0c9fb32fd3042665542135da8d021b1c114211498e51;2:projection_mismatch:sha256:de14716d41e28fe5d6ff57860c76f131ecac8c676ec245c08198d49f3f3ddc14;3:accepted:"
+    ]
+  ]
+}

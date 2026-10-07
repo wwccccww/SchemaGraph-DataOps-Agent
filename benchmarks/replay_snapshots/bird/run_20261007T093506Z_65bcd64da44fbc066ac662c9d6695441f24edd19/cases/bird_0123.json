@@ -1,0 +1,235 @@
+{
+  "case_id": "bird_0123",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 3,
+  "seed_tables": [
+    "loan",
+    "account",
+    "district",
+    "trans",
+    "order",
+    "client",
+    "disp",
+    "card"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH\n  high_salary_districts AS (\n    SELECT d.district_id, d.A2 AS district_name, d.A3 AS region_name\n    FROM district d\n    WHERE d.A11 > (SELECT AVG(A11) FROM district)\n  ),\n  loan_stats AS (\n    SELECT l.account_id,\n           MAX(l.amount) AS max_loan_amount,\n           AVG(l.amount) AS avg_loan_amount,\n           COUNT(l.loan_id) AS loan_count\n    FROM loan l\n    GROUP BY l.account_id\n    HAVING MAX(l.amount) > 300000\n  ),\n  trans_summary AS (\n    SELECT t.account_id,\n           COUNT(t.trans_id) AS transaction_count,\n           SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,\n           SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense\n    FROM trans t\n    WHERE t.type IN ('PRIJEM','VYDAJ')\n    GROUP BY t.account_id\n  ),\n  owner_info AS (\n    SELECT dp.account_id,\n           c.gender,\n           CAST(STRFTIME('%Y','2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', c.birth_date) AS INTEGER) AS age\n    FROM disp dp\n    JOIN client c ON dp.client_id = c.client_id\n    WHERE dp.type = 'OWNER'\n  )\nSELECT\n  a.account_id AS account_id,\n  hsd.district_name AS district_name,\n  hsd.region_name AS region_name,\n  ls.max_loan_amount AS max_loan_amount,\n  ls.avg_loan_amount AS avg_loan_amount,\n  ls.loan_count AS loan_count,\n  oi.gender AS gender,\n  oi.age AS age,\n  CASE\n    WHEN ts.total_income IS NULL THEN 'Low Income'\n    WHEN ts.total_income > 1000000 THEN 'High Income'\n    WHEN ts.total_income > 500000 THEN 'Medium Income'\n    ELSE 'Low Income'\n  END AS income_category,\n  COALESCE(ts.transaction_count, 0) AS transaction_count,\n  CASE\n    WHEN ts.total_income IS NULL OR ts.total_income = 0 THEN NULL\n    ELSE ROUND((ts.total_income - ts.total_expense) * 1.0 / ts.total_income, 4)\n  END AS savings_ratio,\n  RANK() OVER (PARTITION BY hsd.region_name ORDER BY ls.max_loan_amount DESC) AS region_loan_rank\nFROM account a\nJOIN high_salary_districts hsd ON a.district_id = hsd.district_id\nJOIN loan_stats ls ON a.account_id = ls.account_id\nJOIN owner_info oi ON a.account_id = oi.account_id\nLEFT JOIN trans_summary ts ON a.account_id = ts.account_id\nWHERE ts.total_income IS NULL OR ts.total_income > ts.total_expense\nORDER BY ls.max_loan_amount DESC\nLIMIT 100;",
+    "sql_hash": "sha256:b402ce8fa6883b16d3831370e279793de45a5e8cd209815fbcbfb2206e1d2dad",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "district_name",
+      "region_name",
+      "max_loan_amount",
+      "avg_loan_amount",
+      "loan_count",
+      "gender",
+      "age",
+      "income_category",
+      "transaction_count",
+      "savings_ratio",
+      "region_loan_rank"
+    ],
+    "joins": [
+      "JOIN high_salary_districts ON a.district_id = hsd.district_id",
+      "JOIN loan_stats ON a.account_id = ls.account_id",
+      "JOIN owner_info ON a.account_id = oi.account_id",
+      "LEFT JOIN trans_summary ON a.account_id = ts.account_id",
+      "JOIN client ON dp.client_id = c.client_id"
+    ],
+    "predicates": [
+      "WHERE ts.total_income IS NULL OR ts.total_income > ts.total_expense"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "ls.max_loan_amount DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "district_name",
+          "region_name",
+          "max_loan_amount",
+          "avg_loan_amount",
+          "loan_count",
+          "gender",
+          "age",
+          "income_category",
+          "transaction_count",
+          "savings_ratio",
+          "region_loan_rank"
+        ],
+        "joins": [
+          "JOIN high_salary_districts ON a.district_id = hsd.district_id",
+          "JOIN loan_stats ON a.account_id = ls.account_id",
+          "JOIN owner_info ON a.account_id = oi.account_id",
+          "LEFT JOIN trans_summary ON a.account_id = ts.account_id",
+          "JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "high_salary_districts",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region_name"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "loan_stats",
+        "projections": [
+          "account_id",
+          "max_loan_amount",
+          "avg_loan_amount",
+          "loan_count"
+        ],
+        "joins": [],
+        "group_by": [
+          "l.account_id"
+        ],
+        "aggregations": [
+          "max",
+          "avg",
+          "count"
+        ]
+      },
+      {
+        "name": "trans_summary",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "total_income",
+          "total_expense"
+        ],
+        "joins": [],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      },
+      {
+        "name": "owner_info",
+        "projections": [
+          "account_id",
+          "gender",
+          "age"
+        ],
+        "joins": [
+          "JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "LoanStatistics:account_id | TransactionSummary:account_id"
+    ],
+    [
+      "predicted_group_by",
+      "loan_stats:l.account_id | trans_summary:t.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:6ad0b3b06ac94261c6b8b54802ee2fa3367aba367578020917aa2680bcfa3ec0;2:projection_mismatch:sha256:f54e8e0129131c8241e3c0e737e96fafbe9411a066307013fb2d4f08f1d46ef5;3:no_progress:sha256:f54e8e0129131c8241e3c0e737e96fafbe9411a066307013fb2d4f08f1d46ef5"
+    ]
+  ]
+}

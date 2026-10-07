@@ -1,0 +1,178 @@
+{
+  "case_id": "bird_0069",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    s.NCESDist,\n    s.School,\n    CASE s.Charter WHEN 1 THEN 'Charter School' WHEN 0 THEN 'Non-Charter School' ELSE 'Unknown' END AS SchoolType,\n    CASE WHEN s.ClosedDate IS NULL THEN 'Active' ELSE 'Closed' END AS CurrentStatus,\n    date(s.OpenDate) AS OpeningDate,\n    f.\"Enrollment (K-12)\" AS Enrollment,\n    CASE\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'High Poverty'\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'Medium Poverty'\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.25 THEN 'Low Poverty'\n      ELSE 'Very Low Poverty'\n    END AS PovertyLevel,\n    ss.AvgScrRead AS AvgReadingScore,\n    ss.AvgScrMath AS AvgMathScore,\n    ss.AvgScrWrite AS AvgWritingScore,\n    ROUND((COALESCE(ss.AvgScrRead,0)+COALESCE(ss.AvgScrMath,0)+COALESCE(ss.AvgScrWrite,0))/3.0, 2) AS AvgTotalScore\n  FROM schools s\n  JOIN frpm f ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores ss ON ss.cds = s.CDSCode AND ss.rtype = 'S'\n  WHERE s.DOCType = 'State Special Schools'\n    AND s.SOC LIKE '3%'\n)\nSELECT\n  NCESDist,\n  School,\n  SchoolType,\n  CurrentStatus,\n  OpeningDate,\n  Enrollment,\n  PovertyLevel,\n  AvgReadingScore,\n  AvgMathScore,\n  AvgWritingScore,\n  AvgTotalScore,\n  ROW_NUMBER() OVER (ORDER BY Enrollment DESC) AS EnrollmentRank\nFROM base\nORDER BY EnrollmentRank ASC;",
+    "sql_hash": "sha256:05e8beaeb32472c1d15c9640bae1168fa9f405de0920052669b7f533d7548a81",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "NCESDist",
+      "School",
+      "SchoolType",
+      "CurrentStatus",
+      "OpeningDate",
+      "Enrollment",
+      "PovertyLevel",
+      "AvgReadingScore",
+      "AvgMathScore",
+      "AvgWritingScore",
+      "AvgTotalScore",
+      "EnrollmentRank"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "EnrollmentRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "NCESDist",
+          "School",
+          "SchoolType",
+          "CurrentStatus",
+          "OpeningDate",
+          "Enrollment",
+          "PovertyLevel",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "AvgTotalScore",
+          "EnrollmentRank"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base",
+        "projections": [
+          "NCESDist",
+          "School",
+          "SchoolType",
+          "CurrentStatus",
+          "OpeningDate",
+          "Enrollment",
+          "PovertyLevel",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "AvgTotalScore"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9;2:no_progress:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9"
+    ]
+  ]
+}

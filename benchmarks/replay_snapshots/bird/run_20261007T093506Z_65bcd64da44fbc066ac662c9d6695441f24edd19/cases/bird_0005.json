@@ -1,0 +1,202 @@
+{
+  "case_id": "bird_0005",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 3,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH VirtualSchools AS (SELECT s.CDSCode, s.School AS SchoolName, s.City AS City, CASE s.Virtual WHEN 'F' THEN 'Fully Virtual' WHEN 'P' THEN 'Partially Virtual' WHEN 'N' THEN 'Not Virtual' ELSE 'Unknown' END AS VirtualStatus, CASE s.Charter WHEN 1 THEN 'Charter School' ELSE 'Regular School' END AS SchoolType FROM schools AS s WHERE s.Virtual = 'F'), SATPerformance AS (SELECT ss.cds, ss.AvgScrMath AS MathScore, ss.AvgScrRead AS ReadingScore, ss.AvgScrWrite AS WritingScore, (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) AS TotalScore FROM satscores AS ss WHERE ss.rtype = 'S'), SchoolEnrollmentData AS (SELECT f.CDSCode, f.\"Enrollment (K-12)\" AS Enrollment, f.\"Percent (%) Eligible FRPM (K-12)\" AS frpm_rate FROM frpm AS f) SELECT v.SchoolName, v.City, v.VirtualStatus, v.SchoolType, sp.MathScore, sp.ReadingScore, sp.WritingScore, sp.TotalScore, RANK() OVER (ORDER BY sp.MathScore DESC) AS MathRank, RANK() OVER (ORDER BY sp.TotalScore DESC) AS TotalScoreRank, e.Enrollment, CASE WHEN e.frpm_rate >= 0.75 THEN 'High Poverty' WHEN e.frpm_rate >= 0.50 THEN 'Medium Poverty' WHEN e.frpm_rate >= 0.25 THEN 'Low Poverty' ELSE 'Very Low Poverty' END AS PovertyLevel, ROUND(e.frpm_rate * 100, 1) || '%' AS FRPMPercentage FROM VirtualSchools AS v LEFT JOIN SATPerformance AS sp ON sp.cds = v.CDSCode LEFT JOIN SchoolEnrollmentData AS e ON e.CDSCode = v.CDSCode WHERE sp.MathScore > 400 ORDER BY sp.TotalScore DESC, e.Enrollment DESC",
+    "sql_hash": "sha256:7bbe663a76f80d7f6eef3dff609c8a57415ff85a69b31b63fb6448b21724c350",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "City",
+      "VirtualStatus",
+      "SchoolType",
+      "MathScore",
+      "ReadingScore",
+      "WritingScore",
+      "TotalScore",
+      "MathRank",
+      "TotalScoreRank",
+      "Enrollment",
+      "PovertyLevel",
+      "FRPMPercentage"
+    ],
+    "joins": [
+      "LEFT JOIN SATPerformance ON sp.cds = v.CDSCode",
+      "LEFT JOIN SchoolEnrollmentData ON e.CDSCode = v.CDSCode"
+    ],
+    "predicates": [
+      "WHERE sp.MathScore > 400"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "sp.TotalScore DESC",
+      "e.Enrollment DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "City",
+          "VirtualStatus",
+          "SchoolType",
+          "MathScore",
+          "ReadingScore",
+          "WritingScore",
+          "TotalScore",
+          "MathRank",
+          "TotalScoreRank",
+          "Enrollment",
+          "PovertyLevel",
+          "FRPMPercentage"
+        ],
+        "joins": [
+          "LEFT JOIN SATPerformance ON sp.cds = v.CDSCode",
+          "LEFT JOIN SchoolEnrollmentData ON e.CDSCode = v.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "VirtualSchools",
+        "projections": [
+          "CDSCode",
+          "SchoolName",
+          "City",
+          "VirtualStatus",
+          "SchoolType"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SATPerformance",
+        "projections": [
+          "cds",
+          "MathScore",
+          "ReadingScore",
+          "WritingScore",
+          "TotalScore"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SchoolEnrollmentData",
+        "projections": [
+          "CDSCode",
+          "Enrollment",
+          "frpm_rate"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:e069170b986ff1581f06ade4608f695d8e2ddf0b0dd33aad3e747464e0689c6f;2:undefined_column:sha256:1176d19585f2c4ae4f0af77970f0535931d8f3887f76d26a6e3fe2de71ec2759;3:accepted:"
+    ]
+  ]
+}

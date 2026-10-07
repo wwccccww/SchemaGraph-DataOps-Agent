@@ -1,0 +1,168 @@
+{
+  "case_id": "bird_0060",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT schools.School AS SchoolName, schools.Website AS Website, schools.CharterNum AS CharterNumber, schools.FundingType AS FundingType, frpm.\"Enrollment (K-12)\" AS TotalEnrollment, frpm.\"FRPM Count (K-12)\" AS FRPMCount, ROUND(frpm.\"Percent (%) Eligible FRPM (K-12)\" * 100, 2) || '%' AS FRPMPercentage, CASE WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'Very High Poverty' WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'High Poverty' WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.25 THEN 'Moderate Poverty' ELSE 'Low Poverty' END AS PovertyLevel, RANK() OVER (ORDER BY frpm.\"Enrollment (K-12)\" DESC) AS EnrollmentRank, satscores.NumTstTakr AS SATTestTakers, satscores.AvgScrRead AS AvgReadingScore, satscores.AvgScrMath AS AvgMathScore, satscores.AvgScrWrite AS AvgWritingScore, satscores.NumGE1500 AS StudentsOver1500, COALESCE(ROUND(satscores.NumGE1500 * 100.0 / NULLIF(satscores.NumTstTakr, 0), 2), 0) || '%' AS PercentOver1500 FROM schools JOIN frpm ON frpm.CDSCode = schools.CDSCode LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S' WHERE schools.Virtual = 'P' AND schools.Charter = 1 AND schools.County = 'San Joaquin' ORDER BY EnrollmentRank",
+    "sql_hash": "sha256:a2351a22de891a83e67a45422285c87e67ebe9d244686a4448e820ebfe24a0f2",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "Website",
+      "CharterNumber",
+      "FundingType",
+      "TotalEnrollment",
+      "FRPMCount",
+      "FRPMPercentage",
+      "PovertyLevel",
+      "EnrollmentRank",
+      "SATTestTakers",
+      "AvgReadingScore",
+      "AvgMathScore",
+      "AvgWritingScore",
+      "StudentsOver1500",
+      "PercentOver1500"
+    ],
+    "joins": [
+      "JOIN frpm ON frpm.CDSCode = schools.CDSCode",
+      "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+    ],
+    "predicates": [
+      "WHERE schools.Virtual = 'P' AND schools.Charter = 1 AND schools.County = 'San Joaquin'"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "EnrollmentRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "Website",
+          "CharterNumber",
+          "FundingType",
+          "TotalEnrollment",
+          "FRPMCount",
+          "FRPMPercentage",
+          "PovertyLevel",
+          "EnrollmentRank",
+          "SATTestTakers",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "StudentsOver1500",
+          "PercentOver1500"
+        ],
+        "joins": [
+          "JOIN frpm ON frpm.CDSCode = schools.CDSCode",
+          "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:fdfe53ed6cbd61018de4d53c2f996909f9e7d9290f50e23d45a5e111b3d6dbc1;2:accepted:"
+    ]
+  ]
+}

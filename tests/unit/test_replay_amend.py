@@ -29,21 +29,22 @@ def _require_peak(case_id: str, *, db: Path | None = None) -> tuple[Path, sqlite
     return case_file, sqlite3.connect(database)
 
 
-def test_v11_measured_peak_coe_charter_amend_makes_0002_match_gold() -> None:
+def test_v12_measured_peak_bird_0002_saved_sql_matches_gold() -> None:
     case_file = peak_case_path("bird_0002")
     if not case_file.is_file():
-        pytest.skip("v11 peak fixture missing")
+        pytest.skip("v12 peak fixture missing")
     if not CA_SCHOOLS_DB.is_file():
         pytest.skip("bird sqlite snapshot missing")
     conn = sqlite3.connect(CA_SCHOOLS_DB)
     payload = json.loads(case_file.read_text())
+    assert payload.get("ex") == 1
     sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0002")
-    amended = apply_replay_amends("bird_0002", sql, profiles=frozenset({"coe_charter"}))
-    assert amended != sql
     gold = conn.execute(case.gold_sql).fetchall()
-    pred = conn.execute(amended).fetchall()
+    pred = conn.execute(sql).fetchall()
     assert results_match(gold, pred, order_sensitive=False)
+    amended = apply_replay_amends("bird_0002", sql, profiles=frozenset({"coe_charter"}))
+    assert amended == sql
 
 
 def test_coe_charter_amend_makes_0002_match_gold() -> None:

@@ -34,7 +34,7 @@ def test_replay_profile_catalog() -> None:
     assert len(GOLD_OVERLAY_PROFILES) >= 10
 
 
-def test_p1_replay_bird_model_baseline_thirteen_of_fifty() -> None:
+def test_p1_replay_bird_model_baseline_seventeen_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -54,7 +54,7 @@ def test_p1_replay_bird_model_baseline_thirteen_of_fifty() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 13" in completed.stderr or "matched 13 -> 13" in completed.stdout
+    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
 def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
@@ -83,7 +83,7 @@ def test_p1_replay_bird_0021_rescores_not_sql_error() -> None:
     assert "bird_0021 other_result_mismatch ex=0" in completed.stderr
 
 
-def test_p1_replay_patch_autofix_fourteen_of_fifty() -> None:
+def test_p1_replay_patch_autofix_unchanged_on_v12_peak() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     completed = subprocess.run(
@@ -104,10 +104,10 @@ def test_p1_replay_patch_autofix_fourteen_of_fifty() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 14" in completed.stderr or "matched 13 -> 14" in completed.stdout
+    assert "matched 17 -> 17" in completed.stderr or "matched 17 -> 17" in completed.stdout
 
 
-def test_p1_offline_ceiling_script_twenty_three_of_fifty() -> None:
+def test_p1_offline_ceiling_script_twenty_six_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     script = Path(__file__).resolve().parents[2] / "scripts/replay_bird_offline_ceiling.sh"
@@ -121,7 +121,7 @@ def test_p1_offline_ceiling_script_twenty_three_of_fifty() -> None:
         env={**os.environ, "BIRD_DATABASE_ROOT": str(BIRD_DB_ROOT)},
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 23" in completed.stderr or "matched 13 -> 23" in completed.stdout
+    assert "matched 17 -> 26" in completed.stderr or "matched 17 -> 26" in completed.stdout
 
 
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
