@@ -601,6 +601,29 @@ async def test_rejected_prediction_is_recorded_without_changing_the_response() -
     assert result.repair_trace[0][1] == "not_read_only"
 
 
+async def test_evaluate_case_self_healing_persists_repair_trace_when_attempts_gt_one() -> None:
+    """§11.5 P2：evaluate_case 自愈多轮须写入 CaseResult.repair_trace（非仅手填 fixture）。"""
+    case = _case().model_copy(update={"required_junctions": []})
+    result = await evaluate_case(
+        case,
+        _bundle(
+            ScriptedModel(["INSERT INTO t_user_level VALUES (1)"]),
+            RecordingExecutor(),
+            seeds=("t_user_level",),
+            documents=(_document("t_user_level", junction=False),),
+            edges=(),
+        ),
+        variant="self_healing",
+    )
+
+    assert result.attempts >= 2
+    assert len(result.repair_trace) >= 1
+    payload = result.as_json()
+    assert payload["attempts"] >= 2
+    assert len(payload["repair_trace"]) >= 1
+    assert result.error_category == "no_progress"
+
+
 def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
     gold = (
         "SELECT ul.level_name, COUNT(*) AS user_count "
