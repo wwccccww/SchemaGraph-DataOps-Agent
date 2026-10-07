@@ -87,7 +87,7 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 
 正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
 
-**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`d502105` measured，`--replay-run` **30→30**）；BIRD **模型实测**当前峰值 **13/50×2 stable**（`d502105` v11，`p0-measured-autogen`）；**PATCH autofix 复分** v11 峰值 **13/50**（与 raw 相同；历史 v15 **9/50**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（与 **50** 条冻结契约 profile 不同层）。**v11 峰值**上 **37/37** EX=0 保存 SQL 具备 ≥1 frozen finding（`test_v11_measured_ex0_frozen_finding_coverage_floor`），**13/13** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）；**更高 measured EX** 仍须 billing 后 **2×** 全量 LLM。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile**（`test_bird_explicit_profile_case_ids`）+ SQLite 分号修复 + workflow PATCH（历史 v15 峰值 **0094** 等）为全量复跑准备。
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`d502105` measured，`--replay-run` **30→30**）；BIRD **模型实测**当前峰值 **13/50×2 stable**（`d502105` v11，`p0-measured-autogen`）；**PATCH autofix 复分** v11 峰值 **13→14/50**（`coe_charter` 吸收 v11 **0002** FRPM/Status；raw 实测仍 **13/50**；历史 v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（与 **50** 条冻结契约 profile 不同层）。**v11 峰值**上 **37/37** EX=0 保存 SQL 具备 ≥1 frozen finding（`test_v11_measured_ex0_frozen_finding_coverage_floor`），**13/13** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）；**更高 measured EX** 仍须 billing 后 **2×** 全量 LLM。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile**（`test_bird_explicit_profile_case_ids`）+ SQLite 分号修复 + workflow PATCH（历史 v15 峰值 **0094** 等）为全量复跑准备。
 
 <!-- p0-measured-autogen:start -->
 
@@ -114,7 +114,7 @@ p0_acceptance_gate=pass
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 模型 TPC-DS 实测 30/30 | 峰值 run replay | `test_p0_external_measured_baseline` |
 | 模型 BIRD 实测 | 峰值 `d502105` replay | **13/50**（`test_p0_*`）；**P0 80×2 measured gate pass**（`p0-measured-autogen`） |
-| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v11 峰值 **13/50**（与 raw 相同；历史 v15 **9/50**）；`test_p0_*` / `test_p1_*`；非新 LLM 实测 |
+| BIRD PATCH 复分上界 | `--replay-patch-autofix` | v11 峰值 **13→14/50**（`test_p0_bird_peak_patch_autofix_replay_fourteen_of_fifty`）；raw 实测 **13/50**；非新 LLM 实测 |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集 + verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
 | 402 运维摘要 | `./scripts/print_external_p0_status.sh` | 自动 `source` 项目根 `.env`（若有）；stdout **`ops_runbook=…`** / **`unattended_after_billing=…`** / **`wait_log=…`** / **`confirm_polls=2`** / **`p0_acceptance_lock=free\|held`**（**`P0_ACCEPTANCE_LOCK_FILE`**）/ **`tpcds_postgres_catalog=ready\|unreachable`** / **`bird_sqlite=ready\|missing\|unset\|invalid_root`**（missing 指向 **`fetch_bird_dev_databases.sh`**）；release + `llm_preflight=blocked_billing_402` 时 **`while_billing_blocked=… --gates-only`** + replay（须 **`bird_sqlite=ready`**）+ **`peak_ex0_frozen_findings=pass_min_37`**（v11 EX=0 inventory）；`llm_preflight` 402 stderr 同指 runbook |

@@ -73,6 +73,20 @@ def _amend_bird_0002_coe_charter(sql: str) -> str:
         "CAST(strftime('%Y', s.OpenDate) AS INTEGER) AS YearOpened",
         "strftime('%Y', s.OpenDate) AS YearOpened",
     )
+    out = out.replace("THEN 'Very High FRPM'", "THEN 'High FRPM'")
+    out = re.sub(
+        r">\s*0\.50\s+THEN\s+'High FRPM'",
+        "> 0.50 THEN 'Medium FRPM'",
+        out,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    for status_alias in ("schools", "s"):
+        out = out.replace(
+            f"{status_alias}.StatusType AS CurrentStatus",
+            f"CASE WHEN {status_alias}.ClosedDate IS NULL OR {status_alias}.ClosedDate = '' "
+            f"THEN 'Active' ELSE 'Closed' END AS CurrentStatus",
+        )
     return out
 
 
