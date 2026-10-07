@@ -133,7 +133,7 @@ bird	reports/bird/run_…
 
 P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM 全量**（非 replay  alone）。v11 峰值（`d502105`，`text-to-sql-generic-v59`）37 条 EX=0 以 **`other_result_mismatch`** 为主（投影/粒度/标签），**`sql_error`/`no_progress` 熔断 4 条**（如 **`bird_0006`** magnet SAT 列过多）；当前峰值 **串库 0**。建议顺序：
 
-1. **Prompt + frozen 契约**：按 `badcase_diagnosis.md` / `test_bird_profile_inventory` 优先 ex=0 的题；每题加 profile 规则 + `test_frozen_contract`（v11 示例：**`bird_0006`** 4 条、**`bird_0069`** 4 条、**`bird_0119`** 6 条、**`bird_0092`** 5 条）与 peak saved SQL 回归。v11 峰值快照上 **37/37** EX=0 保存 SQL 已具备 ≥1 frozen finding（`test_v11_measured_ex0_frozen_finding_coverage_floor`，floor ≥30），供 repair 循环识别语义偏差；**不替代** measured EX。
+1. **Prompt + frozen 契约**：按 `badcase_diagnosis.md` / `test_bird_profile_inventory` 优先 ex=0 的题；每题加 profile 规则 + `test_frozen_contract`（v11 示例：**`bird_0006`** 4 条、**`bird_0069`** 4 条、**`bird_0119`** 6 条、**`bird_0092`** 5 条）与 peak saved SQL 回归。v11 峰值快照上 **37/37** EX=0 保存 SQL 已具备 ≥1 frozen finding（`test_v11_measured_ex0_frozen_finding_coverage_floor`，floor **≥37**；`print_external_p0_status.sh` → **`peak_ex0_frozen_findings=pass_min_37`**），供 repair 循环识别语义偏差；**不替代** measured EX。
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）。
 3. **方言**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名。
 4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`；`P0_BIRD_MIN_MATCHED` 与 `test_p0_external_measured_baseline.py` 同步上调。
