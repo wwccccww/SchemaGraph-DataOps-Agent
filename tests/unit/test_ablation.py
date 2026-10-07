@@ -427,6 +427,7 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
     assert table_recall["denominator"] == 2
     recovery = measured["recovery_at_3"]
     assert isinstance(recovery, dict)
+    # §11.7 P2：Recovery@3 不把首轮即过的 case 算进分母
     assert recovery["excluded_first_attempt"] == 1
     assert recovery["recovered"] == 1
     assert recovery["failed"] == 1
