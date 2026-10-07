@@ -20,6 +20,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "top_frpm_soc66",
         "weekly_statement_demographics",
         "virtual_sat_f",
+        "magnet_sat",
         "tpcds_023_stock",
     }
 )

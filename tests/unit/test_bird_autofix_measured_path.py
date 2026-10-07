@@ -44,6 +44,9 @@ MEASURED_BIRD_0096_7645BBB_RUN2 = Path(
 MEASURED_BIRD_0005_4EAB7CD = Path(
     "/workspace/reports/bird/run_20261007T183051Z_4eab7cd5e552692bedcfa7fc8ea46afad95af2be/cases/bird_0005.json"
 )
+MEASURED_BIRD_0006_1C55F6D = Path(
+    "/workspace/reports/bird/run_20261007T193754Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d/cases/bird_0006.json"
+)
 
 
 class _NoLlmModel:
@@ -453,6 +456,50 @@ async def test_score_prediction_patches_4eab7cd_bird_0005_virtual_sat_f() -> Non
         repair_trace=(
             {
                 "attempt": 3,
+                "category": "other_result_mismatch",
+                "symptom": "x",
+                "sql_hash": "sha256:deadbeef",
+            },
+        ),
+    )
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_1c55f6d_bird_0006_magnet_sat() -> None:
+    if not MEASURED_BIRD_0006_1C55F6D.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("1c55f6d bird_0006 fixture or sqlite missing")
+    raw_sql = json.loads(MEASURED_BIRD_0006_1C55F6D.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0006")
+    documents, _ = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req-1c55f6d-06",
+            status="failed",
+            sql=raw_sql,
+            attempts=2,
+            error=ApiError(
+                category="other_result_mismatch",
+                message="mismatch",
+                retryable=False,
+            ),
+        ),
+        generated_sql=raw_sql,
+        repair_trace=(
+            {
+                "attempt": 2,
                 "category": "other_result_mismatch",
                 "symptom": "x",
                 "sql_hash": "sha256:deadbeef",
