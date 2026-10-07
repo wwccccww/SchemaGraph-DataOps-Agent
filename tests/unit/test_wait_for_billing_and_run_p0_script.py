@@ -110,6 +110,7 @@ exec {real_python} "$@"
     env = os.environ.copy()
     env["PATH"] = f"{tmp_path}{os.pathsep}{env.get('PATH', '')}"
     env["P0_BILLING_POLL_SECONDS"] = "1"
+    env["P0_WAIT_LOG"] = str(tmp_path / "wait.log")
     ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
@@ -160,6 +161,7 @@ exec {real_python} "$@"
     env["P0_WAIT_CONFIRM_SECONDS"] = "1"
     env["P0_WAIT_CONFIRM_POLLS"] = "2"
     env["P0_WAIT_STUB_ACCEPTANCE"] = "1"
+    env["P0_WAIT_LOG"] = str(tmp_path / "wait.log")
     ensure_bird_database_root(env, tmp_path=tmp_path)
     env.setdefault("POSTGRES_USER", "text2sql_admin")
     env.setdefault("POSTGRES_PASSWORD", "local-admin-secret")
