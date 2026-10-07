@@ -384,7 +384,9 @@ def test_virtual_charter_p_frozen_contract_flags_v12_bird_0060_poverty_labels() 
         item.message
         for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
     ]
-    assert any("Very High Poverty" in message or "Moderate Poverty" in message for message in messages)
+    assert any(
+        "Very High Poverty" in message or "Moderate Poverty" in message for message in messages
+    )
 
 
 def test_high_frpm_unexpected_frozen_contract_flags_v11_bird_0003() -> None:
