@@ -2191,6 +2191,37 @@ def check_frozen_semantic_contract(
                         "WriteScoreRank/TotalScoreRank 在 SchoolStats CTE 中 RANK()，不要外层窗口",
                     )
                 )
+            if re.search(r"\bsatscores\b", sql, re.IGNORECASE) and not re.search(
+                r"rtype\s*=\s*['\"]S['\"]",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Ricci Ulrich 题 satscores 须 rtype='S'（学校级记录）",
+                    )
+                )
+            school_stats_cte = re.search(
+                r"SchoolStats\s+AS\s*\(([\s\S]*?)\)\s*,?\s*DistrictAverages",
+                sql,
+                re.IGNORECASE,
+            )
+            if (
+                school_stats_cte
+                and re.search(r"WriteScoreRank|TotalScoreRank", sql, re.IGNORECASE)
+                and not re.search(
+                    r"RANK\s*\(\s*\)\s*OVER",
+                    school_stats_cte.group(1),
+                    re.IGNORECASE,
+                )
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "WriteScoreRank/TotalScoreRank 在 SchoolStats CTE 内 RANK()，不要外层 SELECT",
+                    )
+                )
         if "enrollment_rank_10_11_profile=true" in contract.filters:
             if re.search(r"\bRANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY", sql, re.IGNORECASE):
                 findings.append(

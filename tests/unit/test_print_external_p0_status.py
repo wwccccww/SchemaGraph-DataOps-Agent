@@ -67,8 +67,9 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
 
     peak = bird_peak_run_dir()
     if peak.is_dir():
-        assert "peak_ex0_frozen_findings=pass_min_17" in completed.stdout or (
-            "peak_ex0_frozen_findings=pass_min_14" in completed.stdout
+        assert "peak_ex0_frozen_findings=pass_min_18" in completed.stdout or (
+            "peak_ex0_frozen_findings=pass_min_17" in completed.stdout
+            or "peak_ex0_frozen_findings=pass_min_14" in completed.stdout
             or "peak_ex0_frozen_findings=pass_min_3" in completed.stdout
             or "peak_ex0_frozen_findings=pass_min_1" in completed.stdout
         )
