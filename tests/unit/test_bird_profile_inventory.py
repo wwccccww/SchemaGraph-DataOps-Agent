@@ -121,7 +121,9 @@ def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
         if matched >= 13:
             import pytest
 
-            pytest.skip("v11 measured peak (13/50): EX=0 finding-density inventory deferred to v59 peak")
+            pytest.skip(
+                "v11 measured peak (13/50): EX=0 finding-density inventory deferred to v59 peak"
+            )
     weak = []
     for case in load_bird_cases():
         case_file = PEAK_V15_RUN / "cases" / f"{case.id}.json"
