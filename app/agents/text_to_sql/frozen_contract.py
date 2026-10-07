@@ -2851,6 +2851,26 @@ def check_frozen_semantic_contract(
                         "IsCharter 用 frpm.`Charter School (Y/N)`，输出 IsCharterSchool Yes/No",
                     )
                 )
+            if re.search(r"Charter School \(Y/N\)", sql, re.IGNORECASE) and re.search(
+                r"IsCharterSchool|IsCharter",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "charter school 语义优先 schools.Charter（Charter School/Regular School），"
+                        "不要用 frpm.`Charter School (Y/N)` Yes/No",
+                    )
+                )
+            if re.search(r"FRPMPercentage\s*>\s*60|FRPMPercentage\s*>\s*75", sql):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "WHERE 过滤用小数 Percent Eligible FRPM（如 >0.60），"
+                        "不要对 ×100 后的 FRPMPercentage 用 >60",
+                    )
+                )
             if (
                 re.search(r"\bsatscores\b|\bss\.\b", sql, re.IGNORECASE)
                 and "rtype" not in sql.lower()
