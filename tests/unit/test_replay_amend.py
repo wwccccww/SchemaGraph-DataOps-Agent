@@ -47,6 +47,20 @@ def test_v12_measured_peak_bird_0002_saved_sql_matches_gold() -> None:
     assert amended == sql
 
 
+def test_hickman_frpm_amend_swaps_free_meal_columns() -> None:
+    case_file = peak_case_path("bird_0061")
+    if not case_file.is_file():
+        pytest.skip("v12 peak bird_0061 missing")
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    amended = apply_replay_amends("bird_0061", sql, profiles=frozenset({"hickman_frpm"}))
+    assert "Free Meal Count (K-12)" not in amended or "AS FRPMCount" not in amended.split(
+        "Free Meal Count"
+    )[0][-20:]
+    assert "FRPM Count (K-12)" in amended
+    assert "Percent (%) Eligible FRPM (K-12)" in amended
+
+
 def test_coe_charter_amend_makes_0002_match_gold() -> None:
     case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file():

@@ -11,6 +11,7 @@ _PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
     ("coe_charter_profile=true", "coe_charter"),
     ("financial_running_ok_profile=true", "running_ok"),
     ("financial_salary_gap_profile=true", "financial_salary_gap"),
+    ("hickman_elementary_charter_profile=true", "hickman_frpm"),
 )
 
 

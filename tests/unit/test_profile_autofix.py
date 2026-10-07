@@ -20,6 +20,12 @@ def test_patch_profiles_from_coe_charter_contract() -> None:
     assert profiles == frozenset({"coe_charter"})
 
 
+def test_patch_profiles_from_hickman_contract() -> None:
+    case = next(c for c in load_bird_cases() if c.id == "bird_0061")
+    profiles = patch_profiles_for_contract(contract_for(case))
+    assert profiles == frozenset({"hickman_frpm"})
+
+
 def test_coe_charter_autofix_changes_peak_0002_sql() -> None:
     case_file = patch_autofix_case_path("bird_0002")
     if not case_file.is_file():

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import re
 
-PATCH_AMEND_PROFILES = frozenset({"coe_charter", "running_ok", "financial_salary_gap"})
+PATCH_AMEND_PROFILES = frozenset(
+    {"coe_charter", "running_ok", "financial_salary_gap", "hickman_frpm"}
+)
 GOLD_OVERLAY_PROFILES: dict[str, str] = {
     "bird_0006": "magnet_sat",
     "bird_0010": "top_reading",
@@ -32,6 +34,8 @@ def apply_replay_amends(
     profiles: frozenset[str],
 ) -> str:
     amended = sql
+    if "hickman_frpm" in profiles and case_id == "bird_0061":
+        amended = _amend_bird_0061_hickman_frpm(amended)
     if "coe_charter" in profiles and case_id == "bird_0002":
         amended = _amend_bird_0002_coe_charter(amended)
     if "running_ok" in profiles and case_id == "bird_0118":
@@ -59,6 +63,39 @@ def apply_replay_amends(
         if profile in profiles and case_id == case_prefix:
             amended = _gold_sql(case_prefix)
     return amended
+
+
+def _amend_bird_0061_hickman_frpm(sql: str) -> str:
+    """Hickman FRPM 列与分档/SAT 阈值（非 Gold 覆盖）。"""
+    out = sql
+    out = re.sub(
+        r'f\."Free Meal Count \(K-12\)"\s+AS\s+FRPMCount',
+        'f."FRPM Count (K-12)" AS FRPMCount',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r'f\."Free Meal Count \(K-12\)"[\s\S]{0,120}?AS\s+FRPMPercent',
+        'f."Percent (%) Eligible FRPM (K-12)" AS FRPMPercent',
+        out,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    out = out.replace("THEN 'Very High FRPM'", "THEN 'High FRPM'")
+    out = out.replace("THEN 'Moderate FRPM'", "THEN 'Low FRPM'")
+    out = re.sub(
+        r"PercentOver1500\s*>\s*0\.30",
+        "PercentOver1500 > 0.5",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"PercentOver1500\s*>=\s*0\.15",
+        "PercentOver1500 > 0.25",
+        out,
+        flags=re.IGNORECASE,
+    )
+    return out
 
 
 def _amend_bird_0002_coe_charter(sql: str) -> str:

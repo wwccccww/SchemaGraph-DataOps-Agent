@@ -2154,6 +2154,25 @@ def check_frozen_semantic_contract(
                         "无 SAT 时 SATTotalScore/分项保持 NULL（不要 COALESCE 成 0）",
                     )
                 )
+            if re.search(r"Very High FRPM|Moderate FRPM", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPMCategory 仅 High/Medium/Low FRPM（Percent FRPM 小数 >0.75/>0.50）",
+                    )
+                )
+            if re.search(
+                r"PercentOver1500\s*>\s*0\.30|PercentOver1500\s*>=\s*0\.15",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(r"SATPerformanceCategory", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SATPerformanceCategory：PercentOver1500 >0.5 High、>0.25 Average，"
+                        "NULL→No SAT Data",
+                    )
+                )
             if re.search(r"Below Average|Above Average", sql) and re.search(
                 r"SATPerformanceCategory",
                 sql,
@@ -2162,7 +2181,7 @@ def check_frozen_semantic_contract(
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "SATPerformanceCategory 用 PercentOver1500：High/Average/Low Performing",
+                        "SATPerformanceCategory 用 High/Average/Low Performing（勿 Below/Above Average）",
                     )
                 )
             if re.search(r"satscores", sql, re.IGNORECASE) and not re.search(

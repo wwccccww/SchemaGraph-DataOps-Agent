@@ -103,6 +103,8 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **17/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
 
+**bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
+
 **不稳定探针（勿单独抬 min）**：同 commit 连续 2× 若 matched 不一致（例如 **17/50** 与 **18/50**，差分常为 **bird_0061** FRPM 列口径），则 **`p0_stability_bird=unstable`**，保持 vendored 峰值 replay 与 **`P0_BIRD_MIN_MATCHED`** 不变；优先收紧该题 frozen 提示（`hickman_elementary_charter_profile`）后再跑 2×。
 
 ### Measured manifest（2×2 全量）
