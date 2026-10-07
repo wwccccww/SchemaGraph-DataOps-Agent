@@ -117,7 +117,7 @@ p0_acceptance_gate=pass
 
 **`01343cc` / `9131bfa` TPC-DS**：**30/30×2 stable**（`run_20261007T173416Z_*` / `run_20261007T174022Z_*` @ `01343cc`）。
 
-**`9131bfa` BIRD 2×（post-0096fix，`/tmp/bird-p0-post-0096fix.log`）**：**21 vs 22 unstable**（仅 **`bird_0096`** 翻转：run1 错误 cohort/子查询形 **ex=0**，run2 **ex=1**；非 PATCH 可修的全列偏移）。**`1e812c3` BIRD 21×2 stable** 仍为 acceptance 文档基线；**0096** 继续依 frozen + PATCH 收窄方差。
+**`9131bfa` BIRD 2×（post-0096fix，`/tmp/bird-p0-post-0096fix.log`）**：**21 vs 22 unstable**（仅 **`bird_0096`** 翻转：run1 错误 cohort/子查询形 **ex=0**，run2 **ex=1**；非 PATCH 可修的全列偏移）。**`1e812c3` BIRD 21×2 stable** 仍为 acceptance 文档基线；**0096** 继续依 frozen + PATCH 收窄方差（**9131bfa run1** 子查询 cohort 形 → **`test_weekly_statement_frozen_flags_9131bfa_run1_subquery_cohort_sql`**）。
 
 **`e16efe8` TPC-DS（2026-10-07）**：`POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./scripts/run_tpcds_p0_full_eval_twice.sh` → **30/30×2 stable**（`run_20261007T172025Z_*` / `run_20261007T172639Z_*`）。
 
