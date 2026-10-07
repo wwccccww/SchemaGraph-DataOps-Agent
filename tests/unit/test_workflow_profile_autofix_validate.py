@@ -16,7 +16,13 @@ from app.datasources.sqlite_catalog import load_sqlite_catalog
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
 from app.llm.tokenizer import DeepSeekTokenCounter
+from pathlib import Path
+
 from tests.unit.bird_replay_fixtures import CA_SCHOOLS_DB, FINANCIAL_DB, patch_autofix_case_path
+
+MEASURED_BIRD_0003_881DD08 = Path(
+    "/workspace/reports/bird/run_20261007T152631Z_881dd083d1f0cc3c02f141e48432bec3fca12ca8/cases/bird_0003.json"
+)
 
 
 @pytest.mark.asyncio
@@ -107,6 +113,105 @@ async def test_validate_autofixes_peak_bird_0002_without_llm() -> None:
     from app.agents.text_to_sql.workflow import _frozen_contract_findings
 
     assert not _frozen_contract_findings(state, fixed)
+
+
+@pytest.mark.asyncio
+async def test_validate_autofixes_measured_bird_0003_881dd08_without_llm() -> None:
+    """881dd08 实测 ×100 FRPM SQL：validate 节点 PATCH 后 frozen 清零且 EX=1。"""
+    if not MEASURED_BIRD_0003_881DD08.is_file():
+        pytest.skip("881dd08 measured bird_0003 fixture missing")
+    payload = json.loads(MEASURED_BIRD_0003_881DD08.read_text())
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    sql = payload["prediction"]["sql"]
+
+    if not CA_SCHOOLS_DB.is_file():
+        pytest.skip("bird sqlite snapshot missing")
+    documents, edges = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+
+    async def load_catalog() -> tuple[tuple[()], tuple[()]]:
+        return tuple(documents), tuple(edges)
+
+    services = ServiceBundle(
+        model=AsyncMock(),
+        select_tools=AsyncMock(return_value=[]),
+        select_seeds=AsyncMock(return_value=[]),
+        load_catalog=load_catalog,
+        execute=AsyncMock(),
+        token_counter=DeepSeekTokenCounter(),
+        database_id="california_schools",
+    )
+    state = {
+        "request_id": "test",
+        "question": case.question,
+        "database_id": "california_schools",
+        "variant": "self_healing",
+        "execute": True,
+        "max_rows": 100,
+        "selected_tools": [],
+        "seed_tables": [],
+        "expanded_tables": [],
+        "schema_context": "",
+        "schema_token_count": 0,
+        "truncated": False,
+        "prompt": "",
+        "generated_sql": sql,
+        "attempt": 1,
+        "consecutive_error_hash": None,
+        "consecutive_error_count": 0,
+        "status": "running",
+        "columns": [],
+        "rows": [],
+        "error_category": None,
+        "error_message": None,
+        "error_retryable": False,
+        "circuit_breaker_triggered": False,
+        "db_execution_ms": None,
+        "anchor_date": "2026-10-01",
+        "dialect": "sqlite",
+        "profile": "generic",
+        "schema_name": "main",
+        "contract_repairs": 0,
+        "repair_trace": [],
+        "join_paths": [],
+        "frozen_contract": contract_for(case).model_dump(mode="json"),
+        "max_model_calls": 5,
+        "initial_sql": "",
+        "candidate_sql": None,
+        "candidate_columns": [],
+        "candidate_rows": [],
+        "candidate_score": 0,
+        "candidate_execution_ms": None,
+        "benchmark_case_id": "bird_0003",
+    }
+    pre = await _validation_findings_for_sql(services, state, sql)
+    assert pre, "881dd08 bird_0003 SQL should fail frozen contract before autofix"
+
+    fixed_direct = autofix_sql_when_frozen_contract_clean(
+        case_id="bird_0003",
+        sql=sql,
+        contract=contract_for(case),
+        dialect="sqlite",
+        frozen_contract_state=state,
+    )
+    assert fixed_direct is not None and fixed_direct != sql
+
+    validate = _validate_sql(services)
+    outcome = await validate(state)
+    assert outcome.get("status") == "validated", outcome.get("error_message")
+    fixed = outcome.get("generated_sql")
+    assert isinstance(fixed, str) and fixed != sql
+    from app.agents.text_to_sql.workflow import _frozen_contract_findings
+
+    assert not _frozen_contract_findings(state, fixed)
+
+    import sqlite3
+
+    from app.evaluation.ex import results_match
+
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(fixed).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
 
 
 @pytest.mark.asyncio
