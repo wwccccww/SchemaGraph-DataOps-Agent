@@ -686,6 +686,42 @@ def test_validate_p2_repair_traces_accepts_zero_shot_skeleton_for_all_custom_cas
     validate_p2_repair_traces(records)
 
 
+def test_write_ablation_report_accepts_132_custom_zero_shot_skeleton(tmp_path: Path) -> None:
+    """§11.5 P2：132 条 zero_shot 骨架须能完整写入 ablation run（validate + 落盘）。"""
+    from app.evaluation.custom_cases import load_custom_cases
+
+    cases = load_custom_cases()
+    assert len(cases) == 132
+    records = [
+        _result(
+            case.id,
+            "zero_shot",
+            passed=True,
+            ex=1,
+            difficulty=case.difficulty,
+        )
+        for case in cases
+    ]
+    summary = build_summary(
+        records,
+        case_ids=[case.id for case in cases],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-07T14:05:00Z",
+        baseline_tokens=None,
+    )
+    run_dir = write_ablation_report(
+        tmp_path,
+        stamp="20261007T140500Z",
+        commit="abc1234",
+        summary=summary,
+        records=records,
+    )
+    case_files = list((run_dir / "cases").glob("*.json"))
+    assert len(case_files) == 132
+
+
 def test_assert_p2_repair_trace_requires_trace_for_self_healing_multattempt() -> None:
     from app.evaluation.ablation import _assert_p2_repair_trace
 
