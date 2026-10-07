@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -16,8 +17,6 @@ from app.datasources.sqlite_catalog import load_sqlite_catalog
 from app.evaluation.bird import load_bird_cases
 from app.evaluation.bird_contracts import contract_for
 from app.llm.tokenizer import DeepSeekTokenCounter
-from pathlib import Path
-
 from tests.unit.bird_replay_fixtures import CA_SCHOOLS_DB, FINANCIAL_DB, patch_autofix_case_path
 
 MEASURED_BIRD_0003_881DD08 = Path(
