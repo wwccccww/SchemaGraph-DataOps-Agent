@@ -52,6 +52,7 @@ MEASURED_BIRD_E5482A4_RUN = BIRD_E5482A4_RUN
 MEASURED_BIRD_0010_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0010.json"
 MEASURED_BIRD_0011_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0011.json"
 MEASURED_BIRD_0113_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0113.json"
+MEASURED_BIRD_0066_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0066.json"
 
 
 def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
@@ -641,6 +642,23 @@ async def test_score_prediction_patches_e5482a4_bird_0113_loan_98832_sql_error()
     )
     raw_sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0113")
+    trace = await _score_bird_saved_sql(case, raw_sql)
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_e5482a4_bird_0066_directly_funded_join() -> None:
+    """Step-3 join 样例：e5482a4 live no_progress；measured PATCH（directly_funded_stanislaus）对齐 Gold。"""
+    if not MEASURED_BIRD_0066_E5482A4.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("e5482a4 bird_0066 fixture or sqlite missing")
+    payload = json.loads(MEASURED_BIRD_0066_E5482A4.read_text())
+    assert (
+        payload.get("primary_class") == "sql_error"
+        or payload.get("error_category") == "no_progress"
+    )
+    raw_sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0066")
     trace = await _score_bird_saved_sql(case, raw_sql)
     assert trace.ex == 1
     assert trace.primary_class == "matched"
