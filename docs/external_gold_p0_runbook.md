@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=13`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步；历史默认 7）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=17`**（acceptance 每轮 BIRD EX 下限，与 `test_p0_external_measured_baseline` 同步；历史默认 7，v11 **13**，v12 **17**）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -80,7 +80,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 - **`p0_acceptance_gate=pass`**
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
-- **`p0_measured_bird_run{1,2}=≥13/50`**（默认 **`P0_BIRD_MIN_MATCHED=13`**）且 **`p0_stability_bird=stable`**
+- **`p0_measured_bird_run{1,2}=≥17/50`**（默认 **`P0_BIRD_MIN_MATCHED=17`**）且 **`p0_stability_bird=stable`**
 
 全量 acceptance 默认 **`P0_APPLY_BENCHMARK=1`**（可 `export P0_APPLY_BENCHMARK=0` 跳过）会在 gate pass 后调用 **`./scripts/apply_p0_measured_benchmark.sh`**，把 **`p0_measured_*` / `p0_stability_*`** 与 **`p0_acceptance_gate=pass`** 写入 [benchmark.md](./benchmark.md) 的 **`p0-measured-autogen`** 段落（单测 `test_p0_benchmark_docs.py`）。也可在已有 manifest 上单独执行：
 
@@ -95,13 +95,13 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_… commit=… prompt=text-to-sql-generic-v59
 p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_… commit=… prompt=…
 p0_stability_tpcds=stable
-p0_measured_bird_run1=13/50 ex=0.26 dir=run_… …
-p0_measured_bird_run2=13/50 ex=0.26 dir=run_… …
+p0_measured_bird_run1=17/50 ex=0.34 dir=run_… …
+p0_measured_bird_run2=17/50 ex=0.34 dir=run_… …
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
 
-若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **13/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
+若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **17/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 `test_p0_external_measured_baseline.py`、峰值 run 目录与 **`P0_BIRD_MIN_MATCHED`**。
 
 ### Measured manifest（2×2 全量）
 
@@ -120,8 +120,8 @@ bird	reports/bird/run_…
 
 | 命令 | 用途 |
 | --- | --- |
-| `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v11 measured **13/50**） |
-| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v11 峰值 **13→14/50**，含 **0002** FRPM/Status；raw 实测仍 **13/50**；历史 v15 **7→9**） |
+| `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v12 measured **17/50**） |
+| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v12 峰值 **17→17/50**；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**） |
 | PATCH autofix 单测夹具 | `benchmarks/replay_snapshots/bird/run_20261006T001548Z_31113b6…/cases/{bird_0002,bird_0094}.json` | 与 v11 measured peak 分离；CI 不依赖 `reports/` |
 | `./scripts/replay_tpcds_baseline.sh` | TPC-DS **30/30** |
 | `./scripts/replay_bird_offline_ceiling.sh` | 离线 amend 口径（非发布 EX） |
@@ -129,7 +129,7 @@ bird	reports/bird/run_…
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **13/50**、TPC-DS **30/30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
 

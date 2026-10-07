@@ -78,15 +78,15 @@ def test_format_report_two_by_two(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
-    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
     text = format_report(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
     )
     assert "p0_measured_tpcds_run1=30/30" in text
     assert "p0_stability_tpcds=stable" in text
-    assert "p0_measured_bird_run2=13/50" in text
+    assert "p0_measured_bird_run2=17/50" in text
     assert "p0_stability_bird=stable" in text
 
 
@@ -120,8 +120,8 @@ def test_acceptance_gate_passes_on_stable_full_band(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
-    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
     assert (
         validate_p0_acceptance_gate(
             [load_run_measured(t1), load_run_measured(t2)],
@@ -138,12 +138,12 @@ def test_acceptance_gate_fails_bird_below_baseline_min(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=12, case_count=50, accuracy=0.24)
-    _write_summary(b2, source="bird", matched=12, case_count=50, accuracy=0.24)
+    _write_summary(b1, source="bird", matched=16, case_count=50, accuracy=0.32)
+    _write_summary(b2, source="bird", matched=16, case_count=50, accuracy=0.32)
     failures = validate_p0_acceptance_gate(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
-        bird_min_matched=13,
+        bird_min_matched=17,
     )
     assert any("below baseline min" in item for item in failures)
 
@@ -155,8 +155,8 @@ def test_acceptance_gate_fails_unstable_tpcds(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=29, case_count=30, accuracy=29 / 30)
-    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
-    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
     failures = validate_p0_acceptance_gate(
         [load_run_measured(t1), load_run_measured(t2)],
         [load_run_measured(b1), load_run_measured(b2)],
@@ -190,8 +190,8 @@ def test_cli_acceptance_gate_passes(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
-    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
     completed = subprocess.run(
         [
             sys.executable,

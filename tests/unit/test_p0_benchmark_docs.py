@@ -57,8 +57,8 @@ def test_cli_write_benchmark_on_gate_pass(tmp_path: Path) -> None:
     b2 = tmp_path / "b2"
     _write_summary(t1, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
     _write_summary(t2, source="tpcds-derived", matched=30, case_count=30, accuracy=1.0)
-    _write_summary(b1, source="bird", matched=13, case_count=50, accuracy=0.26)
-    _write_summary(b2, source="bird", matched=13, case_count=50, accuracy=0.26)
+    _write_summary(b1, source="bird", matched=17, case_count=50, accuracy=0.34)
+    _write_summary(b2, source="bird", matched=17, case_count=50, accuracy=0.34)
     benchmark = tmp_path / "benchmark.md"
     benchmark.write_text(
         f"{P0_MEASURED_AUTOGEN_START}\n\n```text\npending\n```\n\n{P0_MEASURED_AUTOGEN_END}\n",
