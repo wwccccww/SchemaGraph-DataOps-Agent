@@ -30,7 +30,10 @@ for run in 1 2; do
     --full \
     --variant self_healing \
     --max-repair-rounds 4
+  # pipefail + head closes early when many run_* dirs exist → ls SIGPIPE (exit 141)
+  set +o pipefail
   latest="$(ls -td reports/bird/run_* 2>/dev/null | head -1)"
+  set -o pipefail
   RUN_DIRS+=("$latest")
   if [[ -n "${P0_MEASURED_MANIFEST:-}" ]]; then
     echo -e "bird\t$latest" >> "$P0_MEASURED_MANIFEST"

@@ -24,7 +24,9 @@ for run in 1 2; do
     --full \
     --variant self_healing \
     --max-repair-rounds 4
+  set +o pipefail
   latest="$(ls -td reports/tpcds-derived/run_* 2>/dev/null | head -1)"
+  set -o pipefail
   RUN_DIRS+=("$latest")
   if [[ -n "${P0_MEASURED_MANIFEST:-}" ]]; then
     echo -e "tpcds-derived\t$latest" >> "$P0_MEASURED_MANIFEST"
