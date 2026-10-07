@@ -321,6 +321,13 @@ async def evaluate_case(
     error = None if response.error is None else response.error.category
     anchor = case.anchor_date.isoformat()
     trace = _trace_tuples(inspection.repair_trace)
+    attempts = response.attempts or 0
+    _assert_p2_repair_trace(
+        variant=variant,
+        attempts=attempts,
+        trace=trace,
+        case_id=case.id,
+    )
     primary, symptoms = classify_badcase(
         question=case.question,
         gold_sql=case.gold_sql,
@@ -336,7 +343,7 @@ async def evaluate_case(
         case_id=case.id,
         variant=variant,
         passed=ex == 1,
-        attempts=response.attempts or 0,
+        attempts=attempts,
         seed_tables=seeds,
         expanded_tables=expanded,
         junction_recall=recall,
@@ -456,6 +463,26 @@ async def _execution_accuracy(
         numeric_tolerance=case.numeric_tolerance,
     )
     return 1 if matched else 0
+
+
+def _assert_p2_repair_trace(
+    *,
+    variant: str,
+    attempts: int,
+    trace: tuple[tuple[str, str, str, str], ...],
+    case_id: str,
+) -> None:
+    """§11.5 P2：自建 self_healing 多轮必须持久化 repair_trace。"""
+
+    if variant != "self_healing" or attempts <= 1:
+        return
+    if trace:
+        return
+    msg = (
+        f"case {case_id}: self_healing attempts={attempts} "
+        "but repair_trace is empty (§11.5 P2)"
+    )
+    raise RuntimeError(msg)
 
 
 def _trace_tuples(

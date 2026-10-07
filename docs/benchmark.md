@@ -588,7 +588,7 @@ Self-Healing 在 SQL 执行成功后，使用同一个 `AnswerContract` 做确�
 | Prompt 接入 | `app/agents/text_to_sql/prompt.py` | Prompt 含契约，不含 Gold、难度和 `required_tables` |
 | 自愈路由 | `app/agents/text_to_sql/workflow.py` | 定向修复、`no_progress`、最大调用数和 SQL 隐藏契约 |
 | 完整 SQL 形状 | `app/evaluation/sql_shape.py` | 外层与 CTE 分开报告，解析失败保留局部诊断 |
-| badcase 汇总 | `app/evaluation/ablation.py` | 分类总数等于分母，主类与症状均可追溯到 case JSON；**attempts>1** 时 case JSON 含 **`repair_trace`**（`test_ablation_report_json_includes_repair_trace_when_attempts_gt_one`；外部峰值见 `test_v12_peak_multattempt_cases_include_repair_trace_symptoms`） |
+| badcase 汇总 | `app/evaluation/ablation.py` | 分类总数等于分母，主类与症状均可追溯到 case JSON；**attempts>1** 时 case JSON 含 **`repair_trace`**（`evaluate_case` 内 **`_assert_p2_repair_trace`** + `test_ablation_report_json_includes_repair_trace_when_attempts_gt_one`；外部峰值见 `test_v12_peak_multattempt_cases_include_repair_trace_symptoms`） |
 
 ### 11.7 验收门槛
 

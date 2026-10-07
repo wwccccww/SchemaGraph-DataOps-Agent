@@ -7,6 +7,8 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from app.agents.text_to_sql.workflow import (
     ZERO_SHOT_SCHEMA,
     ServiceBundle,
@@ -621,7 +623,32 @@ async def test_evaluate_case_self_healing_persists_repair_trace_when_attempts_gt
     payload = result.as_json()
     assert payload["attempts"] >= 2
     assert len(payload["repair_trace"]) >= 1
+    assert dict(result.symptoms).get("repair_trace", "")
     assert result.error_category == "no_progress"
+
+
+def test_assert_p2_repair_trace_requires_trace_for_self_healing_multattempt() -> None:
+    from app.evaluation.ablation import _assert_p2_repair_trace
+
+    _assert_p2_repair_trace(
+        variant="zero_shot",
+        attempts=3,
+        trace=(),
+        case_id="custom_basic_001",
+    )
+    _assert_p2_repair_trace(
+        variant="self_healing",
+        attempts=1,
+        trace=(),
+        case_id="custom_basic_001",
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        _assert_p2_repair_trace(
+            variant="self_healing",
+            attempts=2,
+            trace=(),
+            case_id="custom_medium_001",
+        )
 
 
 def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:
