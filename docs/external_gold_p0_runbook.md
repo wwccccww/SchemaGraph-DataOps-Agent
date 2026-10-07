@@ -79,7 +79,7 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 
 - **`p0_acceptance_gate=pass`**
 - **`p0_measured_tpcds_run{1,2}=30/30`** 且 **`p0_stability_tpcds=stable`**
-- **`p0_measured_bird_run{1,2}=≥7/50`**（默认）且 **`p0_stability_bird=stable`**
+- **`p0_measured_bird_run{1,2}=≥13/50`**（默认 **`P0_BIRD_MIN_MATCHED=13`**）且 **`p0_stability_bird=stable`**
 
 全量 acceptance 默认 **`P0_APPLY_BENCHMARK=1`**（可 `export P0_APPLY_BENCHMARK=0` 跳过）会在 gate pass 后调用 **`./scripts/apply_p0_measured_benchmark.sh`**，把 **`p0_measured_*` / `p0_stability_*`** 与 **`p0_acceptance_gate=pass`** 写入 [benchmark.md](./benchmark.md) 的 **`p0-measured-autogen`** 段落（单测 `test_p0_benchmark_docs.py`）。也可在已有 manifest 上单独执行：
 
@@ -94,8 +94,8 @@ python3 -m app.evaluation.llm_preflight          # 须 stdout: llm_preflight=rea
 p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_… commit=… prompt=text-to-sql-generic-v59
 p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_… commit=… prompt=…
 p0_stability_tpcds=stable
-p0_measured_bird_run1=7/50 ex=0.14 dir=run_… …
-p0_measured_bird_run2=7/50 ex=0.14 dir=run_… …
+p0_measured_bird_run1=13/50 ex=0.26 dir=run_… …
+p0_measured_bird_run2=13/50 ex=0.26 dir=run_… …
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
@@ -119,15 +119,24 @@ bird	reports/bird/run_…
 
 | 命令 | 用途 |
 | --- | --- |
-| `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（当前 **7/50**） |
-| `./scripts/replay_bird_patch_autofix.sh` | PATCH 上界（当前 **9/50**） |
+| `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v11 measured **13/50**） |
+| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v11 峰值与 raw 同为 **13/50**；历史 v15 口径 **9/50**） |
 | `./scripts/replay_tpcds_baseline.sh` | TPC-DS **30/30** |
 | `./scripts/replay_bird_offline_ceiling.sh` | 离线 amend 口径（非发布 EX） |
 
 ## CI / nightly
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（**7/50** 等）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **13/50**、TPC-DS **30/30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。
+
+## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
+
+P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM 全量**（非 replay  alone）。v11 峰值（`d502105`，`text-to-sql-generic-v59`）37 条 EX=0 以 **`other_result_mismatch`** 为主（投影/粒度/标签），**`sql_error`/`no_progress` 熔断 4 条**（如 **`bird_0006`** magnet SAT 列过多）；当前峰值 **串库 0**。建议顺序：
+
+1. **Prompt + frozen 契约**：按 `badcase_diagnosis.md` / `test_bird_profile_inventory` 优先 ex=0 且 **≥3 findings** 的题；每题加 profile 规则 + `test_frozen_contract` / peak saved SQL 回归。
+2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）。
+3. **方言**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名。
+4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`；`P0_BIRD_MIN_MATCHED` 与 `test_p0_external_measured_baseline.py` 同步上调。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
 
