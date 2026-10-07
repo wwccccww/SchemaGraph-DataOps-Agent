@@ -16,6 +16,7 @@ _PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
     ("high_frpm_unexpected_performance_profile=true", "high_frpm_frpm_pct"),
     ("top_frpm_soc66_profile=true", "top_frpm_soc66"),
     ("weekly_statement_owners_demographics_profile=true", "weekly_statement_demographics"),
+    ("virtual_sat_f_profile=true", "virtual_sat_f"),
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 

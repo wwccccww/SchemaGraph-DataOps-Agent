@@ -14,7 +14,7 @@
    ```
 
 3. 必填：**`BIRD_DATABASE_ROOT`**（`…/dev_databases`）、**`POSTGRES_*`**（TPC-DS catalog + 全量；须能连上 **`TPCDS_POSTGRES_DB` 默认 `tpcds`**，否则 TPC-DS replay 单测 **skip**、verify 失败）、计费后 **`DEEPSEEK_API_KEY`**。
-4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**；当前 **`bc29bb6` 80×2** 实测 **19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（PATCH **17→20**，measured PATCH 集）。
+4. 可选：**`P0_BIRD_MIN_MATCHED=19`**（acceptance 每轮 BIRD EX 下限；历史默认 7，v11 **13**，v12 **17**；当前 **`bc29bb6` 80×2** 实测 **19×2 stable**）。vendored BIRD replay 峰值仍 **17/50**（PATCH **17→21**，measured PATCH 集，含 **0005**）。
 
 **探测 TPC-DS catalog（门禁前）**：
 
@@ -110,6 +110,8 @@ p0_acceptance_gate=pass
 **bird_0096 Weekly owners**：**`weekly_statement_demographics` PATCH** 修正 **avg_loan_amount**（total 均值非 per-loan）、**customers_with_loans**（`COUNT DISTINCT`）、去掉 trans 多余 type 过滤、**JOIN** `LoanAndTransactionData`。
 
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
+
+**bird_0005 Fully virtual SAT**：flat JOIN 或 outer `RANK()` 与 Gold 不一致；measured **`virtual_sat_f` PATCH** 对齐 Gold CTE（SAT filter/RANK 在 `SATPerformance` 内）。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
 

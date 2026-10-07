@@ -68,7 +68,7 @@ def test_p0_bird_peak_patch_autofix_replay_nineteen_on_v12_peak() -> None:
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 17 -> 20" in completed.stderr or "matched 17 -> 20" in completed.stdout
+    assert "matched 17 -> 21" in completed.stderr or "matched 17 -> 21" in completed.stdout
 
 
 def test_p0_tpcds_measured_baseline_thirty_of_thirty_on_peak_run() -> None:

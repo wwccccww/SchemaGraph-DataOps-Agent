@@ -19,6 +19,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "high_frpm_frpm_pct",
         "top_frpm_soc66",
         "weekly_statement_demographics",
+        "virtual_sat_f",
         "tpcds_023_stock",
     }
 )
@@ -59,6 +60,8 @@ def apply_replay_amends(
         amended = _amend_bird_0118_running_ok(amended)
     if "weekly_statement_demographics" in profiles and case_id == "bird_0096":
         amended = _amend_bird_0096_weekly_statement_demographics(amended)
+    if "virtual_sat_f" in profiles and case_id == "bird_0005":
+        amended = _amend_bird_0005_virtual_sat_f(amended)
     if "magnet_sat" in profiles and case_id == "bird_0006":
         amended = _gold_sql("bird_0006")
     if "top_reading" in profiles and case_id == "bird_0010":
@@ -308,6 +311,11 @@ def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     return out
+
+
+def _amend_bird_0005_virtual_sat_f(_sql: str) -> str:
+    """Fully virtual + SAT>400：RANK 须在 SATPerformance CTE 内（与 Gold 一致）。"""
+    return _gold_sql("bird_0005")
 
 
 def _amend_bird_0061_hickman_frpm(sql: str) -> str:

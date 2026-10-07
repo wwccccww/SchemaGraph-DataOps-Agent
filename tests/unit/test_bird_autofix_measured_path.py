@@ -41,6 +41,9 @@ MEASURED_BIRD_0032_7645BBB_RUN2 = Path(
 MEASURED_BIRD_0096_7645BBB_RUN2 = Path(
     "/workspace/reports/bird/run_20261007T163012Z_7645bbbdf4185664fa86fbee5f7d137cb00312fb/cases/bird_0096.json"
 )
+MEASURED_BIRD_0005_4EAB7CD = Path(
+    "/workspace/reports/bird/run_20261007T183051Z_4eab7cd5e552692bedcfa7fc8ea46afad95af2be/cases/bird_0005.json"
+)
 
 
 class _NoLlmModel:
@@ -412,6 +415,50 @@ async def test_peak_bird_0094_autofix_executes_matching_gold_without_llm() -> No
     pred = conn.execute(inspection.generated_sql).fetchall()
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
     assert inspection.response.status == "succeeded", inspection.response.error
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_4eab7cd_bird_0005_virtual_sat_f() -> None:
+    if not MEASURED_BIRD_0005_4EAB7CD.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("4eab7cd bird_0005 fixture or sqlite missing")
+    raw_sql = json.loads(MEASURED_BIRD_0005_4EAB7CD.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0005")
+    documents, _ = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req-4eab7cd-05",
+            status="failed",
+            sql=raw_sql,
+            attempts=3,
+            error=ApiError(
+                category="other_result_mismatch",
+                message="mismatch",
+                retryable=False,
+            ),
+        ),
+        generated_sql=raw_sql,
+        repair_trace=(
+            {
+                "attempt": 3,
+                "category": "other_result_mismatch",
+                "symptom": "x",
+                "sql_hash": "sha256:deadbeef",
+            },
+        ),
+    )
 
     async def execute_sql(sql: str) -> object:
         return await runner(sql, max_rows=10_000)

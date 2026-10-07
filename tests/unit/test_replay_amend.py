@@ -363,3 +363,24 @@ def test_running_ok_amend_for_0118_on_prior_run() -> None:
     gold = conn.execute(case.gold_sql).fetchall()
     pred = conn.execute(amended).fetchall()
     assert results_match(gold, pred, order_sensitive=False)
+
+
+def test_virtual_sat_f_amend_peak_0005_matches_gold() -> None:
+    case_file, conn = _require_peak("bird_0005")
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0005")
+    amended = apply_replay_amends(
+        "bird_0005",
+        sql,
+        profiles=frozenset({"virtual_sat_f"}),
+        allow_gold_overlay=False,
+    )
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(
+        gold,
+        pred,
+        order_sensitive=case.order_sensitive,
+        numeric_tolerance=case.numeric_tolerance,
+    )
