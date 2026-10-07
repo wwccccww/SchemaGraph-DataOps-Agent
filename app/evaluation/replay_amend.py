@@ -15,6 +15,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "running_ok",
         "financial_salary_gap",
         "hickman_frpm",
+        "top3_sat_poverty",
         "tpcds_023_stock",
     }
 )
@@ -44,6 +45,8 @@ def apply_replay_amends(
         amended = _amend_tpcds_complex_023_stock_grain(amended)
     if "hickman_frpm" in profiles and case_id == "bird_0061":
         amended = _amend_bird_0061_hickman_frpm(amended)
+    if "top3_sat_poverty" in profiles and case_id == "bird_0013":
+        amended = _amend_bird_0013_top3_sat_poverty(amended)
     if "coe_charter" in profiles and case_id == "bird_0002":
         amended = _amend_bird_0002_coe_charter(amended)
     if "running_ok" in profiles and case_id == "bird_0118":
@@ -110,6 +113,38 @@ def _amend_tpcds_complex_023_stock_grain(sql: str) -> str:
         return sql
     new_body = trimmed + group_by
     return sql[: match.start(1)] + new_body + sql[match.end(1) :]
+
+
+def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:
+    """Top-3 SAT excellence：poverty 四档标签与 outer ROUND 精度（非 Gold 覆盖）。"""
+    out = sql
+    out = re.sub(
+        r"ROUND\s*\(\s*excellence_rate\s*,\s*\d+\s*\)",
+        "excellence_rate",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"ROUND\s*\(\s*poverty_rate\s*,\s*\d+\s*\)",
+        "poverty_rate",
+        out,
+        flags=re.IGNORECASE,
+    )
+    canonical = (
+        "WHEN poverty_rate > 0.75 THEN 'High Poverty'\n"
+        "    WHEN poverty_rate > 0.50 THEN 'Medium Poverty'\n"
+        "    WHEN poverty_rate > 0.25 THEN 'Low Poverty'\n"
+        "    ELSE 'Very Low Poverty'"
+    )
+    out = re.sub(
+        r"WHEN poverty_rate\s*>\s*0\.75\s+THEN\s+'[^']+'[\s\S]*?"
+        r"ELSE\s+'[^']+'\s*\n\s*END\s+AS\s+\"Poverty Category\"",
+        f"{canonical}\n  END AS \"Poverty Category\"",
+        out,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    return out
 
 
 def _amend_bird_0061_hickman_frpm(sql: str) -> str:

@@ -27,6 +27,7 @@ def test_release_gate_ready() -> None:
 def test_replay_profile_catalog() -> None:
     assert "coe_charter" in PATCH_AMEND_PROFILES
     assert "hickman_frpm" in PATCH_AMEND_PROFILES
+    assert "top3_sat_poverty" in PATCH_AMEND_PROFILES
     assert "tpcds_023_stock" in PATCH_AMEND_PROFILES
     assert "financial_salary_gap" in PATCH_AMEND_PROFILES
     assert GOLD_OVERLAY_PROFILES["bird_0006"] == "magnet_sat"

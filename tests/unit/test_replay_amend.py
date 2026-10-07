@@ -62,6 +62,25 @@ def test_hickman_frpm_amend_swaps_free_meal_columns() -> None:
     assert "Percent (%) Eligible FRPM (K-12)" in amended
 
 
+def test_top3_sat_poverty_amend_makes_unstable_run2_0013_match_gold() -> None:
+    """7c47339 2× 方差题：run2 错误 poverty 标签 + ROUND 经 PATCH 后 EX=1。"""
+    case_file = Path(
+        "/workspace/reports/bird/run_20261007T144325Z_7c47339f2b65a2095cc3b72d8f8df1700771e740/cases/bird_0013.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("measured run2 bird_0013 fixture missing")
+    if not CA_SCHOOLS_DB.is_file():
+        pytest.skip("bird sqlite snapshot missing")
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0013")
+    amended = apply_replay_amends("bird_0013", sql, profiles=frozenset({"top3_sat_poverty"}))
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_hickman_frpm_amend_makes_v12_peak_0061_match_gold() -> None:
     """v12 峰值 bird_0061 经 hickman_frpm PATCH 离线 EX=1（对齐 b2b1884 实测 +2 题之一）。"""
     case_file, conn = _require_peak("bird_0061")
