@@ -54,9 +54,10 @@ def test_hickman_frpm_amend_swaps_free_meal_columns() -> None:
     payload = json.loads(case_file.read_text())
     sql = payload["prediction"]["sql"]
     amended = apply_replay_amends("bird_0061", sql, profiles=frozenset({"hickman_frpm"}))
-    assert "Free Meal Count (K-12)" not in amended or "AS FRPMCount" not in amended.split(
-        "Free Meal Count"
-    )[0][-20:]
+    assert (
+        "Free Meal Count (K-12)" not in amended
+        or "AS FRPMCount" not in amended.split("Free Meal Count")[0][-20:]
+    )
     assert "FRPM Count (K-12)" in amended
     assert "Percent (%) Eligible FRPM (K-12)" in amended
 
