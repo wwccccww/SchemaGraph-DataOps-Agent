@@ -42,6 +42,7 @@ else
   echo "bird_sqlite=missing fetch=./scripts/fetch_bird_dev_databases.sh"
 fi
 PEAK="${BIRD_PEAK_RUN:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import bird_peak_run_dir; print(bird_peak_run_dir())')}"
+E5482A4="${BIRD_E5482A4_RUN:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import bird_e5482a4_measured_run_dir; print(bird_e5482a4_measured_run_dir())')}"
 TPCDS_PEAK="${TPCDS_PEAK_RUN:-$(python3 -c 'from app.evaluation.replay_snapshot_paths import tpcds_peak_run_dir; print(tpcds_peak_run_dir())')}"
 if [[ "${EXTERNAL_P0_STATUS_SKIP_REPLAY:-0}" == "1" ]]; then
   echo "replay_skipped=external_p0_status_skip_replay"
@@ -54,6 +55,15 @@ else
     python3 -m app.evaluation.external_model --source bird \
       --database-root "$BIRD_DATABASE_ROOT" --replay-run "$PEAK" --replay-patch-autofix 2>&1 \
       | grep "replay EX:" || true
+    if [[ -d "$E5482A4/cases" ]]; then
+      echo "== BIRD e5482a4 measured replay (raw) =="
+      python3 -m app.evaluation.external_model --source bird \
+        --database-root "$BIRD_DATABASE_ROOT" --replay-run "$E5482A4" 2>&1 | grep "replay EX:" || true
+      echo "== BIRD e5482a4 measured replay (PATCH autofix) =="
+      python3 -m app.evaluation.external_model --source bird \
+        --database-root "$BIRD_DATABASE_ROOT" --replay-run "$E5482A4" --replay-patch-autofix 2>&1 \
+        | grep "replay EX:" || true
+    fi
   else
     echo "skip BIRD replay: set BIRD_DATABASE_ROOT and ensure peak run at $PEAK" >&2
   fi

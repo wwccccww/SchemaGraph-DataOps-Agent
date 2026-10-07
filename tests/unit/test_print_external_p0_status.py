@@ -15,7 +15,10 @@ def _fast_status_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 def test_print_external_p0_status_script_documents_skip_replay_env() -> None:
     script = Path(__file__).resolve().parents[2] / "scripts/print_external_p0_status.sh"
-    assert "EXTERNAL_P0_STATUS_SKIP_REPLAY" in script.read_text(encoding="utf-8")
+    body = script.read_text(encoding="utf-8")
+    assert "EXTERNAL_P0_STATUS_SKIP_REPLAY" in body
+    assert "bird_e5482a4_measured_run_dir" in body
+    assert "BIRD e5482a4 measured replay" in body
 
 
 def test_print_external_p0_status_runs_without_bird_replay() -> None:

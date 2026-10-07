@@ -36,6 +36,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`tpcds_postgres_catalog=ready\|unreachable`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`；`wait_for_billing_and_run_p0.sh`（`tpcds_postgres_catalog_reachable`） |
 | **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |
 | **`replay_skipped=external_p0_status_skip_replay`** | `print_external_p0_status.sh` 在 **`EXTERNAL_P0_STATUS_SKIP_REPLAY=1`** 时（单测 / 快速扫键；**运维 acceptance 勿设**，须看 replay EX 行） |
+| **`== BIRD e5482a4 measured replay ==`** | `print_external_p0_status.sh`（vendored **`bird_e5482a4_measured_run_dir`**：**24/50** raw + **24→50** PATCH；measured PATCH **50/50** 见单测） |
 | **`p0_acceptance_lock=free\|held`** | `print_external_p0_status.sh`：全量 acceptance **`flock`** 锁是否被占用（**`P0_ACCEPTANCE_LOCK_FILE`**） |
 | **`peak_ex0_frozen_findings=pass_min_33`** | `print_external_p0_status.sh`：v12 峰值 EX=0 inventory（`test_v12_measured_ex0_frozen_finding_coverage_floor` **33/33**） |
 | **`p0_post_billing=blocked_resume_poll`** | `wait_for_billing_and_run_p0.sh`：全量 acceptance 仍 **402→exit 2** 时写 wait 日志并**继续轮询**（不退出 tmux） |
