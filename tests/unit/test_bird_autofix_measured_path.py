@@ -53,6 +53,7 @@ MEASURED_BIRD_0010_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0010.json"
 MEASURED_BIRD_0011_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0011.json"
 MEASURED_BIRD_0113_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0113.json"
 MEASURED_BIRD_0066_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0066.json"
+MEASURED_BIRD_0078_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0078.json"
 
 
 def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
@@ -659,6 +660,18 @@ async def test_score_prediction_patches_e5482a4_bird_0066_directly_funded_join()
     )
     raw_sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == "bird_0066")
+    trace = await _score_bird_saved_sql(case, raw_sql)
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_e5482a4_bird_0078_adelanto_grade_span() -> None:
+    """Join/粒度样例（v12 join_semantics 集）：e5482a4 mismatch → measured PATCH ex=1。"""
+    if not MEASURED_BIRD_0078_E5482A4.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("e5482a4 bird_0078 fixture or sqlite missing")
+    raw_sql = json.loads(MEASURED_BIRD_0078_E5482A4.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0078")
     trace = await _score_bird_saved_sql(case, raw_sql)
     assert trace.ex == 1
     assert trace.primary_class == "matched"
