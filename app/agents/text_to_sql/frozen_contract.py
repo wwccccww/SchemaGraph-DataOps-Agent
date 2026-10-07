@@ -4229,7 +4229,7 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
         if item == "coe_charter_profile=true":
             hints.append(
                 "Fresno COE charter：CharterSchoolInfo + SATPerformance 两 CTE；"
-                "CharterSchoolName=frpm.`School Name`；PercentFRPM 小数列；"
+                "CharterSchoolName=frpm.`School Name`；PercentFRPM 用小数列（不×100）；"
                 "FRPMCategory=High/Medium/Low FRPM；CurrentStatus=ClosedDate Active/Closed。"
             )
         if item == "financial_running_ok_profile=true":

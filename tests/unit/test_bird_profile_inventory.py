@@ -126,7 +126,7 @@ def test_v11_measured_ex0_frozen_finding_coverage_floor() -> None:
         sql = (payload.get("prediction") or {}).get("sql") or ""
         if check_frozen_semantic_contract(contract_for(case), sql, dialect="sqlite"):
             with_findings += 1
-    assert with_findings >= 30
+    assert with_findings >= 37
 
 
 def test_peak_v15_ex0_saved_sql_surfaces_frozen_findings() -> None:
