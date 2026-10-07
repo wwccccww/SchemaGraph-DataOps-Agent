@@ -52,6 +52,7 @@ on:
       - "tests/unit/test_ablation.py"
       - "docs/benchmark.md"
       - "docs/external_gold_p0_runbook.md"
+      - ".env.example"
       - "tests/unit/test_print_external_p0_status.py"
       - "tests/unit/test_external_gold_runbook_docs.py"
       - "tests/unit/test_run_bird_p0_full_eval_script.py"
