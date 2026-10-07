@@ -107,7 +107,7 @@ def test_p1_replay_patch_autofix_fourteen_of_fifty() -> None:
     assert "matched 13 -> 14" in completed.stderr or "matched 13 -> 14" in completed.stdout
 
 
-def test_p1_offline_ceiling_script_twenty_two_of_fifty() -> None:
+def test_p1_offline_ceiling_script_twenty_three_of_fifty() -> None:
     if not BIRD_PEAK_RUN.is_dir() or not bird_sqlite_replay_ready():
         pytest.skip("bird replay fixtures unavailable")
     script = Path(__file__).resolve().parents[2] / "scripts/replay_bird_offline_ceiling.sh"
@@ -121,7 +121,7 @@ def test_p1_offline_ceiling_script_twenty_two_of_fifty() -> None:
         env={**os.environ, "BIRD_DATABASE_ROOT": str(BIRD_DB_ROOT)},
     )
     assert completed.returncode == 0, completed.stderr
-    assert "matched 13 -> 22" in completed.stderr or "matched 13 -> 22" in completed.stdout
+    assert "matched 13 -> 23" in completed.stderr or "matched 13 -> 23" in completed.stdout
 
 
 def test_p1_replay_tpcds_model_baseline_thirty_of_thirty() -> None:
