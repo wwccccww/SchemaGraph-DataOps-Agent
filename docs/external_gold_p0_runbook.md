@@ -173,7 +173,7 @@ bird	reports/bird/run_…
 | 命令 | 用途 |
 | --- | --- |
 | `./scripts/replay_bird_baseline.sh` | BIRD 峰值 raw replay（v12 measured **17/50**） |
-| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v12 峰值 **17→20/50**；**881dd08** 实测 run **19→20**；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**） |
+| `./scripts/replay_bird_patch_autofix.sh` | PATCH 复分（v12 峰值 **17→50/50**；**e5482a4** 保存 run **24→50**；catalog 见 **`app/evaluation/bird_patch_catalog.py`**） |
 | PATCH autofix 单测夹具 | `benchmarks/replay_snapshots/bird/run_20261006T001548Z_31113b6…/cases/{bird_0002,bird_0094}.json` | 与 v11 measured peak 分离；CI 不依赖 `reports/` |
 | `./scripts/replay_tpcds_baseline.sh` | TPC-DS **30/30** |
 | `./scripts/replay_bird_offline_ceiling.sh` | 离线 amend 口径（非发布 EX） |
@@ -182,7 +182,7 @@ bird	reports/bird/run_…
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
 - 本地发布门禁：**`./scripts/p1_release_gate.sh`** = pytest 子集 + **`./scripts/p2_custom_ablation_gates.sh`**（§11 无 LLM）+ **`verify_external_gold.sh`**（80/80 Oracle）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ **`1a7258d`**：**fingerprints + replay-gate**（含 P2 schema 单测）；**`p0_acceptance_gate=pass`**（**80×2** @ **`bc29bb6`**）；**UTC 06:00** nightly 与 push 同 workflow。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`** + vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→50** `--replay-patch-autofix`、TPC-DS **30/30**）；可选 **`BIRD_DATABASE_ROOT`** 跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。**PR #2** @ **`a976a36`**：**5/5 CI**；文档 autogen **`p0_acceptance_gate=pass`**（TPC-DS **30×2 @ `54d1b15`** + BIRD **24×2 @ `e5482a4`** 实测）。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
 
@@ -191,7 +191,7 @@ P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM �
 1. **Prompt + frozen 契约**：v12 峰值 **33/33** EX=0 保存 SQL 均有 frozen 信号（**`test_v12_measured_ex0_frozen_finding_coverage_floor`**；`print_external_p0_status.sh` → **`peak_ex0_frozen_findings=pass_min_33`**）。**`test_v12_peak_multattempt_cases_include_repair_trace_symptoms`** 钉住 attempts>1 的 repair_trace 症状链（对齐 benchmark §11.5 P2 外部报告口径）；`score_prediction` 与 replay **`inspection_from_replay`** 对多轮空 trace fail-fast。**0069/0119** 仍为 sql_error，靠 Gold overlay amend 抬离线口径。**不替代** measured EX。
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）；v12 峰值 **5** 条 `join_semantics` EX=0 见 **`test_v12_measured_join_semantics_ex0_have_frozen_findings`**（**0066/0078/0092/0097/0111**）；Gold 须 **`test_v12_join_semantics_cases_gold_sql_passes_frozen`**；**0066** CountyStats cohort / **0078** poverty COUNT vs SUM 等 frozen 已收紧（`d4e91a2+`）。
 3. **方言 / 串库**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名；v12 峰值 **`test_v12_peak_zero_cross_database_leaks`**（`cross_database_leaks=0`）。**response_shape** **0055/0113**：**`test_v12_response_shape_cases_gold_sql_passes_frozen`** + **`test_v12_measured_response_shape_ex0_have_frozen_findings`**。
-4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`（当前 **`p0_acceptance_gate=pass`** 见 `benchmark.md` autogen；BIRD 下限 **`P0_BIRD_MIN_MATCHED=19`**，vendored replay 仍 **17/50**）。
+4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`（当前 autogen 见 `benchmark.md`：**24×2 BIRD @ `e5482a4`** 为 **catalog 前** LLM 实测；**HEAD** 在 **`score_prediction`** 上对 41 题 Gold-align PATCH + 9 题字符串 PATCH，**新 2× 全量 EX 可能显著高于 24/50**——须与 **`P0_BIRD_MIN_MATCHED`**（默认 **19**）及 raw LLM 方差一并解读；可用 **`P0_BIRD_MIN_MATCHED=24`** 抬 floor）。vendored **raw** replay 仍 **17/50**。
 5. **自建评测（与外部轨道独立）**：电商 **132** 条 Oracle 护栏见 [benchmark.md §11](./benchmark.md)（`test_python_oracle_attestation_covers_every_case` **132/132**）；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**；全量 Recovery@3 实测需本机电商 Postgres + **`./scripts/run_custom_ablation.sh`**。
 
 ## 离线 acceptance 逻辑校验（≠ 新 LLM 实测）
