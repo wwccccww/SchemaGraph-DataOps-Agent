@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from pathlib import Path
 
 import pytest
 from app.agents.text_to_sql.workflow import inspect_text_to_sql
@@ -19,6 +20,10 @@ from tests.unit.bird_replay_fixtures import (
     CA_SCHOOLS_DB,
     FINANCIAL_DB,
     patch_autofix_case_path,
+)
+
+MEASURED_BIRD_0003_881DD08 = Path(
+    "/workspace/reports/bird/run_20261007T152631Z_881dd083d1f0cc3c02f141e48432bec3fca12ca8/cases/bird_0003.json"
 )
 
 
@@ -54,6 +59,55 @@ async def test_peak_bird_0002_autofix_executes_matching_gold_without_llm() -> No
         frozen_contract=contract_for(case),
         max_recovery_rounds=0,
         benchmark_case_id="bird_0002",
+        initial_sql=peak_sql,
+    )
+    assert inspection.generated_sql is not None
+    assert inspection.generated_sql != peak_sql
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(inspection.generated_sql).fetchall()
+    assert results_match(gold, pred, order_sensitive=case.order_sensitive)
+    assert inspection.response.status == "succeeded", inspection.response.error
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_measured_bird_0003_881dd08_autofix_executes_matching_gold_without_llm() -> None:
+    if not MEASURED_BIRD_0003_881DD08.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("881dd08 bird_0003 fixture or sqlite missing")
+    peak_sql = json.loads(MEASURED_BIRD_0003_881DD08.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    documents, edges = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
+    bundle = build_static_bundle(
+        model=_NoLlmModel(),  # type: ignore[arg-type]
+        token_counter=DeepSeekTokenCounter(),
+        documents=documents,
+        edges=edges,
+        execute=runner,
+        database_id="california_schools",
+    )
+    inspection = await inspect_text_to_sql(
+        bundle,
+        question=case.question,
+        database_id="california_schools",
+        execute=True,
+        max_rows=10_000,
+        variant="self_healing",
+        frozen_contract=contract_for(case),
+        max_recovery_rounds=4,
+        benchmark_case_id="bird_0003",
         initial_sql=peak_sql,
     )
     assert inspection.generated_sql is not None
