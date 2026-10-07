@@ -8,7 +8,8 @@ from app.evaluation.bird_patch_catalog import bird_filter_profile_pairs
 from app.evaluation.replay_amend import PATCH_AMEND_PROFILES, apply_replay_amends
 from app.schemas.benchmark import SemanticContract
 
-_PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = bird_filter_profile_pairs() + (
+_PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
+    *bird_filter_profile_pairs(),
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 

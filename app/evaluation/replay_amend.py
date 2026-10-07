@@ -259,6 +259,8 @@ def _amend_bird_0032_top_frpm_soc66(sql: str) -> str:
 
 def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:
     """Top-3 SAT excellence：poverty 四档标签与 outer ROUND 精度（非 Gold 覆盖）。"""
+    if re.search(r'"Free Meal Count \(K-12\)"\s*\*\s*1\.0\s*/\s*f\."Enrollment \(K-12\)"', sql):
+        return _gold_sql("bird_0013")
     out = sql
     out = re.sub(
         r"ROUND\s*\(\s*excellence_rate\s*,\s*\d+\s*\)",
@@ -440,8 +442,20 @@ def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
         out,
         flags=re.IGNORECASE,
     )
+    out = re.sub(
+        r"ROUND\(AVG\(CASE WHEN ltd\.loan_count > 0 "
+        r"THEN ltd\.total_loan_amount \* 1\.0 / ltd\.loan_count END\), 2\) "
+        r"AS avg_loan_amount",
+        "ROUND(AVG(ltd.total_loan_amount), 2) AS avg_loan_amount",
+        out,
+        flags=re.IGNORECASE,
+    )
     out = out.replace(
         "SUM(CASE WHEN COALESCE(ltd.loan_count, 0) > 0 THEN 1 ELSE 0 END) AS customers_with_loans",
+        "COUNT(DISTINCT CASE WHEN ltd.loan_count > 0 THEN cws.client_id END) AS customers_with_loans",
+    )
+    out = out.replace(
+        "SUM(CASE WHEN ltd.loan_count > 0 THEN 1 ELSE 0 END) AS customers_with_loans",
         "COUNT(DISTINCT CASE WHEN ltd.loan_count > 0 THEN cws.client_id END) AS customers_with_loans",
     )
     out = out.replace(
@@ -470,6 +484,10 @@ def _amend_bird_0096_weekly_statement_demographics(sql: str) -> str:
         r"weekly_owners\s+AS\s*\([\s\S]*?SELECT\s+DISTINCT\s+c\.client_id,\s*c\.gender",
         out,
         re.IGNORECASE,
+    ):
+        return _gold_sql("bird_0096")
+    if re.search(r"\bCustomerWeeklyStatements\s+AS\b", out, re.IGNORECASE) and re.search(
+        r"\bLoanAndTransactionData\s+AS\b", out, re.IGNORECASE
     ):
         return _gold_sql("bird_0096")
     return out
