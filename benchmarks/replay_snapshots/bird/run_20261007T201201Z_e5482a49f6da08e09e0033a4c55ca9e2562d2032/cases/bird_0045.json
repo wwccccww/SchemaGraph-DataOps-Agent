@@ -1,0 +1,204 @@
+{
+  "case_id": "bird_0045",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolStats AS (SELECT s.School AS School, ss.AvgScrWrite AS AvgScrWrite, ss.AvgScrRead AS AvgScrRead, ss.AvgScrMath AS AvgScrMath, (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) AS TotalSATScore, ss.NumTstTakr AS NumTstTakr, f.\"Enrollment (K-12)\" AS \"Enrollment (K-12)\", ROUND(f.\"Percent (%) Eligible FRPM (K-12)\" * 100, 2) AS FRPMPercentage, s.District AS District, RANK() OVER (ORDER BY ss.AvgScrWrite DESC) AS WriteScoreRank, RANK() OVER (ORDER BY (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) DESC) AS TotalScoreRank FROM schools AS s JOIN satscores AS ss ON ss.cds = s.CDSCode LEFT JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE s.AdmFName1 = 'Ricci' AND s.AdmLName1 = 'Ulrich'), DistrictAverages AS (SELECT s.District AS District, AVG(ss.AvgScrWrite) AS DistrictAvgWriteScore FROM schools AS s JOIN satscores AS ss ON ss.cds = s.CDSCode GROUP BY s.District) SELECT st.School AS School, st.AvgScrWrite AS AvgScrWrite, st.AvgScrRead AS AvgScrRead, st.AvgScrMath AS AvgScrMath, st.TotalSATScore AS TotalSATScore, st.NumTstTakr AS NumTstTakr, st.\"Enrollment (K-12)\" AS \"Enrollment (K-12)\", st.FRPMPercentage AS FRPMPercentage, st.WriteScoreRank AS WriteScoreRank, st.TotalScoreRank AS TotalScoreRank, ROUND(da.DistrictAvgWriteScore, 2) AS DistrictAvgWriteScore, CASE WHEN st.AvgScrWrite > da.DistrictAvgWriteScore THEN 'Above District Average' WHEN st.AvgScrWrite = da.DistrictAvgWriteScore THEN 'Equal to District Average' ELSE 'Below District Average' END AS ComparisonToDistrictAvg, ROUND(st.AvgScrWrite - da.DistrictAvgWriteScore, 2) AS DifferenceFromDistrictAvg, ROUND(st.NumTstTakr * 100.0 / st.\"Enrollment (K-12)\", 2) AS PercentageTakingSAT FROM SchoolStats AS st JOIN DistrictAverages AS da ON da.District = st.District ORDER BY st.WriteScoreRank",
+    "sql_hash": "sha256:822e977a59edc3aa3ff421a89b8da964a5b0df3671c751eb87ad546db85d87b8",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "AvgScrWrite",
+      "AvgScrRead",
+      "AvgScrMath",
+      "TotalSATScore",
+      "NumTstTakr",
+      "Enrollment (K-12)",
+      "FRPMPercentage",
+      "WriteScoreRank",
+      "TotalScoreRank",
+      "DistrictAvgWriteScore",
+      "ComparisonToDistrictAvg",
+      "DifferenceFromDistrictAvg",
+      "PercentageTakingSAT"
+    ],
+    "joins": [
+      "JOIN DistrictAverages ON da.District = st.District",
+      "JOIN satscores ON ss.cds = s.CDSCode",
+      "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+      "JOIN satscores ON ss.cds = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "st.WriteScoreRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "AvgScrWrite",
+          "AvgScrRead",
+          "AvgScrMath",
+          "TotalSATScore",
+          "NumTstTakr",
+          "Enrollment (K-12)",
+          "FRPMPercentage",
+          "WriteScoreRank",
+          "TotalScoreRank",
+          "DistrictAvgWriteScore",
+          "ComparisonToDistrictAvg",
+          "DifferenceFromDistrictAvg",
+          "PercentageTakingSAT"
+        ],
+        "joins": [
+          "JOIN DistrictAverages ON da.District = st.District",
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+          "JOIN satscores ON ss.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SchoolStats",
+        "projections": [
+          "School",
+          "AvgScrWrite",
+          "AvgScrRead",
+          "AvgScrMath",
+          "TotalSATScore",
+          "NumTstTakr",
+          "Enrollment (K-12)",
+          "FRPMPercentage",
+          "District",
+          "WriteScoreRank",
+          "TotalScoreRank"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "DistrictAverages",
+        "projections": [
+          "District",
+          "DistrictAvgWriteScore"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode"
+        ],
+        "group_by": [
+          "s.District"
+        ],
+        "aggregations": [
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "DistrictAverages:s.District"
+    ],
+    [
+      "predicted_group_by",
+      "DistrictAverages:s.District"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "SchoolStats,DistrictAverages"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:96a951821fa9ee660c9b4af505bbfb2c4faaf4330211dcef832b525a1b8dc3ef;2:accepted:"
+    ]
+  ]
+}

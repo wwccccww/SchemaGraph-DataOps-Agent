@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from app.evaluation.replay_snapshot_paths import (
+    bird_e5482a4_measured_run_dir,
     bird_peak_run_dir,
     bird_v11_measured_run_dir,
     bird_v15_patch_autofix_run_dir,
@@ -15,6 +16,7 @@ from app.evaluation.replay_snapshot_paths import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BIRD_PEAK_RUN = bird_peak_run_dir()
+BIRD_E5482A4_RUN = bird_e5482a4_measured_run_dir()
 BIRD_V11_MEASURED_RUN = bird_v11_measured_run_dir()
 BIRD_V15_PATCH_AUTOFIX_RUN = bird_v15_patch_autofix_run_dir()
 BIRD_DB_ROOT = Path("/tmp/bird_dev/minidev/MINIDEV/dev_databases")

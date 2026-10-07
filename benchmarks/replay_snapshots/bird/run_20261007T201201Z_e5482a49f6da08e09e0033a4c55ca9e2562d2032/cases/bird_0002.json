@@ -1,0 +1,198 @@
+{
+  "case_id": "bird_0002",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH CharterSchoolInfo AS (SELECT frpm.CDSCode AS CDSCode, frpm.\"School Name\" AS CharterSchoolName, frpm.\"Charter Funding Type\" AS \"Charter Funding Type\", frpm.\"Enrollment (K-12)\" AS Enrollment, frpm.\"Percent (%) Eligible FRPM (K-12)\" AS PercentFRPM, CASE WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'High FRPM' WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'Medium FRPM' ELSE 'Low FRPM' END AS FRPMCategory, STRFTIME('%Y', schools.OpenDate) AS YearOpened, CASE WHEN schools.ClosedDate IS NULL OR schools.ClosedDate = '' THEN 'Active' ELSE 'Closed' END AS CurrentStatus, schools.Zip AS Zip, schools.City AS City FROM frpm JOIN schools ON frpm.CDSCode = schools.CDSCode WHERE frpm.\"District Name\" = 'Fresno County Office of Education' AND frpm.\"Charter School (Y/N)\" = 1 AND frpm.\"Enrollment (K-12)\" > 0), SATPerformance AS (SELECT satscores.cds AS cds, satscores.NumTstTakr AS SATTestTakers, (satscores.AvgScrRead + satscores.AvgScrMath + satscores.AvgScrWrite) AS TotalSATScore, CASE WHEN satscores.NumTstTakr > 0 THEN CAST(satscores.NumGE1500 AS REAL) / satscores.NumTstTakr ELSE NULL END AS PercentageAbove1500 FROM satscores WHERE satscores.rtype = 'S') SELECT csi.Zip AS Zip, csi.City AS City, csi.CharterSchoolName AS CharterSchoolName, csi.\"Charter Funding Type\" AS \"Charter Funding Type\", csi.Enrollment AS Enrollment, csi.PercentFRPM AS PercentFRPM, csi.FRPMCategory AS FRPMCategory, csi.YearOpened AS YearOpened, csi.CurrentStatus AS CurrentStatus, sp.SATTestTakers AS SATTestTakers, sp.TotalSATScore AS TotalSATScore, sp.PercentageAbove1500 AS PercentageAbove1500, RANK() OVER (ORDER BY sp.TotalSATScore DESC) AS SATRanking, RANK() OVER (ORDER BY csi.Enrollment DESC) AS EnrollmentRanking FROM CharterSchoolInfo AS csi LEFT JOIN SATPerformance AS sp ON sp.cds = csi.CDSCode ORDER BY CASE WHEN sp.TotalSATScore IS NULL THEN 1 ELSE 0 END, sp.TotalSATScore DESC, csi.Enrollment DESC",
+    "sql_hash": "sha256:846a9cd9128d4a82bd6bd0f473d4399e755d5785f7f0c38e61de445361a9b1d1",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "Zip",
+      "City",
+      "CharterSchoolName",
+      "Charter Funding Type",
+      "Enrollment",
+      "PercentFRPM",
+      "FRPMCategory",
+      "YearOpened",
+      "CurrentStatus",
+      "SATTestTakers",
+      "TotalSATScore",
+      "PercentageAbove1500",
+      "SATRanking",
+      "EnrollmentRanking"
+    ],
+    "joins": [
+      "LEFT JOIN SATPerformance ON sp.cds = csi.CDSCode",
+      "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "CASE WHEN sp.TotalSATScore IS NULL THEN 1 ELSE 0 END ASC",
+      "sp.TotalSATScore DESC",
+      "csi.Enrollment DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "Zip",
+          "City",
+          "CharterSchoolName",
+          "Charter Funding Type",
+          "Enrollment",
+          "PercentFRPM",
+          "FRPMCategory",
+          "YearOpened",
+          "CurrentStatus",
+          "SATTestTakers",
+          "TotalSATScore",
+          "PercentageAbove1500",
+          "SATRanking",
+          "EnrollmentRanking"
+        ],
+        "joins": [
+          "LEFT JOIN SATPerformance ON sp.cds = csi.CDSCode",
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "CharterSchoolInfo",
+        "projections": [
+          "CDSCode",
+          "CharterSchoolName",
+          "Charter Funding Type",
+          "Enrollment",
+          "PercentFRPM",
+          "FRPMCategory",
+          "YearOpened",
+          "CurrentStatus",
+          "Zip",
+          "City"
+        ],
+        "joins": [
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SATPerformance",
+        "projections": [
+          "cds",
+          "SATTestTakers",
+          "TotalSATScore",
+          "PercentageAbove1500"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

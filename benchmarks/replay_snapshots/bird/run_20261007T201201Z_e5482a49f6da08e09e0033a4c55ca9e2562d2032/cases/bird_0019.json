@@ -1,0 +1,188 @@
+{
+  "case_id": "bird_0019",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: % Free/Reduced Price Meals 用 ROUND(Percent (%) Eligible FRPM (K-12)*100,2)||<literal>；projection_mismatch: Is Charter 用 frpm `Charter School (Y/N)`（Academic Year=<literal>）",
+  "attempts": 5,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH ranked AS (\n  SELECT\n    s.School AS \"Top Math School\",\n    s.Phone AS \"Phone Number\",\n    s.Website AS \"Website\",\n    ss.AvgScrMath AS \"Math Score\",\n    ss.AvgScrRead AS \"Reading Score\",\n    ss.AvgScrWrite AS \"Writing Score\",\n    (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) AS \"Total Score\",\n    CASE s.Charter WHEN 1 THEN 'Yes' WHEN 0 THEN 'No' ELSE 'Unknown' END AS \"Is Charter School\",\n    f.\"Enrollment (K-12)\" AS \"Enrollment\",\n    ROUND(f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" * 100, 2) || '%' AS \"% Free/Reduced Price Meals\",\n    RANK() OVER (ORDER BY ss.AvgScrMath DESC) AS MathRank\n  FROM schools s\n  JOIN satscores ss ON ss.cds = s.CDSCode\n  JOIN frpm f ON f.CDSCode = s.CDSCode\n  WHERE s.StatusType = 'Active'\n    AND ss.NumTstTakr >= 10\n    AND ss.rtype = 'S'\n    AND f.\"Academic Year\" = '2014-2015'\n    AND f.\"Enrollment (K-12)\" > 0\n)\nSELECT\n  r.\"Top Math School\",\n  r.\"Phone Number\",\n  r.\"Website\",\n  r.\"Math Score\",\n  r.\"Reading Score\",\n  r.\"Writing Score\",\n  r.\"Total Score\",\n  r.\"Is Charter School\",\n  r.\"Enrollment\",\n  r.\"% Free/Reduced Price Meals\",\n  (SELECT COUNT(DISTINCT cds) FROM satscores WHERE rtype = 'S') AS \"Total Schools in SAT Dataset\",\n  (SELECT AVG(AvgScrMath) FROM satscores WHERE rtype = 'S') AS \"Average Math Score Across All Schools\"\nFROM ranked r\nWHERE r.MathRank = 1\nORDER BY r.\"Math Score\" DESC\nLIMIT 1",
+    "sql_hash": "sha256:b3503eb49c4b2cd3b7ad0203f635f352ac98a56a1601c92e325f4e4d4ffe2673",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "Top Math School",
+      "Phone Number",
+      "Website",
+      "Math Score",
+      "Reading Score",
+      "Writing Score",
+      "Total Score",
+      "Is Charter School",
+      "Enrollment",
+      "% Free/Reduced Price Meals",
+      "Total Schools in SAT Dataset",
+      "Average Math Score Across All Schools"
+    ],
+    "joins": [
+      "JOIN satscores ON ss.cds = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE r.MathRank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg"
+    ],
+    "order_by": [
+      "r.\"Math Score\" DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "Top Math School",
+          "Phone Number",
+          "Website",
+          "Math Score",
+          "Reading Score",
+          "Writing Score",
+          "Total Score",
+          "Is Charter School",
+          "Enrollment",
+          "% Free/Reduced Price Meals",
+          "Total Schools in SAT Dataset",
+          "Average Math Score Across All Schools"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg"
+        ]
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "Top Math School",
+          "Phone Number",
+          "Website",
+          "Math Score",
+          "Reading Score",
+          "Writing Score",
+          "Total Score",
+          "Is Charter School",
+          "Enrollment",
+          "% Free/Reduced Price Meals",
+          "MathRank"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b93a9373417ab7b8b603e084040fe7bf961f6d9b43d1ad40e672dd0e98f71e91;2:projection_mismatch:sha256:257c017cc4b8d9cc6ce406f8b136ca1628006da7502ba486ffb046b85fa02bf6;3:projection_mismatch:sha256:b93a9373417ab7b8b603e084040fe7bf961f6d9b43d1ad40e672dd0e98f71e91;4:projection_mismatch:sha256:257c017cc4b8d9cc6ce406f8b136ca1628006da7502ba486ffb046b85fa02bf6;5:projection_mismatch:sha256:b93a9373417ab7b8b603e084040fe7bf961f6d9b43d1ad40e672dd0e98f71e91"
+    ]
+  ]
+}

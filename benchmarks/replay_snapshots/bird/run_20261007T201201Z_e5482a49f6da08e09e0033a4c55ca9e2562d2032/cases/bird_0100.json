@@ -1,0 +1,203 @@
+{
+  "case_id": "bird_0100",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "account",
+    "disp",
+    "loan",
+    "order",
+    "trans",
+    "card",
+    "client",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH sokolov_female_owners AS (\n  SELECT DISTINCT\n    c.client_id,\n    CAST(strftime('%Y', c.birth_date) AS INTEGER) AS birth_year,\n    a.account_id,\n    CAST(strftime('%Y', a.date) AS INTEGER) AS account_year\n  FROM client c\n  JOIN district d ON c.district_id = d.district_id\n  JOIN disp dp ON dp.client_id = c.client_id\n  JOIN account a ON a.account_id = dp.account_id\n  WHERE c.gender = 'F'\n    AND CAST(strftime('%Y', c.birth_date) AS INTEGER) < 1950\n    AND d.A2 = 'Sokolov'\n    AND dp.type = 'OWNER'\n),\nclient_loan_status AS (\n  SELECT\n    s.client_id,\n    MAX(CASE WHEN l.loan_id IS NOT NULL THEN 1 ELSE 0 END) AS has_loan,\n    MAX(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS has_good_loan,\n    MAX(CASE WHEN l.status = 'D' THEN 1 ELSE 0 END) AS has_debt\n  FROM sokolov_female_owners s\n  LEFT JOIN loan l ON l.account_id = s.account_id\n  GROUP BY s.client_id\n)\nSELECT\n  COUNT(DISTINCT s.client_id) AS total_female_clients,\n  ROUND(AVG(s.account_year - s.birth_year), 2) AS avg_age_at_account_opening,\n  SUM(cls.has_loan) AS clients_with_loans,\n  SUM(cls.has_good_loan) AS clients_with_good_loans,\n  SUM(cls.has_debt) AS clients_with_debt,\n  MIN(s.account_year) AS earliest_account_year,\n  MAX(s.account_year) AS latest_account_year\nFROM sokolov_female_owners s\nJOIN client_loan_status cls ON cls.client_id = s.client_id;",
+    "sql_hash": "sha256:c104ea28dd634b0dc2c2b33f6e3110d5eb151eafffcee89a70b929fb74035126",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan"
+    ],
+    "projections": [
+      "total_female_clients",
+      "avg_age_at_account_opening",
+      "clients_with_loans",
+      "clients_with_good_loans",
+      "clients_with_debt",
+      "earliest_account_year",
+      "latest_account_year"
+    ],
+    "joins": [
+      "JOIN client_loan_status ON cls.client_id = s.client_id",
+      "JOIN district ON c.district_id = d.district_id",
+      "JOIN disp ON dp.client_id = c.client_id",
+      "JOIN account ON a.account_id = dp.account_id",
+      "LEFT JOIN loan ON l.account_id = s.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum",
+      "min",
+      "max"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "total_female_clients",
+          "avg_age_at_account_opening",
+          "clients_with_loans",
+          "clients_with_good_loans",
+          "clients_with_debt",
+          "earliest_account_year",
+          "latest_account_year"
+        ],
+        "joins": [
+          "JOIN client_loan_status ON cls.client_id = s.client_id",
+          "JOIN district ON c.district_id = d.district_id",
+          "JOIN disp ON dp.client_id = c.client_id",
+          "JOIN account ON a.account_id = dp.account_id",
+          "LEFT JOIN loan ON l.account_id = s.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum",
+          "min",
+          "max"
+        ]
+      },
+      {
+        "name": "sokolov_female_owners",
+        "projections": [
+          "client_id",
+          "birth_year",
+          "account_id",
+          "account_year"
+        ],
+        "joins": [
+          "JOIN district ON c.district_id = d.district_id",
+          "JOIN disp ON dp.client_id = c.client_id",
+          "JOIN account ON a.account_id = dp.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "client_loan_status",
+        "projections": [
+          "client_id",
+          "has_loan",
+          "has_good_loan",
+          "has_debt"
+        ],
+        "joins": [
+          "LEFT JOIN loan ON l.account_id = s.account_id"
+        ],
+        "group_by": [
+          "s.client_id"
+        ],
+        "aggregations": [
+          "max"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      "client_loan_status:s.client_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b7855885e11aa94a2c4b94ded0a09daac8c1f5b2873a3bf209ed9b5f1664698b;2:no_progress:sha256:b7855885e11aa94a2c4b94ded0a09daac8c1f5b2873a3bf209ed9b5f1664698b"
+    ]
+  ]
+}

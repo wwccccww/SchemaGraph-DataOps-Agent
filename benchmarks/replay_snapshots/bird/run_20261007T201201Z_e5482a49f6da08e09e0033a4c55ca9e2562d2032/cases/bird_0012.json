@@ -1,0 +1,185 @@
+{
+  "case_id": "bird_0012",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "projection_mismatch: 口径：免费餐比例用 Free Meal Count (K-12) * 1.0 / Enrollment (K-12)；若无 FRPM 列再手算",
+  "attempts": 5,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    s.School AS SchoolName,\n    s.County AS County,\n    s.City AS City,\n    CASE WHEN s.Charter = 1 THEN 'Charter School' ELSE 'Non-Charter School' END AS school_type,\n    CAST(ss.NumGE1500 AS REAL) / ss.NumTstTakr AS excellence_rate,\n    f.\"Free Meal Count (Ages 5-17)\" * 1.0 / f.\"Enrollment (Ages 5-17)\" AS eligible_free_rate\n  FROM schools s\n  JOIN satscores ss ON ss.cds = s.CDSCode\n  JOIN frpm f ON f.CDSCode = s.CDSCode\n  WHERE s.StatusType = 'Active'\n    AND ss.NumTstTakr > 0\n    AND CAST(ss.NumGE1500 AS REAL) / ss.NumTstTakr > 0.3\n    AND f.\"Enrollment (Ages 5-17)\" > 0\n),\nranked AS (\n  SELECT\n    *,\n    RANK() OVER (PARTITION BY County ORDER BY eligible_free_rate DESC) AS county_rank\n  FROM base\n)\nSELECT\n  SchoolName,\n  County,\n  City,\n  school_type,\n  excellence_rate,\n  eligible_free_rate,\n  county_rank,\n  (SELECT AVG(eligible_free_rate) FROM ranked) AS avg_eligible_free_rate,\n  CASE\n    WHEN eligible_free_rate > 0.5 THEN 'High Free Meal Rate'\n    WHEN eligible_free_rate > 0.25 THEN 'Medium Free Meal Rate'\n    ELSE 'Low Free Meal Rate'\n  END AS free_meal_category\nFROM ranked\nWHERE county_rank = 1\nORDER BY eligible_free_rate DESC\nLIMIT 1",
+    "sql_hash": "sha256:b81e7a7f2ca741585d6e33ddf87cb00d1b8a4018bb5d1c337fcc3b1685141917",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "County",
+      "City",
+      "school_type",
+      "excellence_rate",
+      "eligible_free_rate",
+      "county_rank",
+      "avg_eligible_free_rate",
+      "free_meal_category"
+    ],
+    "joins": [
+      "JOIN satscores ON ss.cds = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE county_rank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "avg"
+    ],
+    "order_by": [
+      "eligible_free_rate DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "school_type",
+          "excellence_rate",
+          "eligible_free_rate",
+          "county_rank",
+          "avg_eligible_free_rate",
+          "free_meal_category"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "avg"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "school_type",
+          "excellence_rate",
+          "eligible_free_rate"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "*",
+          "county_rank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:0b4feb90a71ffce8d6f845b5f402a657c68cf92a49ca5b7b8ed418f6ca239f11;2:projection_mismatch:sha256:80c3c5257e4fbc14be348f33efca7d7f59d36659d4637a880a19fd78d34899f0;3:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807;4:projection_mismatch:sha256:80c3c5257e4fbc14be348f33efca7d7f59d36659d4637a880a19fd78d34899f0;5:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807"
+    ]
+  ]
+}

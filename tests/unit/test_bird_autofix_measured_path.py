@@ -18,6 +18,7 @@ from app.evaluation.external_model import score_prediction
 from app.llm.tokenizer import DeepSeekTokenCounter
 from app.schemas.text_to_sql import ApiError, TextToSqlResponse
 from tests.unit.bird_replay_fixtures import (
+    BIRD_E5482A4_RUN,
     CA_SCHOOLS_DB,
     FINANCIAL_DB,
     patch_autofix_case_path,
@@ -47,13 +48,9 @@ MEASURED_BIRD_0005_4EAB7CD = Path(
 MEASURED_BIRD_0006_1C55F6D = Path(
     "/workspace/reports/bird/run_20261007T193754Z_1c55f6d1269ea8f1b6413a08563b5b0b8ccf5c7d/cases/bird_0006.json"
 )
-MEASURED_BIRD_0010_E5482A4 = Path(
-    "/workspace/reports/bird/run_20261007T201201Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032/cases/bird_0010.json"
-)
-MEASURED_BIRD_0011_E5482A4 = Path(
-    "/workspace/reports/bird/run_20261007T201201Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032/cases/bird_0011.json"
-)
-MEASURED_BIRD_E5482A4_RUN = MEASURED_BIRD_0010_E5482A4.parent.parent
+MEASURED_BIRD_E5482A4_RUN = BIRD_E5482A4_RUN
+MEASURED_BIRD_0010_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0010.json"
+MEASURED_BIRD_0011_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0011.json"
 
 
 def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
