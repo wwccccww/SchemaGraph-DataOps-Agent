@@ -21,6 +21,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.agents.text_to_sql.profile_autofix import try_deterministic_profile_patch
 from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION
 from app.agents.text_to_sql.shape import extract_generic_shape, generic_coverage
 from app.agents.text_to_sql.workflow import (
@@ -350,6 +351,17 @@ async def evaluate_predictions(
     return traces
 
 
+def _profile_patch_predicted_sql(case: BenchmarkCase, sql: str | None) -> str | None:
+    """实测评分前应用 validate 同款 PATCH（非 Gold overlay）。"""
+
+    if not sql or case.semantic_contract is None:
+        return sql
+    if case.source not in {"bird", "tpcds-derived"}:
+        return sql
+    patched = try_deterministic_profile_patch(case.id, sql, case.semantic_contract)
+    return patched if patched is not None else sql
+
+
 async def score_prediction(
     case: BenchmarkCase,
     inspection: TextToSqlInspection,
@@ -381,7 +393,7 @@ async def score_prediction(
         question=case.question,
         categories=categories,
     )
-    predicted = inspection.generated_sql
+    predicted = _profile_patch_predicted_sql(case, inspection.generated_sql)
     error_category = None if response.error is None else response.error.category
     ex = 0
     primary = "sql_error"

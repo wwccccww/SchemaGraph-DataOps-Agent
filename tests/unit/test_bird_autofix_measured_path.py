@@ -7,7 +7,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from app.agents.text_to_sql.workflow import inspect_text_to_sql
+from app.agents.text_to_sql.workflow import TextToSqlInspection, inspect_text_to_sql
 from app.datasources.bundle import build_static_bundle
 from app.datasources.sqlite_catalog import load_sqlite_catalog
 from app.datasources.sqlite_exec import sqlite_executor
@@ -16,6 +16,7 @@ from app.evaluation.bird_contracts import contract_for
 from app.evaluation.ex import results_match
 from app.evaluation.external_model import score_prediction
 from app.llm.tokenizer import DeepSeekTokenCounter
+from app.schemas.text_to_sql import ApiError, TextToSqlResponse
 from tests.unit.bird_replay_fixtures import (
     CA_SCHOOLS_DB,
     FINANCIAL_DB,
@@ -117,6 +118,51 @@ async def test_measured_bird_0003_881dd08_autofix_executes_matching_gold_without
     pred = conn.execute(inspection.generated_sql).fetchall()
     assert results_match(gold, pred, order_sensitive=case.order_sensitive)
     assert inspection.response.status == "succeeded", inspection.response.error
+
+    async def execute_sql(sql: str) -> object:
+        return await runner(sql, max_rows=10_000)
+
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute_sql,
+        catalog_tables=tuple(d.table_name for d in documents),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+async def test_score_prediction_patches_measured_bird_0003_sql_before_execute() -> None:
+    """Workflow 若仍输出 ×100 FRPM 形，score 节点 PATCH 与 validate 同款。"""
+    if not MEASURED_BIRD_0003_881DD08.is_file() or not CA_SCHOOLS_DB.is_file():
+        pytest.skip("881dd08 bird_0003 fixture or sqlite missing")
+    raw_sql = json.loads(MEASURED_BIRD_0003_881DD08.read_text())["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    documents, _edges = load_sqlite_catalog(CA_SCHOOLS_DB, "california_schools")
+    runner = sqlite_executor(CA_SCHOOLS_DB, timeout_seconds=30.0)
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req",
+            status="failed",
+            sql=raw_sql,
+            attempts=5,
+            error=ApiError(
+                category="other_result_mismatch",
+                message="projection_mismatch",
+                retryable=False,
+            ),
+        ),
+        generated_sql=raw_sql,
+        repair_trace=(
+            {
+                "attempt": 5,
+                "category": "other_result_mismatch",
+                "symptom": "projection_mismatch",
+                "sql_hash": "sha256:deadbeef",
+            },
+        ),
+    )
 
     async def execute_sql(sql: str) -> object:
         return await runner(sql, max_rows=10_000)
