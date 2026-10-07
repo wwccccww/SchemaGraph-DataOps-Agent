@@ -1835,6 +1835,16 @@ def check_frozen_semantic_contract(
                         "不要单独 female_clients CTE 再 JOIN",
                     )
                 )
+            if re.search(r"QualifiedClients\s+AS\s*\(", sql, re.IGNORECASE) and re.search(
+                r"DistrictStats", sql, re.IGNORECASE
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "DistrictStats 内 JOIN client(gender='F') 一次算 female_clients 与 avg_age，"
+                        "不要单独 QualifiedClients CTE",
+                    )
+                )
         if "card_issued_19940303_profile=true" in contract.filters:
             if re.search(r"JULIANDAY\s*\(\s*cd\.issued\s*\)", sql, re.IGNORECASE):
                 findings.append(
@@ -2615,6 +2625,22 @@ def check_frozen_semantic_contract(
                         "SchoolsWithUnder50Testers 分桶用 NumTstTakr <= 50（不是 < 50）",
                     )
                 )
+            if re.search(
+                r"AvgTotalScore|AvgTotal",
+                sql,
+                re.IGNORECASE,
+            ) and re.search(
+                r"AVG\s*\(\s*AvgScrRead\s*\+\s*AvgScrMath\s*\+\s*AvgScrWrite\s*\)",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "AvgTotalScore 用 AVG((Read+Math+Write)/3.0) 或三科分别平均，"
+                        "不要 AVG(Read+Math+Write) 三科之和",
+                    )
+                )
             if "AvgFRPMPercentage" in contract.projections and re.search(
                 r"AvgFRPMPercentage",
                 sql,
@@ -3352,6 +3378,17 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "SAT 子集 satscores 需 rtype='S'（学校级记录）",
+                    )
+                )
+            if re.search(
+                r"Free Meal Count \(K-12\)[\s\S]{0,80}EligibilityRate",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "EligibilityRate 用 FRPM Count/Enrollment，不要用 Free Meal Count/Enrollment",
                     )
                 )
             if re.search(
