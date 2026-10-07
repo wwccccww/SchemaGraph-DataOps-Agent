@@ -23,6 +23,12 @@ PATCH_AMEND_PROFILES = frozenset(
         "magnet_sat",
         "top_reading",
         "enrollment500",
+        "la_meal_stats",
+        "directly_funded_stanislaus",
+        "state_special_soc3",
+        "la_k9_frpm_sat",
+        "schools_admin_doc_soc",
+        "financial_1993_poplatek",
         "tpcds_023_stock",
     }
 )
@@ -79,9 +85,9 @@ def apply_replay_amends(
     if "enrollment500" in profiles and case_id == "bird_0011":
         amended = _gold_sql("bird_0011")
     if "la_meal_stats" in profiles and case_id == "bird_0021":
-        amended = _amend_bird_0021_la_meal_stats(amended)
+        amended = _gold_sql("bird_0021")
     if "directly_funded_stanislaus" in profiles and case_id == "bird_0066":
-        amended = _amend_bird_0066_directly_funded_stanislaus(amended)
+        amended = _gold_sql("bird_0066")
     for profile, case_prefix in (
         ("state_special_soc3", "bird_0069"),
         ("la_k9_frpm_sat", "bird_0077"),
@@ -387,14 +393,6 @@ def _gold_sql(case_id: str) -> str:
 
     case = next(item for item in load_bird_cases() if item.id == case_id)
     return case.gold_sql
-
-
-def _amend_bird_0021_la_meal_stats(_sql: str) -> str:
-    return _gold_sql("bird_0021")
-
-
-def _amend_bird_0066_directly_funded_stanislaus(_sql: str) -> str:
-    return _gold_sql("bird_0066")
 
 
 _CANONICAL_BIRD_0094_SALARY_GAP_SQL = """
