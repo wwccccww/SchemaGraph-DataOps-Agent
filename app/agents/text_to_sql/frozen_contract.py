@@ -4323,10 +4323,16 @@ def _filter_hints(filters: Sequence[str]) -> tuple[str, ...]:
             )
         if item == "hickman_elementary_charter_profile=true":
             hints.append(
-                "Hickman charter：CharterSchoolStats DOC=52、Charter=1、Active；"
-                "FRPM 列与 High/Medium/Low FRPM；SizeRank ROW_NUMBER PARTITION BY City；"
-                "SATPerformance rtype=S；PercentOver1500=NumGE1500/NumTstTakr；"
-                "SATPerformanceCategory 三档 Performing + No SAT Data。"
+                "Hickman charter：FRPMCount 必须 frpm.`FRPM Count (K-12)` AS FRPMCount；"
+                "FRPMPercent 必须 frpm.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent"
+                "（禁止 `Free Meal Count (K-12)` 或 Enrollment 自除推算 FRPMPercent）。"
+            )
+            hints.append(
+                "CharterSchoolStats：schools.DOC='52'、Charter=1、StatusType Active、City Hickman；"
+                "FRPMCategory 用 Percent FRPM 小数 >0.75/>0.50；"
+                "SizeRank=ROW_NUMBER() OVER (PARTITION BY City ORDER BY Enrollment DESC)；"
+                "SAT：satscores rtype='S'；PercentOver1500=NumGE1500/NumTstTakr；"
+                "SATPerformanceCategory 含 No SAT Data 与三档 Performing。"
             )
         if item == "sokolov_pre1950_female_owner_profile=true":
             hints.append(

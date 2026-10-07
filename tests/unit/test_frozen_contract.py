@@ -1881,6 +1881,24 @@ def test_sokolov_pre1950_profile_gold_passes_and_flags_peak_district_and_loan_st
     assert any("status='A'" in m or "status='D'" in m for m in messages)
 
 
+def test_hickman_frozen_contract_flags_free_meal_as_frpmcount() -> None:
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.bird_contracts import contract_for
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0061")
+    contract = contract_for(case)
+    bad_sql = (
+        'SELECT f."Free Meal Count (K-12)" AS FRPMCount, '
+        'f."Free Meal Count (K-12)" * 1.0 / f."Enrollment (K-12)" AS FRPMPercent '
+        "FROM frpm f"
+    )
+    messages = [
+        item.message for item in check_frozen_semantic_contract(contract, bad_sql, dialect="sqlite")
+    ]
+    assert any("FRPM Count" in m and "Free Meal" in m for m in messages)
+    assert any("Percent" in m and "Eligible FRPM" in m for m in messages)
+
+
 def test_hickman_elementary_charter_profile_gold_passes_and_flags_peak_sql() -> None:
     import json
     from pathlib import Path
