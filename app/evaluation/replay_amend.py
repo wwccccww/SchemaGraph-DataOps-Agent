@@ -16,6 +16,7 @@ PATCH_AMEND_PROFILES = frozenset(
         "financial_salary_gap",
         "hickman_frpm",
         "top3_sat_poverty",
+        "high_frpm_frpm_pct",
         "tpcds_023_stock",
     }
 )
@@ -45,6 +46,8 @@ def apply_replay_amends(
         amended = _amend_tpcds_complex_023_stock_grain(amended)
     if "hickman_frpm" in profiles and case_id == "bird_0061":
         amended = _amend_bird_0061_hickman_frpm(amended)
+    if "high_frpm_frpm_pct" in profiles and case_id == "bird_0003":
+        amended = _amend_bird_0003_high_frpm(amended)
     if "top3_sat_poverty" in profiles and case_id == "bird_0013":
         amended = _amend_bird_0013_top3_sat_poverty(amended)
     if "coe_charter" in profiles and case_id == "bird_0002":
@@ -113,6 +116,48 @@ def _amend_tpcds_complex_023_stock_grain(sql: str) -> str:
         return sql
     new_body = trimmed + group_by
     return sql[: match.start(1)] + new_body + sql[match.end(1) :]
+
+
+def _amend_bird_0003_high_frpm(sql: str) -> str:
+    """High-FRPM 意外表现：FRPM 小数列 + Gold 分档阈值（非 Gold 覆盖）。"""
+    out = sql
+    out = re.sub(
+        r'f\."Free Meal Count \(K-12\)"\s*\*\s*1\.0\s*/\s*f\."Enrollment \(K-12\)"\s+AS\s+FRPMPercentage',
+        'f."Percent (%) Eligible FRPM (K-12)" AS FRPMPercentage',
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"CASE WHEN NumTstTakr > 0 THEN ROUND\(NumGE1500 \* 100\.0 / NumTstTakr, 2\) END AS PercentHighScorers",
+        "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"CASE WHEN NumTstTakr > 0 THEN NumGE1500 \* 100\.0 / NumTstTakr END AS PercentHighScorers",
+        "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
+        out,
+        flags=re.IGNORECASE,
+    )
+    gold_class = (
+        "CASE\n"
+        "    WHEN NumTstTakr IS NULL THEN 'No SAT data'\n"
+        "    WHEN FRPMPercentage > 0.7 AND (NumGE1500 * 100.0 / NumTstTakr) > 20 "
+        "THEN 'High-performing despite high FRPM'\n"
+        "    WHEN FRPMPercentage < 0.3 AND (NumGE1500 * 100.0 / NumTstTakr) < 10 "
+        "THEN 'Low-performing despite low FRPM'\n"
+        "    ELSE 'Expected performance'\n"
+        "  END AS PerformanceClassification"
+    )
+    out = re.sub(
+        r"PercentHighScorers,\s*CASE\s+WHEN NumTstTakr IS NULL THEN 'No SAT Data'[\s\S]*?"
+        r"END AS PerformanceClassification",
+        f"PercentHighScorers,\n  {gold_class}",
+        out,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    return out
 
 
 def _amend_bird_0013_top3_sat_poverty(sql: str) -> str:

@@ -28,6 +28,12 @@ def test_patch_profiles_from_hickman_contract() -> None:
     assert profiles == frozenset({"hickman_frpm"})
 
 
+def test_patch_profiles_from_high_frpm_unexpected_performance_contract() -> None:
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    profiles = patch_profiles_for_contract(contract_for(case))
+    assert profiles == frozenset({"high_frpm_frpm_pct"})
+
+
 def test_patch_profiles_from_top3_sat_excellence_contract() -> None:
     case = next(c for c in load_bird_cases() if c.id == "bird_0013")
     profiles = patch_profiles_for_contract(contract_for(case))

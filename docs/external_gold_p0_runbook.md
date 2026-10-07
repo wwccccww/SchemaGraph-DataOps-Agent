@@ -103,6 +103,8 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
 
+**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 对齐 Gold 分档与 `PercentHighScorers` 表达式。
+
 **bird_0013 Top-3 SAT**：2× 方差常见 poverty 标签（`Very High`/`Moderate`）与 outer `ROUND`；workflow **`top3_sat_poverty` PATCH** 与 frozen 四档标签对齐。
 
 **bird_0061 Hickman**：实测常见 Free Meal→FRPM 列混淆；workflow **`hickman_frpm` PATCH**（`profile_autofix` + `replay_amend`）与 frozen 分档/SAT 阈值 finding 一并收紧。
@@ -138,7 +140,7 @@ bird	reports/bird/run_…
 
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)：quality + integration（无外部库）。
 - 本地发布门禁：**`./scripts/p1_release_gate.sh`** = pytest 子集 + **`./scripts/p2_custom_ablation_gates.sh`**（§11 无 LLM）+ **`verify_external_gold.sh`**（80/80 Oracle）。
-- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ **`0a78a89`**：**fingerprints + replay-gate**；**`p0_acceptance_gate=pass`**（**80×2** measured @ **`bc29bb6`**）；本地 **`./scripts/p1_release_gate.sh`** @ **`0a78a89`**（pytest + Oracle verify **80/80**）；**UTC 06:00** nightly 与 push 同 workflow。
+- [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml)：UTC 06:00 + push 子集 + `check-external-release`；**不**在托管 runner 上跑 `verify-tpcds` / `verify-bird`（无 Postgres/TPC-DS 库）。**`replay-gate`** 默认 **`fetch_bird_dev_databases.sh`**（Drive 超限时自动回退官方 Alibaba OSS `minidev.zip`，见 `benchmarks/bird_complex/SOURCE.md`）+ vendored **`benchmarks/replay_snapshots/`** 跑 `test_p1_replay_gate`（BIRD **17/50** raw + **17→26** offline amend、TPC-DS **30/30** + **`--replay-patch-autofix` 30→30**）；可选变量 **`BIRD_DATABASE_ROOT`** 指向已有 `dev_databases` 以跳过 fetch。smoke 需 **`EXTERNAL_GOLD_TESTS=1`**。托管 runner **80 例 Gold 执行**权威路径：本地/自托管 **`./scripts/verify_external_gold.sh`** 或 **`./scripts/p1_release_gate.sh`**。本分支 **PR #2** @ **`1a7258d`**：**fingerprints + replay-gate**（含 P2 schema 单测）；**`p0_acceptance_gate=pass`**（**80×2** @ **`bc29bb6`**）；**UTC 06:00** nightly 与 push 同 workflow。
 
 ## 后续（产品顺序第三步：方言 / 串库 / Join / Prompt）
 

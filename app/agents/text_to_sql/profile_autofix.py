@@ -13,6 +13,7 @@ _PROFILE_BY_FILTER: tuple[tuple[str, str], ...] = (
     ("financial_salary_gap_profile=true", "financial_salary_gap"),
     ("hickman_elementary_charter_profile=true", "hickman_frpm"),
     ("top3_sat_excellence_profile=true", "top3_sat_poverty"),
+    ("high_frpm_unexpected_performance_profile=true", "high_frpm_frpm_pct"),
     ("inventory_sold_qty=join_sold_cte", "tpcds_023_stock"),
 )
 
