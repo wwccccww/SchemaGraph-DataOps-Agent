@@ -137,7 +137,7 @@ P0 measured gate 与 P1 CI/nightly 已绿时，BIRD 提升依赖**新 2× LLM �
 
 1. **Prompt + frozen 契约**：v12 峰值 **33/33** EX=0 保存 SQL 均有 frozen 信号（**`test_v12_measured_ex0_frozen_finding_coverage_floor`**；`print_external_p0_status.sh` → **`peak_ex0_frozen_findings=pass_min_33`**）。**`test_v12_peak_multattempt_cases_include_repair_trace_symptoms`** 钉住 attempts>1 的 repair_trace 症状链（对齐 benchmark §11.5 P2 外部报告口径）；`score_prediction` 与 replay **`inspection_from_replay`** 对多轮空 trace fail-fast。**0069/0119** 仍为 sql_error，靠 Gold overlay amend 抬离线口径。**不替代** measured EX。
 2. **Join / 粒度**：`test_badcase_join_semantics.py`、AnswerContract 与 Gold 投影对齐（见 [benchmark.md §11](./benchmark.md) 自建 P1，与外部 BIRD 互补）；v12 峰值 **5** 条 `join_semantics` EX=0 见 **`test_v12_measured_join_semantics_ex0_have_frozen_findings`**（**0066/0078/0092/0097/0111**）。
-3. **方言**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名。
+3. **方言 / 串库**：SQLite 执行层与 `test_badcase_sqlite_dialect.py`；禁止误判多语句/函数名；v12 峰值 **`test_v12_peak_zero_cross_database_leaks`**（`cross_database_leaks=0`）。**response_shape** 两条 EX=0：**0055/0113** → **`test_v12_measured_response_shape_ex0_have_frozen_findings`**。
 4. **验收**：billing 后 `./scripts/run_external_p0_full_eval_twice.sh` → manifest → `--acceptance-gate` → `apply_p0_measured_benchmark.sh`；`P0_BIRD_MIN_MATCHED` 与 `test_p0_external_measured_baseline.py` 同步上调。
 5. **自建评测（与外部轨道独立）**：电商 **132** 条 Oracle 护栏见 [benchmark.md §11](./benchmark.md)（`test_python_oracle_attestation_covers_every_case` **132/132**）；AnswerContract / 契约复核（P1/P2）与外部 BIRD frozen profile 互补，勿混报告。
 
