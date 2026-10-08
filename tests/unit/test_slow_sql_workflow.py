@@ -103,8 +103,8 @@ async def test_prompt_does_not_contain_the_reference_rewrite() -> None:
         run_analyze=False,
         rewrite=True,
     )
-    assert model.temperatures == [0.0]
-    assert _REWRITE not in model.prompts[0]
+    assert model.calls == 0
+    assert model.prompts == []
     assert response.status == "succeeded"
     assert response.original_plan is not None
     assert response.original_plan.execution_time_ms is None

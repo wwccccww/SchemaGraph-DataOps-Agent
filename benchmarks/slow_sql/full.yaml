@@ -6,7 +6,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE user_id = 1
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 1
 
     '
   index_preconditions: []
@@ -23,7 +23,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE user_id = 2
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 2
 
     '
   index_preconditions: []
@@ -40,7 +40,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE user_id = 3
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 3
 
     '
   index_preconditions: []
@@ -57,7 +57,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE user_id = 4
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 4
 
     '
   index_preconditions: []
@@ -74,7 +74,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE user_id = 5
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 5
 
     '
   index_preconditions: []
@@ -751,7 +751,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: seq-scan-on-large-table
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE order_status = 'status_1'\n"
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 1\n                )\n"
   index_preconditions:
   - DROP INDEX IF EXISTS idx_order_status
   allowed_rewrite_categories:
@@ -767,7 +768,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: seq-scan-on-large-table
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE order_status = 'status_2'\n"
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 2\n                )\n"
   index_preconditions:
   - DROP INDEX IF EXISTS idx_order_status
   allowed_rewrite_categories:
@@ -783,7 +785,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: seq-scan-on-large-table
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE order_status = 'status_3'\n"
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 3\n                )\n"
   index_preconditions:
   - DROP INDEX IF EXISTS idx_order_status
   allowed_rewrite_categories:
@@ -799,7 +802,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: seq-scan-on-large-table
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE order_status = 'status_4'\n"
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 4\n                )\n"
   index_preconditions:
   - DROP INDEX IF EXISTS idx_order_status
   allowed_rewrite_categories:
@@ -815,7 +819,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: seq-scan-on-large-table
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE order_status = 'status_5'\n"
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 5\n                )\n"
   index_preconditions:
   - DROP INDEX IF EXISTS idx_order_status
   allowed_rewrite_categories:

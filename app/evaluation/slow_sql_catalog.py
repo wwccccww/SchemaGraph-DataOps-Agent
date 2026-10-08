@@ -56,7 +56,7 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
             _base(
                 f"slow_select_star_{index:02d}",
                 "select-star",
-                f"SELECT * FROM t_order WHERE user_id = {index}",
+                f"SELECT * FROM t_order WHERE (user_id + 0) = {index}",
             )
         )
 
@@ -175,9 +175,11 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
                 f"slow_seq_scan_{index:02d}",
                 "seq-scan-on-large-table",
                 f"""
-                SELECT order_id, total_amount
-                FROM t_order
-                WHERE order_status = 'status_{index}'
+                SELECT d.detail_id, d.quantity
+                FROM t_order_detail d
+                WHERE d.order_id NOT IN (
+                  SELECT o.order_id FROM t_order o WHERE o.user_id <> {index}
+                )
                 """.strip(),
                 index_preconditions=["DROP INDEX IF EXISTS idx_order_status"],
             )
