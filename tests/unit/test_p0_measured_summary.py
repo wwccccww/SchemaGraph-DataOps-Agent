@@ -298,6 +298,42 @@ def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
     assert bird_failures == []
 
 
+def test_live_measured_manifest_runs_pass_full_acceptance_gate_cli() -> None:
+    """Billing 后 live manifest 四行（本地 reports/）须 gate pass；无目录则 skip。"""
+    root = Path(__file__).resolve().parents[2]
+    tpcds1 = root / "reports/tpcds-derived/run_20261008T033330Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
+    tpcds2 = root / "reports/tpcds-derived/run_20261008T033735Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
+    bird1 = root / "reports/bird/run_20261008T041410Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94"
+    bird2 = root / "reports/bird/run_20261008T041713Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94"
+    if not all(p.is_dir() for p in (tpcds1, tpcds2, bird1, bird2)):
+        pytest.skip("live P0 measured run dirs missing (billing acceptance artifact)")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.p0_measured_summary",
+            "--tpcds-run",
+            str(tpcds1),
+            "--tpcds-run",
+            str(tpcds2),
+            "--bird-run",
+            str(bird1),
+            "--bird-run",
+            str(bird2),
+            "--acceptance-gate",
+            "--bird-min-matched",
+            "50",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+    assert "p0_acceptance_gate=pass" in completed.stdout
+    assert "p0_measured_bird_run1=50/50" in completed.stdout
+    assert "p0_stability_bird=stable" in completed.stdout
+
+
 def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
     """vendored 峰值 run 各 2× 重放目录时 gate pass（BIRD 17/50 须显式 --bird-min-matched 17）。"""
     from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN, TPCDS_PEAK_RUN

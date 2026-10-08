@@ -37,6 +37,9 @@ def test_benchmark_md_has_autogen_markers() -> None:
     assert "e5482a4" in text
     assert "test_e5482a4_vendored_run_raw_ex0_inventory" in text
     assert "P0_BIRD_MIN_MATCHED=24" in text
+    autogen = text.split(P0_MEASURED_AUTOGEN_START, 1)[1].split(P0_MEASURED_AUTOGEN_END, 1)[0]
+    assert "p0_acceptance_gate=pass" in autogen
+    assert "p0_measured_bird_run1=50/50" in autogen
 
 
 def test_patch_benchmark_measured_section_replaces_once(tmp_path: Path) -> None:
