@@ -178,6 +178,30 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         out,
         flags=re.IGNORECASE,
     )
+    _sat_sum = (
+        r"((?:sa|sat)\.AvgScrRead\s*\+\s*(?:sa|sat)\.AvgScrMath\s*\+\s*(?:sa|sat)\.AvgScrWrite)"
+    )
+    _gold_perf_from_sum = (
+        r"CASE WHEN \1 >= 1500 THEN 'High' "
+        r"WHEN \1 >= 1200 THEN 'Medium' ELSE 'Low' END AS PerformanceCategory"
+    )
+    out = re.sub(
+        r"CASE\s+WHEN\s+(?:sa|sat)\.NumTstTakr\s+IS\s+NULL\s+THEN\s+'No SAT Data'\s+"
+        rf"WHEN\s+\({_sat_sum}\)\s*<\s*1200\s+THEN\s+'Below Average'\s+"
+        rf"WHEN\s+\(\1\)\s*<=\s*1500\s+THEN\s+'Average'\s+"
+        r"ELSE\s+'Above Average'\s+END\s+AS\s+PerformanceCategory",
+        _gold_perf_from_sum,
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        rf"CASE\s+WHEN\s+\({_sat_sum}\)\s*<\s*1200\s+THEN\s+'Below Average'\s+"
+        rf"WHEN\s+\(\1\)\s*<=\s*1500\s+THEN\s+'Average'\s+"
+        r"ELSE\s+'Above Average'\s+END\s+AS\s+PerformanceCategory",
+        _gold_perf_from_sum,
+        out,
+        flags=re.IGNORECASE,
+    )
     out = re.sub(
         r"CASE WHEN NumTstTakr > 0 THEN NumGE1500 \* 100\.0 / NumTstTakr END AS PercentHighScorers",
         "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
