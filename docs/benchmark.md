@@ -92,11 +92,11 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 <!-- p0-measured-autogen:start -->
 
 ```text
-p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261008T021124Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
-p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261008T022531Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261008T033330Z_5e4659e6f4df4587e99794a3e64fa30922c78619 commit=5e4659e6f4df4587e99794a3e64fa30922c78619 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261008T033735Z_5e4659e6f4df4587e99794a3e64fa30922c78619 commit=5e4659e6f4df4587e99794a3e64fa30922c78619 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=49/50 ex=0.98 dir=run_20261008T022948Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=49/50 ex=0.98 dir=run_20261008T023304Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=50/50 ex=1.0 dir=run_20261008T041410Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 commit=7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=50/50 ex=1.0 dir=run_20261008T041713Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 commit=7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
@@ -112,8 +112,8 @@ p0_acceptance_gate=pass
 | Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
-| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `54d1b15`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
-| 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**（v12）；**e5482a4** vendored **24/50** raw replay；acceptance **24/50×2 stable @ `e5482a4`**（`p0-measured-autogen`，run 时 scored）；floor **`P0_BIRD_MIN_MATCHED=19`** |
+| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `5e4659e`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
+| 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**（v12）；**e5482a4** raw **24/50**；**live 50/50×2 stable @ `7fd32c8`**（`p0-measured-autogen`）；floor 默认 **`P0_BIRD_MIN_MATCHED=19`**，**50×2** 时可 export **50** |
 | BIRD PATCH / measured 复分 | `--replay-patch-autofix` + live `score_prediction` PATCH | v12 **17→50/50**；**e5482a4** **24→50** replay PATCH；**HEAD catalog** 对 **e5482a4 saved SQL** **50/50** measured PATCH（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch` + vendored snapshot）；均 **非新 LLM** |
 | Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
 | 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集（含 **`test_external_model_unit.py`** 外部 P2 写入门禁 + **`test_ablation.py`** 自建 P2）+ verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
