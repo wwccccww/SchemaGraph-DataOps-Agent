@@ -668,6 +668,11 @@ def test_fresno_e5482a4_frozen_contract_flags_flat_aggregation() -> None:
         ("bird_0079", ("Charter School", "Percent FRPM")),
         ("bird_0104", ("age_at_transaction", "1998-10-14")),
         ("bird_0113", ("previous_loans", "1996-01-03")),
+        ("bird_0021", ("SATData", "TotalSchools")),
+        ("bird_0045", ("CDSCode", "DistrictAvg")),
+        ("bird_0097", ("ClientLoanInfo", "GROUP BY")),
+        ("bird_0111", ("month_opened", "Litomerice")),
+        ("bird_0119", ("urbanization_category", "owner_gender")),
     ],
 )
 def test_e5482a4_ex0_frozen_contract_repair_signals(case_id: str, needles: tuple[str, ...]) -> None:
