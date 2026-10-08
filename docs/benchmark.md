@@ -71,6 +71,8 @@
 - `min_primary_drop` 与次要指标最大允许退化比例；
 - 超时和资源预算。
 
+全量用例文件：`benchmarks/slow_sql/full.yaml`（50 条，由 `scripts/build_slow_sql_full_yaml.py` 从 `app/evaluation/slow_sql_catalog.py` 生成）。冒烟：`benchmarks/slow_sql/smoke.yaml`（4 条）。跑分：`./scripts/run_slow_sql_benchmark.sh` 或 `uv run python -m app.evaluation.slow_sql_benchmark`（需 `DEEPSEEK_API_KEY` 与沙箱 Postgres）；`--smoke` 仅跑 4 条。
+
 因此默认规模是：
 
 ```text

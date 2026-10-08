@@ -4,7 +4,7 @@
 
 本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-> 当前状态：阶段 0–8 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG、Text-to-SQL 纵向闭环、慢 SQL 诊断与四类冒烟用例、自建 132 条用例以及 A/B/C/D 消融和可追溯报告、TPC-DS 派生 30 条查询和 BIRD 50 条复杂用例、OpenTelemetry Trace、密钥扫描、容器资源与网络策略）。50 条慢 SQL 报告尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。TPC-DS 派生结果不是官方 TPC-DS 成绩。BIRD 结果只表示公开 Benchmark 兼容性。
+> 当前状态：阶段 0–8 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG、Text-to-SQL 纵向闭环、慢 SQL 诊断与 50 条 Benchmark 用例定义、自建 132 条用例以及 A/B/C/D 消融和可追溯报告、TPC-DS 派生 30 条查询和 BIRD 50 条复杂用例、OpenTelemetry Trace、密钥扫描、容器资源与网络策略）。慢 SQL 全量 measured 需本地跑 `./scripts/run_slow_sql_benchmark.sh`。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。TPC-DS 派生结果不是官方 TPC-DS 成绩。BIRD 结果只表示公开 Benchmark 兼容性。
 
 ---
 
@@ -110,7 +110,7 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 | TPC-DS 派生 30 条 | Gold 执行 30/30，非空且摘要唯一 | gregrahn/tpcds-kit `5a3a81796992b725c2a8b216767e142609966752`，本地 SF=1。不是官方 TPC-DS 成绩 |
 | BIRD 复杂用例 50 条 | Gold 执行 50/50 | birdsql/bird_sql_dev_20251106 `3c11fb193e5439b338e23677fa0aae11e8b85db9`，受限 SQLite。只表示公开 Benchmark 兼容性 |
 | 自建 EX / 桥表召回 | 未测量 | 需要配置模型后运行消融；报告里的 Measured 保持为空 |
-| 慢 SQL 50 条报告 | 尚未运行 | 当前仓库只有 4 条冒烟用例 |
+| 慢 SQL 50 条 | `benchmarks/slow_sql/full.yaml` + `./scripts/run_slow_sql_benchmark.sh` | 4 条 smoke 集成测试；全量 50 条需 `DEEPSEEK_API_KEY` 与 Postgres 沙箱 |
 
 ## 阶段 0–8 启动
 
