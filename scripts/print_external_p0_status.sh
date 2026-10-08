@@ -81,6 +81,7 @@ if [[ -d "$PEAK/cases" ]]; then
     echo "peak_ex0_frozen_findings=fail" >&2
   fi
 fi
+echo "p0_bird_min_matched=${P0_BIRD_MIN_MATCHED:-19}"
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"
 echo "unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh"
