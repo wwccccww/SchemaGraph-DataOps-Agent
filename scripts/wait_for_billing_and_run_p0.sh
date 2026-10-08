@@ -26,6 +26,8 @@ if python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_r
 else
   echo "tpcds_postgres_catalog=unreachable"
 fi
+echo "generic_prompt=$(python3 -c 'from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION; print(GENERIC_PROMPT_VERSION)')"
+echo "p0_bird_min_matched=${P0_BIRD_MIN_MATCHED:-19}"
 INTERVAL="${P0_BILLING_POLL_SECONDS:-300}"
 CONFIRM_POLLS="${P0_WAIT_CONFIRM_POLLS:-2}"
 CONFIRM_SLEEP="${P0_WAIT_CONFIRM_SECONDS:-15}"
