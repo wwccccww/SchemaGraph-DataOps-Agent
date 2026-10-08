@@ -41,6 +41,8 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "test_e5482a4_vendored_run_raw_ex0_inventory" in body
     assert "p0-gates-fc89ece.log" in body
     assert "test_e5482a4_ex0_inventory_covered_by_step3_regression_tests" in body
+    assert "test_e5482a4_vendored_ex0_all_have_frozen_findings" in body
+    assert "e5482a4_ex0_frozen_findings=pass_26_26" in body
     assert "p0_bird_min_matched=" in body
 
 

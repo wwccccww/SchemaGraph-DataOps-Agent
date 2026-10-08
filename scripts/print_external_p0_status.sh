@@ -81,6 +81,14 @@ if [[ -d "$PEAK/cases" ]]; then
     echo "peak_ex0_frozen_findings=fail" >&2
   fi
 fi
+if [[ -d "$E5482A4/cases" ]]; then
+  echo "== e5482a4 EX=0 frozen semantic bar (26/26 vendored raw with ≥1 finding) =="
+  if python3 -m pytest tests/unit/test_frozen_contract.py::test_e5482a4_vendored_ex0_all_have_frozen_findings -q --tb=no; then
+    echo "e5482a4_ex0_frozen_findings=pass_26_26"
+  else
+    echo "e5482a4_ex0_frozen_findings=fail" >&2
+  fi
+fi
 echo "p0_bird_min_matched=${P0_BIRD_MIN_MATCHED:-19}"
 echo "ops_runbook=docs/external_gold_p0_runbook.md"
 echo "next_after_billing=./scripts/p0_post_billing_acceptance.sh"

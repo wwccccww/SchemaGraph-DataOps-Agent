@@ -19,6 +19,8 @@ def test_print_external_p0_status_script_documents_skip_replay_env() -> None:
     assert "EXTERNAL_P0_STATUS_SKIP_REPLAY" in body
     assert "bird_e5482a4_measured_run_dir" in body
     assert "BIRD e5482a4 measured replay" in body
+    assert "e5482a4_ex0_frozen_findings=pass_26_26" in body
+    assert "test_e5482a4_vendored_ex0_all_have_frozen_findings" in body
 
 
 def test_print_external_p0_status_runs_without_bird_replay() -> None:
@@ -67,7 +69,10 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
     )
     assert any(line.startswith("bird_sqlite=") for line in completed.stdout.splitlines())
     assert "replay_skipped=external_p0_status_skip_replay" in completed.stdout
-    from app.evaluation.replay_snapshot_paths import bird_peak_run_dir
+    from app.evaluation.replay_snapshot_paths import (
+        bird_e5482a4_measured_run_dir,
+        bird_peak_run_dir,
+    )
 
     peak = bird_peak_run_dir()
     if peak.is_dir():
@@ -84,6 +89,9 @@ def test_print_external_p0_status_runs_without_bird_replay() -> None:
             or "peak_ex0_frozen_findings=pass_min_3" in completed.stdout
             or "peak_ex0_frozen_findings=pass_min_1" in completed.stdout
         )
+    e5482a4 = bird_e5482a4_measured_run_dir()
+    if e5482a4.is_dir():
+        assert "e5482a4_ex0_frozen_findings=pass_26_26" in completed.stdout
 
 
 def test_print_external_p0_status_reports_bird_sqlite_missing(tmp_path: Path) -> None:
