@@ -16,17 +16,24 @@ from app.evaluation.p0_measured_summary import (
     load_run_measured,
     stability_label,
     validate_p0_acceptance_gate,
+    validate_step3_bird_gate,
 )
 
 
 def _write_summary(
-    run_dir: Path, *, source: str, matched: int, case_count: int, accuracy: float
+    run_dir: Path,
+    *,
+    source: str,
+    matched: int,
+    case_count: int,
+    accuracy: float,
+    prompt_version: str = "text-to-sql-generic-v59",
 ) -> None:
     run_dir.mkdir(parents=True)
     payload = {
         "git_commit": "abc123",
         "benchmark_source": source,
-        "prompt_version": "text-to-sql-generic-v59",
+        "prompt_version": prompt_version,
         "measured": {"execution_accuracy": accuracy},
         "model_execution": {"matched": matched, "case_count": case_count},
     }
@@ -369,3 +376,51 @@ def test_peak_documented_runs_pass_full_acceptance_gate_cli() -> None:
     assert "p0_acceptance_gate=pass" in completed.stdout
     assert "p0_stability_tpcds=stable" in completed.stdout
     assert "p0_stability_bird=stable" in completed.stdout
+
+
+def test_step3_bird_gate_passes_v60_stable_24(tmp_path: Path) -> None:
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(
+        b1,
+        source="bird",
+        matched=24,
+        case_count=50,
+        accuracy=0.48,
+        prompt_version="text-to-sql-generic-v60",
+    )
+    _write_summary(
+        b2,
+        source="bird",
+        matched=24,
+        case_count=50,
+        accuracy=0.48,
+        prompt_version="text-to-sql-generic-v60",
+    )
+    assert validate_step3_bird_gate([load_run_measured(b1), load_run_measured(b2)]) == []
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "app.evaluation.p0_measured_summary",
+            "--bird-run",
+            str(b1),
+            "--bird-run",
+            str(b2),
+            "--step3-bird-gate",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+    assert "step3_v60_bird_gate=pass" in completed.stdout
+
+
+def test_step3_bird_gate_fails_wrong_prompt(tmp_path: Path) -> None:
+    b1 = tmp_path / "b1"
+    b2 = tmp_path / "b2"
+    _write_summary(b1, source="bird", matched=30, case_count=50, accuracy=0.6)
+    _write_summary(b2, source="bird", matched=30, case_count=50, accuracy=0.6)
+    failures = validate_step3_bird_gate([load_run_measured(b1), load_run_measured(b2)])
+    assert any("prompt" in item for item in failures)
