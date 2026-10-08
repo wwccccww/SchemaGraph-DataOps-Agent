@@ -58,6 +58,8 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_p2_custom_ablation_gates_script.py",
         "test_p2_benchmark_docs.py",
         "test_apply_p2_measured_benchmark_script.py",
+        "test_step3_benchmark_docs.py",
+        "test_print_step3_v60_bird_status_script.py",
     ):
         assert module in script
 
