@@ -88,6 +88,43 @@ E5482A4_VENDORED_RAW_EX0_CASE_IDS = frozenset(
     }
 )
 
+E5482A4_STEP3_DEDICATED_CASE_IDS = frozenset(
+    {
+        "bird_0008",
+        "bird_0010",
+        "bird_0011",
+        "bird_0055",
+        "bird_0066",
+        "bird_0078",
+        "bird_0113",
+    }
+)
+E5482A4_STEP3_SQL_ERROR_PARAM_CASE_IDS = frozenset(
+    {
+        "bird_0060",
+        "bird_0100",
+        "bird_0105",
+        "bird_0119",
+        "bird_0121",
+        "bird_0123",
+    }
+)
+E5482A4_STEP3_MISMATCH_PARAM_CASE_IDS = frozenset(
+    {
+        "bird_0018",
+        "bird_0019",
+        "bird_0020",
+        "bird_0021",
+        "bird_0045",
+        "bird_0062",
+        "bird_0069",
+        "bird_0077",
+        "bird_0079",
+        "bird_0104",
+    }
+)
+E5482A4_STEP3_JOIN_PARAM_CASE_IDS = frozenset({"bird_0092", "bird_0097", "bird_0111"})
+
 
 def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
     return TextToSqlInspection(
@@ -822,6 +859,16 @@ async def test_score_prediction_patches_e5482a4_bird_0055_response_shape() -> No
     trace = await _score_bird_saved_sql(case, raw_sql)
     assert trace.ex == 1
     assert trace.primary_class == "matched"
+
+
+def test_e5482a4_ex0_inventory_covered_by_step3_regression_tests() -> None:
+    covered = (
+        E5482A4_STEP3_DEDICATED_CASE_IDS
+        | E5482A4_STEP3_SQL_ERROR_PARAM_CASE_IDS
+        | E5482A4_STEP3_MISMATCH_PARAM_CASE_IDS
+        | E5482A4_STEP3_JOIN_PARAM_CASE_IDS
+    )
+    assert covered == E5482A4_VENDORED_RAW_EX0_CASE_IDS
 
 
 def test_e5482a4_vendored_run_raw_ex0_inventory() -> None:

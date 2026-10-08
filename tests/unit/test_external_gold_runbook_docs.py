@@ -38,6 +38,7 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     assert "p0_acceptance=already_running" in body
     assert "p0_acceptance_lock=" in body
     assert "peak_ex0_frozen_findings=pass_min_33" in body
+    assert "test_e5482a4_vendored_run_raw_ex0_inventory" in body
 
 
 def test_external_gold_ci_fingerprints_job_includes_runbook_docs_test() -> None:
