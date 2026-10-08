@@ -56,6 +56,8 @@ def test_p1_release_gate_script_lists_core_pytest_modules() -> None:
         "test_external_gold_runbook_docs.py",
         "test_tpcds_postgres_reachable.py",
         "test_p2_custom_ablation_gates_script.py",
+        "test_p2_benchmark_docs.py",
+        "test_apply_p2_measured_benchmark_script.py",
     ):
         assert module in script
 
