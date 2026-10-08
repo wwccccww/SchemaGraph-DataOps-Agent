@@ -1,0 +1,194 @@
+{
+  "case_id": "bird_0021",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolMealStats AS (SELECT f.CDSCode, f.\"Free Meal Count (K-12)\" AS FreeMealCount, f.\"FRPM Count (K-12)\" AS FRPMCount, f.\"Enrollment (K-12)\" AS Enrollment, f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" AS FreePercentage, f.\"Percent (%) Eligible FRPM (K-12)\" AS FRPMPercentage, sc.Charter AS CharterFlag, s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite AS TotalSATScore, CASE WHEN f.\"Free Meal Count (K-12)\" > 500 THEN 'Very High Free Meal' WHEN f.\"Free Meal Count (K-12)\" > 300 THEN 'High Free Meal' WHEN f.\"Free Meal Count (K-12)\" > 100 THEN 'Moderate Free Meal' ELSE 'Low Free Meal' END AS FreeMealCategory FROM frpm AS f JOIN schools AS sc ON f.CDSCode = sc.CDSCode LEFT JOIN satscores AS s ON s.cds = sc.CDSCode AND s.rtype = 'S' WHERE sc.County = 'Los Angeles' AND f.\"Free Meal Count (K-12)\" > 500 AND f.\"FRPM Count (K-12)\" < 700 AND f.\"Enrollment (K-12)\" > 0), CategoryBreakdown AS (SELECT FreeMealCategory, COUNT(*) AS CategoryCount FROM SchoolMealStats GROUP BY FreeMealCategory) SELECT COUNT(*) AS TotalSchools, ROUND(AVG(FreeMealCount), 2) AS AvgFreeMeals, ROUND(AVG(FRPMCount), 2) AS AvgTotalFRPM, ROUND(AVG(FreePercentage), 4) AS AvgFreePercentage, ROUND(AVG(FRPMPercentage), 2) AS AvgFRPMPercentage, SUM(CASE WHEN CharterFlag = 1 THEN 1 ELSE 0 END) AS CharterSchoolCount, SUM(CASE WHEN CharterFlag = 0 THEN 1 ELSE 0 END) AS NonCharterSchoolCount, ROUND(AVG(TotalSATScore), 2) AS AvgSATScore, (SELECT COUNT(*) FROM SchoolMealStats WHERE TotalSATScore IS NULL) AS SchoolsWithoutSATData, (SELECT GROUP_CONCAT(FreeMealCategory || ': ' || CategoryCount, '; ') FROM CategoryBreakdown) AS FreeMealCategoryBreakdown FROM SchoolMealStats",
+    "sql_hash": "sha256:99181296b5f87e189e6d206f7de13f407f2643b62455c539485d7c74c658081a",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "TotalSchools",
+      "AvgFreeMeals",
+      "AvgTotalFRPM",
+      "AvgFreePercentage",
+      "AvgFRPMPercentage",
+      "CharterSchoolCount",
+      "NonCharterSchoolCount",
+      "AvgSATScore",
+      "SchoolsWithoutSATData",
+      "FreeMealCategoryBreakdown"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = sc.CDSCode",
+      "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum",
+      "group_concat"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "TotalSchools",
+          "AvgFreeMeals",
+          "AvgTotalFRPM",
+          "AvgFreePercentage",
+          "AvgFRPMPercentage",
+          "CharterSchoolCount",
+          "NonCharterSchoolCount",
+          "AvgSATScore",
+          "SchoolsWithoutSATData",
+          "FreeMealCategoryBreakdown"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = sc.CDSCode",
+          "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum",
+          "group_concat"
+        ]
+      },
+      {
+        "name": "SchoolMealStats",
+        "projections": [
+          "CDSCode",
+          "FreeMealCount",
+          "FRPMCount",
+          "Enrollment",
+          "FreePercentage",
+          "FRPMPercentage",
+          "CharterFlag",
+          "TotalSATScore",
+          "FreeMealCategory"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = sc.CDSCode",
+          "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "CategoryBreakdown",
+        "projections": [
+          "FreeMealCategory",
+          "CategoryCount"
+        ],
+        "joins": [],
+        "group_by": [
+          "FreeMealCategory"
+        ],
+        "aggregations": [
+          "count"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CategoryBreakdown:FreeMealCategory"
+    ],
+    [
+      "predicted_group_by",
+      "CategoryBreakdown:FreeMealCategory"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:3e820826c67db8f8e44ae1f47ba0a46f692139f6034741e513da01819098654d;2:accepted:"
+    ]
+  ]
+}

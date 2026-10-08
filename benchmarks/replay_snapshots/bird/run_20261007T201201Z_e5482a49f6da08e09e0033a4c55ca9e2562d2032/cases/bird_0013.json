@@ -1,0 +1,184 @@
+{
+  "case_id": "bird_0013",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH school_sat AS (SELECT s.CDSCode, s.School AS \"School Name\", s.Phone AS \"Contact Number\", s.City AS \"City\", CASE WHEN s.Charter = 1 THEN 'Yes' WHEN s.Charter = 0 THEN 'No' ELSE 'Unknown' END AS \"Charter School\", ss.NumGE1500, ss.NumTstTakr, CAST(ss.NumGE1500 AS REAL) / ss.NumTstTakr AS excellence_rate, f.\"Percent (%) Eligible FRPM (K-12)\" AS poverty_rate FROM schools AS s JOIN satscores AS ss ON ss.cds = s.CDSCode JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE ss.rtype = 'S' AND ss.NumTstTakr > 0 AND s.StatusType = 'Active'), ranked AS (SELECT *, RANK() OVER (ORDER BY excellence_rate DESC) AS sat_rank FROM school_sat) SELECT sat_rank AS \"SAT Excellence Rank\", \"School Name\", excellence_rate AS \"SAT Excellence Rate\", NumGE1500 || '/' || NumTstTakr AS \"High Scorers/Test Takers\", \"Contact Number\", \"City\", \"Charter School\", poverty_rate AS \"Poverty Rate\", CASE WHEN poverty_rate > 0.75 THEN 'High Poverty' WHEN poverty_rate > 0.50 THEN 'Medium Poverty' WHEN poverty_rate > 0.25 THEN 'Low Poverty' ELSE 'Very Low Poverty' END AS \"Poverty Category\" FROM ranked WHERE sat_rank <= 3 ORDER BY sat_rank",
+    "sql_hash": "sha256:f6949d7f7f7499124baf6dd2380cd9a06b1ad16f3750a969a7e061f8330b6b06",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SAT Excellence Rank",
+      "School Name",
+      "SAT Excellence Rate",
+      "High Scorers/Test Takers",
+      "Contact Number",
+      "City",
+      "Charter School",
+      "Poverty Rate",
+      "Poverty Category"
+    ],
+    "joins": [
+      "JOIN satscores ON ss.cds = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE sat_rank <= 3"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sat_rank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SAT Excellence Rank",
+          "School Name",
+          "SAT Excellence Rate",
+          "High Scorers/Test Takers",
+          "Contact Number",
+          "City",
+          "Charter School",
+          "Poverty Rate",
+          "Poverty Category"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "school_sat",
+        "projections": [
+          "CDSCode",
+          "School Name",
+          "Contact Number",
+          "City",
+          "Charter School",
+          "NumGE1500",
+          "NumTstTakr",
+          "excellence_rate",
+          "poverty_rate"
+        ],
+        "joins": [
+          "JOIN satscores ON ss.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "*",
+          "sat_rank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "ranked"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b043cfbe92adba4c807426bf1985f9f5159ee172a08b31900bba976ee4a07ec8;2:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807;3:kept_candidate:projection_mismatch"
+    ]
+  ]
+}

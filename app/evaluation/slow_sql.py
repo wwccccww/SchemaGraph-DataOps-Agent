@@ -33,8 +33,10 @@ from app.sandbox.errors import ExecutionError
 from app.sandbox.explain import explain_readonly
 
 SMOKE_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "slow_sql" / "smoke.yaml"
+FULL_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "slow_sql" / "full.yaml"
 MEASUREMENT_RUNS = 5
 _SNAPSHOT_VERSION = "ecommerce-v1"
+FULL_SLOW_SQL_CASE_COUNT = 50
 
 
 class SlowSqlCase(BaseModel):
@@ -54,6 +56,7 @@ class SlowSqlCase(BaseModel):
     order_sensitive: bool
     numeric_tolerance: float | None
     timeout_ms: int = Field(gt=0)
+    allowed_rewrite_categories: list[str] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -80,9 +83,24 @@ class _Measurement:
 
 
 def load_slow_sql_cases(path: Path | None = None) -> list[SlowSqlCase]:
-    """读取慢 SQL 冒烟用例，并先校验索引前置条件。"""
+    """读取慢 SQL 用例（默认 smoke.yaml），并先校验索引前置条件。"""
 
-    payload = yaml.safe_load((path or SMOKE_PATH).read_text(encoding="utf-8"))
+    return _load_cases_from_path(path or SMOKE_PATH)
+
+
+def load_full_slow_sql_cases(path: Path | None = None) -> list[SlowSqlCase]:
+    """读取 50 条全量 Benchmark 用例。"""
+
+    cases = _load_cases_from_path(path or FULL_PATH)
+    if len(cases) != FULL_SLOW_SQL_CASE_COUNT:
+        raise ValueError(
+            f"slow sql full benchmark expects {FULL_SLOW_SQL_CASE_COUNT} cases, got {len(cases)}"
+        )
+    return cases
+
+
+def _load_cases_from_path(path: Path) -> list[SlowSqlCase]:
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or payload.get("contract_version") != "1.0":
         raise ValueError("slow sql smoke file must declare contract_version 1.0")
     raw_cases = payload.get("cases")
@@ -96,6 +114,34 @@ def load_slow_sql_cases(path: Path | None = None) -> list[SlowSqlCase]:
         preconditions = [validate_index_precondition(item) for item in case.index_preconditions]
         loaded.append(case.model_copy(update={"index_preconditions": preconditions}))
     return loaded
+
+
+def summarize_slow_sql_scores(scores: Sequence[SlowSqlScore]) -> dict[str, object]:
+    """汇总 OptimizePass 与指标降幅。"""
+
+    total = len(scores)
+    optimized = sum(1 for score in scores if score.optimize_success)
+    equivalent = sum(1 for score in scores if score.equivalent)
+    return {
+        "case_count": total,
+        "equivalent_count": equivalent,
+        "optimize_success_count": optimized,
+        "optimize_pass_rate": None if total == 0 else optimized / total,
+        "scores": [
+            {
+                "case_id": score.case_id,
+                "findings": list(score.findings),
+                "equivalent": score.equivalent,
+                "optimize_success": score.optimize_success,
+                "planner_cost_drop": score.planner_cost_drop,
+                "execution_time_drop": score.execution_time_drop,
+                "shared_buffer_access_drop": score.shared_buffer_access_drop,
+                "isolated": score.isolated,
+                "detail": score.detail,
+            }
+            for score in scores
+        ],
+    }
 
 
 async def score_slow_sql_cases(

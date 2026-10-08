@@ -15,6 +15,7 @@ from pathlib import Path
 
 import yaml
 
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.case_yaml import dump_benchmark_cases, projection_names
 from app.evaluation.custom_cases import referenced_tables
 from app.sandbox.sqlite import check_sqlite_read_only
@@ -30,13 +31,22 @@ EXCLUSIONS_PATH = (
 CHECKSUMS_PATH = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "bird_complex" / "database_checksums.json"
 )
-BIRD_SOURCE_VERSION = "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9"
+BIRD_SOURCE_VERSION = (
+    "bird-sql-dev-20251106@3c11fb193e5439b338e23677fa0aae11e8b85db9+anchor20261001"
+)
 QUESTIONS_SHA256 = "ffd8018378ddb1a8794753e0a31cfc81862ff7318a5184c22f3dc4ce03a03feb"
 DATASET_COMMIT = "3c11fb193e5439b338e23677fa0aae11e8b85db9"
 DATABASE_ZIP_SHA256 = "aeb211c0e39010bbdae3838bb5e8bd27dc446ed77495b1709f85ccc9bf67f2be"
 DATABASE_DRIVE_ID = "13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG"
+# Official BIRD mini_dev mirror (same minidev/MINIDEV/dev_databases tree; CI fallback when Drive quota hits).
+DATABASE_MIRROR_URL = "https://bird-bench.oss-cn-beijing.aliyuncs.com/minidev.zip"
+DATABASE_MIRROR_ZIP_SHA256 = "cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f"
 BIRD_CASE_COUNT = 50
 ANCHOR = date(2026, 10, 1)
+_STRFTIME_NOW = re.compile(
+    r"strftime\s*\(\s*['\"](%[^'\"]+)['\"]\s*,\s*['\"]now['\"]\s*\)",
+    re.IGNORECASE,
+)
 _ORDER_REQUEST = re.compile(
     r"\b(?:sorted|sorting|ascending|descending|alphabetical)\b"
     r"|\border(?:ed)?\s+by\b"
@@ -100,7 +110,10 @@ def load_bird_cases(path: Path | None = None) -> list[BenchmarkCase]:
     cases = payload.get("cases")
     if not isinstance(cases, list):
         raise ValueError("bird case file must contain a cases list")
-    return [BenchmarkCase.model_validate(case) for case in cases]
+    loaded = [BenchmarkCase.model_validate(case) for case in cases]
+    return [
+        item.model_copy(update={"semantic_contract": bird_contract_for(item)}) for item in loaded
+    ]
 
 
 def build_bird_cases(
@@ -126,15 +139,30 @@ def build_bird_cases(
     return cases
 
 
+def adapt_bird_wall_clock(gold_sql: str, anchor: date | None = None) -> str:
+    """把 SQLite 的 runtime now 换成固定锚点日，便于 Gold 摘要在评测中稳定。"""
+
+    anchor_literal = (anchor or ANCHOR).isoformat()
+
+    def _replace_strftime_now(match: re.Match[str]) -> str:
+        fmt = match.group(1)
+        return f"strftime('{fmt}', '{anchor_literal}')"
+
+    adapted = _STRFTIME_NOW.sub(_replace_strftime_now, gold_sql)
+    return re.sub(
+        r"date\s*\(\s*'now'\s*\)", f"date('{anchor_literal}')", adapted, flags=re.IGNORECASE
+    )
+
+
 def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:
     """把原始问题行变成用例。不复制 evidence。"""
 
     question_id = int(str(row["question_id"]))
     question = str(row["question"]).strip()
-    gold_sql = str(row["SQL"]).strip()
+    gold_sql = adapt_bird_wall_clock(str(row["SQL"]).strip())
     database_id = str(row["db_id"])
     tables = sorted(referenced_tables(gold_sql, dialect="sqlite"))
-    return BenchmarkCase(
+    case = BenchmarkCase(
         id=f"bird_{question_id:04d}",
         source="bird",
         source_version=BIRD_SOURCE_VERSION,
@@ -150,7 +178,9 @@ def materialize_bird_case(row: Mapping[str, object]) -> BenchmarkCase:
         expected_columns=projection_names(gold_sql, dialect="sqlite"),
         anchor_date=ANCHOR,
         tags=["bird", "challenging", database_id],
+        semantic_contract=None,
     )
+    return case.model_copy(update={"semantic_contract": bird_contract_for(case)})
 
 
 def dump_bird_cases(cases: list[BenchmarkCase]) -> str:

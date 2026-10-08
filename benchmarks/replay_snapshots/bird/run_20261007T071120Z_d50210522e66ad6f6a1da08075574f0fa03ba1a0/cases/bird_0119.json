@@ -1,0 +1,249 @@
+{
+  "case_id": "bird_0119",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "client",
+    "district",
+    "loan",
+    "card",
+    "disp",
+    "trans",
+    "account",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH AccountsIn1993 AS (\n  SELECT a.account_id, a.district_id\n  FROM account a\n  WHERE a.frequency = 'POPLATEK PO OBRATU'\n    AND STRFTIME('%Y', a.date) = '1993'\n),\nTransStats AS (\n  SELECT t.account_id,\n         COUNT(*) AS transaction_count,\n         SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) -\n         SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS net_cash_flow,\n         AVG(t.balance) AS balance_volatility\n  FROM trans t\n  WHERE t.type IN ('PRIJEM','VYDAJ')\n  GROUP BY t.account_id\n),\nClientStats AS (\n  SELECT d.account_id,\n         COUNT(DISTINCT c.client_id) AS client_count,\n         GROUP_CONCAT(DISTINCT c.gender) AS owner_gender,\n         AVG(CAST(STRFTIME('%Y','2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', c.birth_date) AS INTEGER)) AS avg_client_age\n  FROM disp d\n  JOIN client c ON c.client_id = d.client_id\n  GROUP BY d.account_id\n),\nLoanStats AS (\n  SELECT l.account_id,\n         COUNT(*) AS loan_count,\n         SUM(l.amount) AS total_loan_amount,\n         AVG(l.duration) AS avg_loan_duration_months,\n         SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS running_loans,\n         SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS finished_loans,\n         SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) AS defaulted_loans\n  FROM loan l\n  GROUP BY l.account_id\n)\nSELECT\n  ai.account_id AS account_id,\n  d.A2 AS district_name,\n  d.A3 AS district_region,\n  d.A5 AS urbanization_category,\n  COALESCE(ts.transaction_count, 0) AS transaction_count,\n  COALESCE(ts.net_cash_flow, 0) AS net_cash_flow,\n  COALESCE(ts.balance_volatility, 0) AS balance_volatility,\n  COALESCE(cs.client_count, 0) AS client_count,\n  cs.owner_gender AS owner_gender,\n  cs.avg_client_age AS avg_client_age,\n  COALESCE(ls.loan_count, 0) AS loan_count,\n  COALESCE(ls.total_loan_amount, 0) AS total_loan_amount,\n  ls.avg_loan_duration_months AS avg_loan_duration_months,\n  COALESCE(ls.running_loans, 0) AS running_loans,\n  COALESCE(ls.finished_loans, 0) AS finished_loans,\n  COALESCE(ls.defaulted_loans, 0) AS defaulted_loans,\n  CASE\n    WHEN COALESCE(ls.loan_count, 0) = 0 THEN 'No Loans'\n    WHEN COALESCE(ls.defaulted_loans, 0) > 0 THEN 'High'\n    ELSE 'Low'\n  END AS risk_category\nFROM AccountsIn1993 ai\nJOIN district d ON d.district_id = ai.district_id\nLEFT JOIN TransStats ts ON ts.account_id = ai.account_id\nLEFT JOIN ClientStats cs ON cs.account_id = ai.account_id\nLEFT JOIN LoanStats ls ON ls.account_id = ai.account_id\nORDER BY ai.account_id;",
+    "sql_hash": "sha256:2eab21923d455ccc9e5beb3039b7c3f2a173340e805fb0e654029a4083405803",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "district_name",
+      "district_region",
+      "urbanization_category",
+      "transaction_count",
+      "net_cash_flow",
+      "balance_volatility",
+      "client_count",
+      "owner_gender",
+      "avg_client_age",
+      "loan_count",
+      "total_loan_amount",
+      "avg_loan_duration_months",
+      "running_loans",
+      "finished_loans",
+      "defaulted_loans",
+      "risk_category"
+    ],
+    "joins": [
+      "JOIN district ON d.district_id = ai.district_id",
+      "LEFT JOIN TransStats ON ts.account_id = ai.account_id",
+      "LEFT JOIN ClientStats ON cs.account_id = ai.account_id",
+      "LEFT JOIN LoanStats ON ls.account_id = ai.account_id",
+      "JOIN client ON c.client_id = d.client_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "ai.account_id ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "district_name",
+          "district_region",
+          "urbanization_category",
+          "transaction_count",
+          "net_cash_flow",
+          "balance_volatility",
+          "client_count",
+          "owner_gender",
+          "avg_client_age",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans",
+          "risk_category"
+        ],
+        "joins": [
+          "JOIN district ON d.district_id = ai.district_id",
+          "LEFT JOIN TransStats ON ts.account_id = ai.account_id",
+          "LEFT JOIN ClientStats ON cs.account_id = ai.account_id",
+          "LEFT JOIN LoanStats ON ls.account_id = ai.account_id",
+          "JOIN client ON c.client_id = d.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountsIn1993",
+        "projections": [
+          "account_id",
+          "district_id"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "TransStats",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "net_cash_flow",
+          "balance_volatility"
+        ],
+        "joins": [],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "ClientStats",
+        "projections": [
+          "account_id",
+          "client_count",
+          "owner_gender",
+          "avg_client_age"
+        ],
+        "joins": [
+          "JOIN client ON c.client_id = d.client_id"
+        ],
+        "group_by": [
+          "d.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "group_concat",
+          "avg"
+        ]
+      },
+      {
+        "name": "LoanStats",
+        "projections": [
+          "account_id",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans"
+        ],
+        "joins": [],
+        "group_by": [
+          "l.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "AccountStats:a.account_id | ClientDetails:a.account_id | LoanInfo:a.account_id"
+    ],
+    [
+      "predicted_group_by",
+      "TransStats:t.account_id | ClientStats:d.account_id | LoanStats:l.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "TransStats,ClientStats,LoanStats"
+    ],
+    [
+      "missing_output_labels",
+      "Rural"
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:2013c7cd838e3f3a287fe3ca8b37670ebf77877d40939671de35ef755caa9a3f;2:no_progress:sha256:2013c7cd838e3f3a287fe3ca8b37670ebf77877d40939671de35ef755caa9a3f"
+    ]
+  ]
+}

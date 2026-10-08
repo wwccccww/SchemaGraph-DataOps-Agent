@@ -1,0 +1,173 @@
+{
+  "case_id": "tpcds_complex_002",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "catalog_sales",
+    "promotion",
+    "store_sales",
+    "web_sales",
+    "customer",
+    "item",
+    "customer_address",
+    "customer_demographics",
+    "date_dim",
+    "household_demographics"
+  ],
+  "expanded_tables": [
+    "time_dim",
+    "ship_mode"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT cd.cd_education_status AS education_status, cd.cd_credit_rating AS credit_rating, d.d_year AS sales_year, SUM(ss.ss_net_profit) AS net_profit FROM store_sales AS ss JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk JOIN customer AS c ON ss.ss_customer_sk = c.c_customer_sk JOIN customer_demographics AS cd ON c.c_current_cdemo_sk = cd.cd_demo_sk JOIN item AS i ON ss.ss_item_sk = i.i_item_sk WHERE d.d_year = 2001 AND ss.ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail = 'Y') GROUP BY cd.cd_education_status, cd.cd_credit_rating, d.d_year ORDER BY cd.cd_education_status, cd.cd_credit_rating, d.d_year",
+    "sql_hash": "sha256:aeea8f02a88b8bb5b26d3d3032ea9b8f96b66ce58086f435827d963e53298c33",
+    "referenced_tables": [
+      "customer",
+      "customer_demographics",
+      "date_dim",
+      "item",
+      "promotion",
+      "store_sales"
+    ],
+    "projections": [
+      "education_status",
+      "credit_rating",
+      "sales_year",
+      "net_profit"
+    ],
+    "joins": [
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+      "JOIN customer_demographics ON c.c_current_cdemo_sk = cd.cd_demo_sk",
+      "JOIN item ON ss.ss_item_sk = i.i_item_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001 AND ss.ss_item_sk IN (SELECT p_item_sk FROM promotion WHERE p_channel_dmail = 'Y')"
+    ],
+    "group_by": [
+      "cd.cd_education_status",
+      "cd.cd_credit_rating",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "cd.cd_education_status ASC",
+      "cd.cd_credit_rating ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "education_status",
+          "credit_rating",
+          "sales_year",
+          "net_profit"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN customer ON ss.ss_customer_sk = c.c_customer_sk",
+          "JOIN customer_demographics ON c.c_current_cdemo_sk = cd.cd_demo_sk",
+          "JOIN item ON ss.ss_item_sk = i.i_item_sk"
+        ],
+        "group_by": [
+          "cd.cd_education_status",
+          "cd.cd_credit_rating",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:customer_demographics.cd_education_status、customer_demographics.cd_credit_rating、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:cd.cd_education_status、cd.cd_credit_rating、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=4;predicted=4"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:2ca4fd8b1021fd2135cae02da286acfc56889c599d1c38953ec668b16e5aef3b;2:accepted:"
+    ]
+  ]
+}

@@ -1,0 +1,201 @@
+{
+  "case_id": "bird_0000",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH frpm_calc AS (SELECT frpm.CDSCode AS CDSCode, frpm.\"County Name\" AS County, frpm.\"School Name\" AS SchoolName, frpm.\"Free Meal Count (K-12)\" * 1.0 / frpm.\"Enrollment (K-12)\" AS FreeRate, frpm.\"Free Meal Count (K-12)\" AS FreeMealCount, frpm.\"Enrollment (K-12)\" AS TotalEnrollment FROM frpm WHERE frpm.\"County Name\" = 'Alameda' AND frpm.\"Enrollment (K-12)\" > 0), county_avg AS (SELECT frpm.\"County Name\" AS County, AVG(frpm.\"Free Meal Count (K-12)\" * 1.0 / frpm.\"Enrollment (K-12)\") AS CountyAverageFreeRate FROM frpm WHERE frpm.\"County Name\" = 'Alameda' AND frpm.\"Enrollment (K-12)\" > 0 GROUP BY frpm.\"County Name\"), ranked AS (SELECT fc.CDSCode AS CDSCode, fc.County AS County, fc.SchoolName AS SchoolName, fc.FreeRate AS FreeRate, fc.FreeMealCount AS FreeMealCount, fc.TotalEnrollment AS TotalEnrollment, RANK() OVER (PARTITION BY fc.County ORDER BY fc.FreeRate DESC) AS CountyRank FROM frpm_calc AS fc) SELECT r.County AS County, r.SchoolName AS \"School Name\", r.FreeRate AS HighestFreeRate, r.FreeMealCount AS FreeMealCount, r.TotalEnrollment AS TotalEnrollment, CASE s.Charter WHEN 1 THEN 'Yes' WHEN 0 THEN 'No' ELSE 'Unknown' END AS IsCharterSchool, s.GSserved AS GradesServed, CASE WHEN ss.cds IS NULL OR ss.AvgScrRead IS NULL OR ss.AvgScrMath IS NULL OR ss.AvgScrWrite IS NULL THEN 'No SAT Data' WHEN (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) < 1200 THEN 'Below Average' WHEN (ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite) <= 1500 THEN 'Average' ELSE 'Above Average' END AS SATPerformance, ca.CountyAverageFreeRate AS CountyAverageFreeRate, r.FreeRate - ca.CountyAverageFreeRate AS DeviationFromCountyAverage FROM ranked AS r JOIN schools AS s ON s.CDSCode = r.CDSCode LEFT JOIN satscores AS ss ON ss.cds = s.CDSCode AND ss.rtype = 'S' JOIN county_avg AS ca ON ca.County = r.County WHERE r.CountyRank = 1 ORDER BY r.FreeRate DESC LIMIT 1",
+    "sql_hash": "sha256:1ac244409eb4a67133e83ad01a7e716c929d5fe702ecdc3dd8573e1fc6a99d0e",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "County",
+      "School Name",
+      "HighestFreeRate",
+      "FreeMealCount",
+      "TotalEnrollment",
+      "IsCharterSchool",
+      "GradesServed",
+      "SATPerformance",
+      "CountyAverageFreeRate",
+      "DeviationFromCountyAverage"
+    ],
+    "joins": [
+      "JOIN schools ON s.CDSCode = r.CDSCode",
+      "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'",
+      "JOIN county_avg ON ca.County = r.County"
+    ],
+    "predicates": [
+      "WHERE r.CountyRank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "r.FreeRate DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "County",
+          "School Name",
+          "HighestFreeRate",
+          "FreeMealCount",
+          "TotalEnrollment",
+          "IsCharterSchool",
+          "GradesServed",
+          "SATPerformance",
+          "CountyAverageFreeRate",
+          "DeviationFromCountyAverage"
+        ],
+        "joins": [
+          "JOIN schools ON s.CDSCode = r.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'",
+          "JOIN county_avg ON ca.County = r.County"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "frpm_calc",
+        "projections": [
+          "CDSCode",
+          "County",
+          "SchoolName",
+          "FreeRate",
+          "FreeMealCount",
+          "TotalEnrollment"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "county_avg",
+        "projections": [
+          "County",
+          "CountyAverageFreeRate"
+        ],
+        "joins": [],
+        "group_by": [
+          "frpm.\"County Name\""
+        ],
+        "aggregations": [
+          "avg"
+        ]
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "CDSCode",
+          "County",
+          "SchoolName",
+          "FreeRate",
+          "FreeMealCount",
+          "TotalEnrollment",
+          "CountyRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      "county_avg:frpm.\"County Name\""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "county_avg,ranked"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:b66aed98517d0e8258a80795a17ba257e8d41da5baad38b677414b3572b0ea11;2:accepted:"
+    ]
+  ]
+}

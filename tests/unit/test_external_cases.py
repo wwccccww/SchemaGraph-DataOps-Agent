@@ -6,11 +6,13 @@ from app.evaluation.bird import (
     BIRD_CASE_COUNT,
     BIRD_SOURCE_VERSION,
     QUESTIONS_SHA256,
+    adapt_bird_wall_clock,
     build_bird_cases,
     load_bird_cases,
     load_bird_questions,
     question_requests_order,
 )
+from app.evaluation.bird_contracts import contract_for as bird_contract_for
 from app.evaluation.custom_cases import normalize_sql, referenced_tables
 from app.evaluation.external_data import patch_tpcds_makefile, schema_statements
 from app.evaluation.tpcds import (
@@ -21,6 +23,8 @@ from app.evaluation.tpcds import (
     build_tpcds_cases,
     load_tpcds_cases,
 )
+from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
+from app.evaluation.tpcds_oracle import structural_oracle_passed
 
 
 def test_tpcds_cases_match_the_builder_and_cover_required_shapes() -> None:
@@ -47,6 +51,11 @@ def test_tpcds_cases_match_the_builder_and_cover_required_shapes() -> None:
         assert "order by" not in normalize_sql(case.gold_sql)
         assert str(SALES_YEAR) in case.question
         assert any("\u4e00" <= char <= "\u9fff" for char in case.question)
+        assert case.semantic_contract is not None
+        contract = tpcds_contract_for(case)
+        assert case.semantic_contract == contract
+        assert case.semantic_contract.projections == case.expected_columns
+        assert structural_oracle_passed(case)
         tags.update(case.tags)
         statements.add(normalize_sql(case.gold_sql))
     assert {"cte", "subquery", "aggregation", "join"} <= tags
@@ -71,9 +80,12 @@ def test_bird_cases_match_the_builder_and_keep_original_questions() -> None:
         assert case.difficulty == "complex"
         assert case.dialect == "sqlite"
         assert case.question == str(original["question"]).strip()
-        assert case.gold_sql == str(original["SQL"]).strip()
+        assert case.gold_sql == adapt_bird_wall_clock(str(original["SQL"]).strip())
         assert case.required_junctions == []
         assert case.order_sensitive is question_requests_order(case.question)
+        assert case.semantic_contract is not None
+        assert case.semantic_contract == bird_contract_for(case)
+        assert case.semantic_contract.projections == case.expected_columns
         assert "evidence" not in case.model_dump()
         seen.add(case.database_id)
     assert seen

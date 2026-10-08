@@ -1,0 +1,183 @@
+{
+  "case_id": "bird_0018",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH fresno_charter AS (SELECT f.CDSCode, f.\"County Name\" AS county_name, f.\"Charter Funding Type\" AS funding_type, f.\"Percent (%) Eligible FRPM (K-12)\" AS frpm_pct, s.NumTstTakr, s.AvgScrRead, s.AvgScrMath, s.AvgScrWrite, s.NumGE1500, sc.OpenDate FROM frpm AS f JOIN schools AS sc ON f.CDSCode = sc.CDSCode LEFT JOIN satscores AS s ON s.cds = sc.CDSCode AND s.rtype = 'S' WHERE f.\"County Name\" = 'Fresno' AND f.\"Charter Funding Type\" = 'Directly funded' AND s.NumTstTakr <= 250) SELECT COUNT(DISTINCT CDSCode) AS TotalSchools, county_name AS \"County Name\", ROUND(AVG(NumTstTakr), 2) AS AvgTestTakers, ROUND(AVG(AvgScrRead + AvgScrMath + AvgScrWrite), 2) AS AvgTotalScore, ROUND(AVG(CAST(NumGE1500 AS REAL) * 100 / NumTstTakr), 2) AS AvgPercentScoring1500Plus, ROUND(AVG(frpm_pct) * 100, 2) AS AvgFRPMPercentage, ROUND(AVG((CAST(STRFTIME('%Y', '2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', OpenDate) AS INTEGER))), 2) AS AvgSchoolAgeInYears, SUM(CASE WHEN NumTstTakr <= 50 THEN 1 ELSE 0 END) AS SchoolsWithUnder50Testers, SUM(CASE WHEN NumTstTakr > 50 AND NumTstTakr <= 100 THEN 1 ELSE 0 END) AS SchoolsWith50To100Testers, SUM(CASE WHEN NumTstTakr > 100 AND NumTstTakr <= 250 THEN 1 ELSE 0 END) AS SchoolsWith100To250Testers FROM fresno_charter GROUP BY county_name",
+    "sql_hash": "sha256:22e9081887d79b34d11476534400b6b7db11a19070c9fbdfc0fd8a1f4be211b7",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "TotalSchools",
+      "County Name",
+      "AvgTestTakers",
+      "AvgTotalScore",
+      "AvgPercentScoring1500Plus",
+      "AvgFRPMPercentage",
+      "AvgSchoolAgeInYears",
+      "SchoolsWithUnder50Testers",
+      "SchoolsWith50To100Testers",
+      "SchoolsWith100To250Testers"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = sc.CDSCode",
+      "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [
+      "county_name"
+    ],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "TotalSchools",
+          "County Name",
+          "AvgTestTakers",
+          "AvgTotalScore",
+          "AvgPercentScoring1500Plus",
+          "AvgFRPMPercentage",
+          "AvgSchoolAgeInYears",
+          "SchoolsWithUnder50Testers",
+          "SchoolsWith50To100Testers",
+          "SchoolsWith100To250Testers"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = sc.CDSCode",
+          "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+        ],
+        "group_by": [
+          "county_name"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "fresno_charter",
+        "projections": [
+          "CDSCode",
+          "county_name",
+          "funding_type",
+          "frpm_pct",
+          "NumTstTakr",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "NumGE1500",
+          "OpenDate"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = sc.CDSCode",
+          "LEFT JOIN satscores ON s.cds = sc.CDSCode AND s.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:ss.\"County Name\""
+    ],
+    [
+      "predicted_group_by",
+      "outer:county_name"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

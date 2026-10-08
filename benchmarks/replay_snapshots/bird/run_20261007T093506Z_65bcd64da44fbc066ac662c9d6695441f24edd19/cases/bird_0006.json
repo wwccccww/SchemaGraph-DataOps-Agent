@@ -1,0 +1,187 @@
+{
+  "case_id": "bird_0006",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 3,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH sat_ranked AS (\n  SELECT\n    sc.cds,\n    sc.sname,\n    sc.cname,\n    sc.NumTstTakr,\n    sc.AvgScrRead,\n    sc.AvgScrMath,\n    sc.AvgScrWrite,\n    sc.NumGE1500,\n    sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite AS TotalAvgScore,\n    RANK() OVER (ORDER BY sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite DESC) AS StateRank,\n    DENSE_RANK() OVER (PARTITION BY sc.cname ORDER BY sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite DESC) AS CountyRank\n  FROM satscores AS sc\n  WHERE sc.rtype = 'S'\n    AND sc.NumTstTakr > 500\n)\nSELECT\n  s.School AS School,\n  s.SOCType AS SchoolType,\n  s.EdOpsName AS EducationalOption,\n  sr.NumTstTakr AS TestTakers,\n  sr.TotalAvgScore AS TotalAvgScore,\n  sr.AvgScrRead AS ReadingScore,\n  sr.AvgScrMath AS MathScore,\n  sr.AvgScrWrite AS WritingScore,\n  CAST(sr.NumGE1500 AS FLOAT) / NULLIF(sr.NumTstTakr, 0) * 100 AS PercentHighScorers,\n  f.\"Enrollment (K-12)\" AS Enrollment,\n  f.\"Percent (%) Eligible FRPM (K-12)\" AS FreeReducedMealPercentage,\n  sr.StateRank AS StateRank,\n  sr.CountyRank AS CountyRank,\n  CASE\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'Very High Poverty'\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'High Poverty'\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.25 THEN 'Moderate Poverty'\n    ELSE 'Low Poverty'\n  END AS PovertyLevel,\n  CASE\n    WHEN sr.TotalAvgScore > 1800 THEN 'Excellent'\n    WHEN sr.TotalAvgScore > 1500 THEN 'Good'\n    WHEN sr.TotalAvgScore > 1200 THEN 'Average'\n    ELSE 'Below Average'\n  END AS PerformanceCategory\nFROM schools AS s\nJOIN sat_ranked AS sr ON sr.cds = s.CDSCode\nJOIN frpm AS f ON f.CDSCode = s.CDSCode\nWHERE s.Magnet = 1\nORDER BY sr.TotalAvgScore DESC, PercentHighScorers DESC;",
+    "sql_hash": "sha256:712957720665c2f5988bc85adff48eae0eca18a242dec547096e87cd72e52e89",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "SchoolType",
+      "EducationalOption",
+      "TestTakers",
+      "TotalAvgScore",
+      "ReadingScore",
+      "MathScore",
+      "WritingScore",
+      "PercentHighScorers",
+      "Enrollment",
+      "FreeReducedMealPercentage",
+      "StateRank",
+      "CountyRank",
+      "PovertyLevel",
+      "PerformanceCategory"
+    ],
+    "joins": [
+      "JOIN sat_ranked ON sr.cds = s.CDSCode",
+      "JOIN frpm ON f.CDSCode = s.CDSCode"
+    ],
+    "predicates": [
+      "WHERE s.Magnet = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sr.TotalAvgScore DESC",
+      "PercentHighScorers DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "SchoolType",
+          "EducationalOption",
+          "TestTakers",
+          "TotalAvgScore",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "PercentHighScorers",
+          "Enrollment",
+          "FreeReducedMealPercentage",
+          "StateRank",
+          "CountyRank",
+          "PovertyLevel",
+          "PerformanceCategory"
+        ],
+        "joins": [
+          "JOIN sat_ranked ON sr.cds = s.CDSCode",
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "sat_ranked",
+        "projections": [
+          "cds",
+          "sname",
+          "cname",
+          "NumTstTakr",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "NumGE1500",
+          "TotalAvgScore",
+          "StateRank",
+          "CountyRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank",
+          "dense_rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "sat_ranked"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:bbe7e97f9c4bc634055f082fefb4fc4b2afd5be07bc5fe5c832ec93a0c7d55ce;2:projection_mismatch:sha256:f0baf50b727fa25711dfeaaad6f20c8f2c303563710a456e816e925706d212f7;3:no_progress:sha256:f0baf50b727fa25711dfeaaad6f20c8f2c303563710a456e816e925706d212f7"
+    ]
+  ]
+}

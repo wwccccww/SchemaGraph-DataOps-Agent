@@ -1,0 +1,184 @@
+{
+  "case_id": "bird_0003",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (SELECT s.School AS SchoolName, s.County AS County, s.City AS City, s.MailStreet AS UnabbreviatedMailingAddress, s.Website AS Website, f.\"Enrollment (K-12)\" AS Enrollment, f.\"FRPM Count (K-12)\" AS FRPMCount, ROUND(f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" * 100, 2) AS FRPMPercentage, (COALESCE(sat.AvgScrRead, 0) + COALESCE(sat.AvgScrMath, 0) + COALESCE(sat.AvgScrWrite, 0)) AS TotalSATScore, sat.NumTstTakr, sat.NumGE1500, s.OpenDate AS OpenDate, s.StatusType AS SchoolStatus FROM frpm AS f JOIN schools AS s ON f.CDSCode = s.CDSCode LEFT JOIN satscores AS sat ON sat.cds = s.CDSCode AND sat.rtype = 'S' WHERE s.Charter = 0 AND f.\"Enrollment (K-12)\" > 100) SELECT SchoolName, County, City, UnabbreviatedMailingAddress, Website, Enrollment, FRPMCount, FRPMPercentage, TotalSATScore, CASE WHEN NumTstTakr IS NULL THEN 'No SAT Data' WHEN TotalSATScore >= 1500 THEN 'High' WHEN TotalSATScore >= 1200 THEN 'Medium' ELSE 'Low' END AS PerformanceCategory, CASE WHEN NumTstTakr > 0 THEN ROUND(NumGE1500 * 100.0 / NumTstTakr, 2) END AS PercentHighScorers, CASE WHEN NumTstTakr IS NULL THEN 'No SAT Data' WHEN FRPMPercentage >= 75 AND (NumGE1500 * 100.0 / NumTstTakr) >= 30 THEN 'Performs well despite high FRPM' WHEN FRPMPercentage >= 75 AND (NumGE1500 * 100.0 / NumTstTakr) < 30 THEN 'Performs poorly given high FRPM' WHEN FRPMPercentage < 75 AND (NumGE1500 * 100.0 / NumTstTakr) >= 30 THEN 'Performs well given low FRPM' ELSE 'Performs poorly given low FRPM' END AS PerformanceClassification, OpenDate, SchoolStatus FROM base ORDER BY FRPMCount DESC LIMIT 1",
+    "sql_hash": "sha256:61741715542fbd369c31b55670c819654283a86ea23adf0ef6e8e065cb01f01c",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "County",
+      "City",
+      "UnabbreviatedMailingAddress",
+      "Website",
+      "Enrollment",
+      "FRPMCount",
+      "FRPMPercentage",
+      "TotalSATScore",
+      "PerformanceCategory",
+      "PercentHighScorers",
+      "PerformanceClassification",
+      "OpenDate",
+      "SchoolStatus"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "FRPMCount DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "UnabbreviatedMailingAddress",
+          "Website",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercentage",
+          "TotalSATScore",
+          "PerformanceCategory",
+          "PercentHighScorers",
+          "PerformanceClassification",
+          "OpenDate",
+          "SchoolStatus"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "UnabbreviatedMailingAddress",
+          "Website",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercentage",
+          "TotalSATScore",
+          "NumTstTakr",
+          "NumGE1500",
+          "OpenDate",
+          "SchoolStatus"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "grouping_grain",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:aff8cdcbf2e97d8fbb2a73b752bd4de388fe26254bbf896a63bf32d2d03e097c;2:accepted:"
+    ]
+  ]
+}

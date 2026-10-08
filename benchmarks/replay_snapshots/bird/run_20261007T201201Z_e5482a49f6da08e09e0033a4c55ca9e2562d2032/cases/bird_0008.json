@@ -1,0 +1,196 @@
+{
+  "case_id": "bird_0008",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    frpm.CDSCode AS cds,\n    frpm.\"County Name\" AS \"County\",\n    frpm.\"District Name\" AS \"District\",\n    frpm.\"School Name\" AS \"School\",\n    CASE frpm.\"Charter School (Y/N)\"\n      WHEN 1 THEN 'Charter School'\n      WHEN 0 THEN 'Non-Charter School'\n      ELSE 'Unknown'\n    END AS school_type,\n    schools.GSoffered AS grade_level,\n    frpm.\"FRPM Count (K-12)\" AS frpm_count,\n    frpm.\"Enrollment (K-12)\" AS enrollment,\n    ROUND(frpm.\"Percent (%) Eligible FRPM (K-12)\" * 100, 2) AS percent_eligible_frpm,\n    satscores.NumTstTakr AS num_sat_takers,\n    ROUND(satscores.NumTstTakr * 100.0 / NULLIF(satscores.enroll12, 0), 2) AS percent_taking_sat,\n    satscores.AvgScrRead AS avg_reading,\n    satscores.AvgScrMath AS avg_math,\n    satscores.AvgScrWrite AS avg_writing,\n    (satscores.AvgScrRead + satscores.AvgScrMath + satscores.AvgScrWrite) AS total_avg_score,\n    ROUND(satscores.NumGE1500 * 100.0 / NULLIF(satscores.NumTstTakr, 0), 2) AS percent_scoring_over_1500,\n    RANK() OVER (ORDER BY frpm.\"FRPM Count (K-12)\" DESC) AS frpm_rank\n  FROM frpm\n  JOIN schools ON frpm.CDSCode = schools.CDSCode\n  LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'\n  WHERE frpm.\"Enrollment (K-12)\" > 0\n)\nSELECT\n  \"County\",\n  \"District\",\n  \"School\",\n  school_type,\n  grade_level,\n  frpm_count,\n  enrollment,\n  percent_eligible_frpm,\n  num_sat_takers,\n  percent_taking_sat,\n  avg_reading,\n  avg_math,\n  avg_writing,\n  total_avg_score,\n  percent_scoring_over_1500,\n  frpm_rank\nFROM base\nWHERE frpm_rank <= 10\nORDER BY frpm_rank;",
+    "sql_hash": "sha256:54ce302c7471f8c3abef77cbdfe377b454285e8294e8a023b17360eeadc40458",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "County",
+      "District",
+      "School",
+      "school_type",
+      "grade_level",
+      "frpm_count",
+      "enrollment",
+      "percent_eligible_frpm",
+      "num_sat_takers",
+      "percent_taking_sat",
+      "avg_reading",
+      "avg_math",
+      "avg_writing",
+      "total_avg_score",
+      "percent_scoring_over_1500",
+      "frpm_rank"
+    ],
+    "joins": [
+      "JOIN schools ON frpm.CDSCode = schools.CDSCode",
+      "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+    ],
+    "predicates": [
+      "WHERE frpm_rank <= 10"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "frpm_rank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "County",
+          "District",
+          "School",
+          "school_type",
+          "grade_level",
+          "frpm_count",
+          "enrollment",
+          "percent_eligible_frpm",
+          "num_sat_takers",
+          "percent_taking_sat",
+          "avg_reading",
+          "avg_math",
+          "avg_writing",
+          "total_avg_score",
+          "percent_scoring_over_1500",
+          "frpm_rank"
+        ],
+        "joins": [
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode",
+          "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base",
+        "projections": [
+          "cds",
+          "County",
+          "District",
+          "School",
+          "school_type",
+          "grade_level",
+          "frpm_count",
+          "enrollment",
+          "percent_eligible_frpm",
+          "num_sat_takers",
+          "percent_taking_sat",
+          "avg_reading",
+          "avg_math",
+          "avg_writing",
+          "total_avg_score",
+          "percent_scoring_over_1500",
+          "frpm_rank"
+        ],
+        "joins": [
+          "JOIN schools ON frpm.CDSCode = schools.CDSCode",
+          "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "base"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:9505b4f3fe0521a60cfb0d2ecb8211c09940b3aff8214c0dfe3d39cc7a984df6;2:no_progress:sha256:9505b4f3fe0521a60cfb0d2ecb8211c09940b3aff8214c0dfe3d39cc7a984df6"
+    ]
+  ]
+}

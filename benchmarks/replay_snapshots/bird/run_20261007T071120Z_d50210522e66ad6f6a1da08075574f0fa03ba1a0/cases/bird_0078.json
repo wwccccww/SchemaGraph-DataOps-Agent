@@ -1,0 +1,208 @@
+{
+  "case_id": "bird_0078",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH \"AdelantoSchools\" AS (SELECT s.\"CDSCode\" AS \"CDSCode\", s.\"GSserved\" AS \"GSserved\", s.\"StatusType\" AS \"StatusType\", f.\"Enrollment (K-12)\" AS \"Enrollment\", f.\"Percent (%) Eligible FRPM (K-12)\" AS \"FRPMPct\", sa.\"AvgScrRead\" AS \"AvgScrRead\", sa.\"AvgScrMath\" AS \"AvgScrMath\", sa.\"AvgScrWrite\" AS \"AvgScrWrite\" FROM schools AS s JOIN frpm AS f ON f.\"CDSCode\" = s.\"CDSCode\" LEFT JOIN satscores AS sa ON sa.cds = s.\"CDSCode\" AND sa.rtype = 'S' WHERE s.\"City\" = 'Adelanto' AND s.\"StatusType\" = 'Active'), \"GradeSpanCounts\" AS (SELECT \"GSserved\", COUNT(*) AS \"cnt\", RANK() OVER (ORDER BY COUNT(*) DESC) AS \"grade_span_rank\" FROM \"AdelantoSchools\" GROUP BY \"GSserved\"), \"MostCommon\" AS (SELECT \"GSserved\" AS \"most_common_grade_span\" FROM \"GradeSpanCounts\" WHERE \"grade_span_rank\" = 1) SELECT m.\"most_common_grade_span\" AS \"most_common_grade_span\", COUNT(a.\"CDSCode\") AS \"school_count\", SUM(CASE WHEN a.\"StatusType\" = 'Active' THEN 1 ELSE 0 END) AS \"active_schools\", ROUND(AVG(a.\"Enrollment\"), 2) AS \"avg_enrollment\", SUM(a.\"Enrollment\") AS \"total_enrollment\", ROUND(AVG(a.\"FRPMPct\"), 2) AS \"avg_frpm_percentage\", SUM(CASE WHEN a.\"FRPMPct\" > 0.75 THEN 1 ELSE 0 END) AS \"high_poverty_schools\", SUM(CASE WHEN a.\"FRPMPct\" > 0.50 AND a.\"FRPMPct\" <= 0.75 THEN 1 ELSE 0 END) AS \"medium_poverty_schools\", SUM(CASE WHEN a.\"FRPMPct\" <= 0.50 THEN 1 ELSE 0 END) AS \"low_poverty_schools\", ROUND(AVG(a.\"AvgScrRead\"), 2) AS \"avg_reading_score\", ROUND(AVG(a.\"AvgScrMath\"), 2) AS \"avg_math_score\", ROUND(AVG(a.\"AvgScrWrite\"), 2) AS \"avg_writing_score\" FROM \"AdelantoSchools\" AS a JOIN \"MostCommon\" AS m ON a.\"GSserved\" = m.\"most_common_grade_span\"",
+    "sql_hash": "sha256:4fd6c222a5932559c9e2f0d6ff753d61564e431e797f3b4a8051c3d1d1694cd9",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "most_common_grade_span",
+      "school_count",
+      "active_schools",
+      "avg_enrollment",
+      "total_enrollment",
+      "avg_frpm_percentage",
+      "high_poverty_schools",
+      "medium_poverty_schools",
+      "low_poverty_schools",
+      "avg_reading_score",
+      "avg_math_score",
+      "avg_writing_score"
+    ],
+    "joins": [
+      "JOIN MostCommon ON a.\"GSserved\" = m.\"most_common_grade_span\"",
+      "JOIN frpm ON f.\"CDSCode\" = s.\"CDSCode\"",
+      "LEFT JOIN satscores ON sa.cds = s.\"CDSCode\" AND sa.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "sum",
+      "avg"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "most_common_grade_span",
+          "school_count",
+          "active_schools",
+          "avg_enrollment",
+          "total_enrollment",
+          "avg_frpm_percentage",
+          "high_poverty_schools",
+          "medium_poverty_schools",
+          "low_poverty_schools",
+          "avg_reading_score",
+          "avg_math_score",
+          "avg_writing_score"
+        ],
+        "joins": [
+          "JOIN MostCommon ON a.\"GSserved\" = m.\"most_common_grade_span\"",
+          "JOIN frpm ON f.\"CDSCode\" = s.\"CDSCode\"",
+          "LEFT JOIN satscores ON sa.cds = s.\"CDSCode\" AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "AdelantoSchools",
+        "projections": [
+          "CDSCode",
+          "GSserved",
+          "StatusType",
+          "Enrollment",
+          "FRPMPct",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite"
+        ],
+        "joins": [
+          "JOIN frpm ON f.\"CDSCode\" = s.\"CDSCode\"",
+          "LEFT JOIN satscores ON sa.cds = s.\"CDSCode\" AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "GradeSpanCounts",
+        "projections": [
+          "GSserved",
+          "cnt",
+          "grade_span_rank"
+        ],
+        "joins": [],
+        "group_by": [
+          "\"GSserved\""
+        ],
+        "aggregations": [
+          "count",
+          "rank"
+        ]
+      },
+      {
+        "name": "MostCommon",
+        "projections": [
+          "most_common_grade_span"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:sbs.GSserved、sbs.school_count | SchoolsByGradeSpan:s.GSserved"
+    ],
+    [
+      "predicted_group_by",
+      "GradeSpanCounts:\"GSserved\""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

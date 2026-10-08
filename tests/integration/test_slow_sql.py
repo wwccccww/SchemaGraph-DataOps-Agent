@@ -75,7 +75,8 @@ async def test_four_cases_stay_isolated_and_improve_planner_cost(database_settin
         assert score.isolated, score.detail
         assert score.planner_cost_drop is not None
         assert score.planner_cost_drop >= 0.2
-    assert model.temperatures == [0.0, 0.0, 0.0, 0.0]
+    assert len(model.temperatures) <= 4
+    assert all(temperature == 0.0 for temperature in model.temperatures)
     for prompt in model.prompts:
         for rewrite in _REWRITES.values():
             assert rewrite not in prompt

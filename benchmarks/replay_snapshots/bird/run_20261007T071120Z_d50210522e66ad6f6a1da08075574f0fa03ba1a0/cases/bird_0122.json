@@ -1,0 +1,241 @@
+{
+  "case_id": "bird_0122",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "loan",
+    "district",
+    "account",
+    "client",
+    "card",
+    "disp",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH LoanStats AS (SELECT l.loan_id, l.account_id, l.amount, l.duration, l.status, a.district_id, c.client_id, c.gender, c.birth_date FROM loan AS l JOIN account AS a ON l.account_id = a.account_id JOIN disp AS d ON d.account_id = a.account_id AND d.type = 'OWNER' JOIN client AS c ON d.client_id = c.client_id WHERE l.loan_id = 4990), DistrictStats AS (SELECT a.district_id, COUNT(l.loan_id) AS district_total_loans, AVG(l.amount) AS district_avg_loan_amount, SUM(CASE WHEN l.status IN ('B', 'D') THEN 1 ELSE 0 END) AS district_problematic_loans FROM loan AS l JOIN account AS a ON l.account_id = a.account_id GROUP BY a.district_id), Ranked AS (SELECT l.loan_id, a.district_id, l.amount, RANK() OVER (PARTITION BY a.district_id ORDER BY l.amount DESC) AS district_loan_rank FROM loan AS l JOIN account AS a ON l.account_id = a.account_id) SELECT ls.loan_id, di.A2 AS district_name, di.A3 AS region, ls.gender, ls.birth_date, ls.amount AS loan_amount, ls.duration AS loan_duration_months, CASE ls.status WHEN 'A' THEN 'Running-OK' WHEN 'B' THEN 'Running-Issues' WHEN 'C' THEN 'Finished-No Issues' WHEN 'D' THEN 'Finished-Issues' END AS status_description, di.A11 AS district_avg_salary, di.A13 AS unemployment_rate_1995, ds.district_total_loans, ds.district_avg_loan_amount, ds.district_problematic_loans, r.district_loan_rank, (SELECT COUNT(*) FROM trans AS t WHERE t.account_id = ls.account_id) AS total_transactions FROM LoanStats AS ls JOIN district AS di ON ls.district_id = di.district_id JOIN DistrictStats AS ds ON ls.district_id = ds.district_id JOIN Ranked AS r ON ls.loan_id = r.loan_id AND ls.district_id = r.district_id",
+    "sql_hash": "sha256:99e36f3fd7da0bc56dc0b01e16b0aacc7d11c8d3951c8540ad8c623654d2c625",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "loan_id",
+      "district_name",
+      "region",
+      "gender",
+      "birth_date",
+      "loan_amount",
+      "loan_duration_months",
+      "status_description",
+      "district_avg_salary",
+      "unemployment_rate_1995",
+      "district_total_loans",
+      "district_avg_loan_amount",
+      "district_problematic_loans",
+      "district_loan_rank",
+      "total_transactions"
+    ],
+    "joins": [
+      "JOIN district ON ls.district_id = di.district_id",
+      "JOIN DistrictStats ON ls.district_id = ds.district_id",
+      "JOIN Ranked ON ls.loan_id = r.loan_id AND ls.district_id = r.district_id",
+      "JOIN account ON l.account_id = a.account_id",
+      "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+      "JOIN client ON d.client_id = c.client_id",
+      "JOIN account ON l.account_id = a.account_id",
+      "JOIN account ON l.account_id = a.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "loan_id",
+          "district_name",
+          "region",
+          "gender",
+          "birth_date",
+          "loan_amount",
+          "loan_duration_months",
+          "status_description",
+          "district_avg_salary",
+          "unemployment_rate_1995",
+          "district_total_loans",
+          "district_avg_loan_amount",
+          "district_problematic_loans",
+          "district_loan_rank",
+          "total_transactions"
+        ],
+        "joins": [
+          "JOIN district ON ls.district_id = di.district_id",
+          "JOIN DistrictStats ON ls.district_id = ds.district_id",
+          "JOIN Ranked ON ls.loan_id = r.loan_id AND ls.district_id = r.district_id",
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON d.client_id = c.client_id",
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN account ON l.account_id = a.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count"
+        ]
+      },
+      {
+        "name": "LoanStats",
+        "projections": [
+          "loan_id",
+          "account_id",
+          "amount",
+          "duration",
+          "status",
+          "district_id",
+          "client_id",
+          "gender",
+          "birth_date"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id",
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON d.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "DistrictStats",
+        "projections": [
+          "district_id",
+          "district_total_loans",
+          "district_avg_loan_amount",
+          "district_problematic_loans"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id"
+        ],
+        "group_by": [
+          "a.district_id"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "Ranked",
+        "projections": [
+          "loan_id",
+          "district_id",
+          "amount",
+          "district_loan_rank"
+        ],
+        "joins": [
+          "JOIN account ON l.account_id = a.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "DistrictStats:d.district_id、d.A2、d.A3、d.A11、d.A12"
+    ],
+    [
+      "predicted_group_by",
+      "DistrictStats:a.district_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=6"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

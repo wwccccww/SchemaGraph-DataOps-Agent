@@ -77,6 +77,19 @@ async def test_gateway_error_does_not_include_the_response_body() -> None:
     assert "leaked" not in str(caught.value)
 
 
+async def test_gateway_402_includes_replay_fallback_hint() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(402, json={"error": "payment required"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        gateway = DeepSeekGateway(api_key=SecretStr("deepseek-test-key"), client=client)
+        with pytest.raises(RuntimeError, match="402") as caught:
+            await gateway.complete([{"role": "user", "content": "问题"}], temperature=0)
+
+    assert "replay-run" in str(caught.value)
+
+
 def test_tokenizer_identity_is_pinned() -> None:
     counter = DeepSeekTokenCounter(counter=lambda text: len(text.split()))
 

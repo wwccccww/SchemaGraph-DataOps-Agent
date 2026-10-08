@@ -12,7 +12,12 @@ from langgraph.graph import END, START, StateGraph
 
 from app.agents.slow_sql.metrics import drop, shared_buffer_access
 from app.agents.slow_sql.plan import PlanNode, PlanSummary
-from app.agents.slow_sql.prompt import SYSTEM_PROMPT, render_rewrite_prompt
+from app.agents.slow_sql.autofix import try_autofix_sql
+from app.agents.slow_sql.prompt import (
+    SYSTEM_PROMPT,
+    render_rewrite_prompt,
+    render_rewrite_repair_prompt,
+)
 from app.agents.slow_sql.rules import Finding, diagnose_sql, finding_for_seq_scan
 from app.agents.text_to_sql.prompt import extract_sql
 from app.db.catalog import DATABASE_ID
@@ -40,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 EX_MAX_ROWS = 1000
 REWRITE_TEMPERATURE = 0.0
+MAX_REWRITE_ATTEMPTS = 2
 SeverityName = Literal["high", "medium", "low"]
 
 
@@ -75,6 +81,7 @@ class SlowSqlState(TypedDict):
     original_hit: int | None
     original_read: int | None
     candidate_sql: str | None
+    last_candidate_sql: str | None
     equivalent: bool | None
     planner_cost_drop: float | None
     execution_time_drop: float | None
@@ -127,7 +134,11 @@ def build_graph(services: SlowSqlServices) -> Any:
     builder.add_conditional_edges(
         "verify_equivalence",
         _after_verify,
-        {"compare_metrics": "compare_metrics", "finish": "finish"},
+        {
+            "compare_metrics": "compare_metrics",
+            "rewrite_sql": "rewrite_sql",
+            "finish": "finish",
+        },
     )
     builder.add_edge("compare_metrics", "finish")
     builder.add_edge("finish", END)
@@ -197,6 +208,7 @@ def _initial_state(
         "original_hit": None,
         "original_read": None,
         "candidate_sql": None,
+        "last_candidate_sql": None,
         "equivalent": None,
         "planner_cost_drop": None,
         "execution_time_drop": None,
@@ -261,27 +273,52 @@ def _rewrite_sql(
     services: SlowSqlServices,
 ) -> Callable[[SlowSqlState], Awaitable[dict[str, object]]]:
     async def node(state: SlowSqlState) -> dict[str, object]:
-        prompt = render_rewrite_prompt(
-            sql=state["sql"],
-            findings=tuple(_finding_from_state(item) for item in state["findings"]),
-            nodes=tuple(_node_from_state(item) for item in state["plan_nodes"]),
-        )
+        findings = tuple(_finding_from_state(item) for item in state["findings"])
+        nodes = tuple(_node_from_state(item) for item in state["plan_nodes"])
         attempt = state["generation_attempt"] + 1
-        try:
-            content = await services.model.complete(
-                (
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ),
-                temperature=REWRITE_TEMPERATURE,
-            )
-        except Exception:
-            logger.info("slow sql rewrite failed with %s", "model_error")
-            return {"candidate_sql": None, "generation_attempt": attempt}
-        decision = check_read_only_sql(extract_sql(content))
-        if decision.error is not None:
-            return {"candidate_sql": None, "generation_attempt": attempt}
-        return {"candidate_sql": decision.sql, "generation_attempt": attempt}
+        candidate: str | None = None
+        if attempt == 1 or (
+            attempt > 1 and state.get("equivalent") is False and state.get("last_candidate_sql")
+        ):
+            candidate = try_autofix_sql(state["sql"], findings)
+            if candidate is not None:
+                decision = check_read_only_sql(candidate)
+                candidate = None if decision.error is not None else decision.sql
+        if candidate is None:
+            previous = state.get("last_candidate_sql")
+            if attempt > 1 and isinstance(previous, str):
+                prompt = render_rewrite_repair_prompt(
+                    sql=state["sql"],
+                    previous_sql=previous,
+                    findings=findings,
+                    nodes=nodes,
+                )
+            else:
+                prompt = render_rewrite_prompt(
+                    sql=state["sql"],
+                    findings=findings,
+                    nodes=nodes,
+                )
+            try:
+                content = await services.model.complete(
+                    (
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ),
+                    temperature=REWRITE_TEMPERATURE,
+                )
+            except Exception:
+                logger.info("slow sql rewrite failed with %s", "model_error")
+                return {"candidate_sql": None, "generation_attempt": attempt}
+            decision = check_read_only_sql(extract_sql(content))
+            if decision.error is not None:
+                return {"candidate_sql": None, "generation_attempt": attempt}
+            candidate = decision.sql
+        return {
+            "candidate_sql": candidate,
+            "last_candidate_sql": candidate,
+            "generation_attempt": attempt,
+        }
 
     return node
 
@@ -357,6 +394,8 @@ def _after_rewrite(state: SlowSqlState) -> str:
 def _after_verify(state: SlowSqlState) -> str:
     if state["equivalent"] is True:
         return "compare_metrics"
+    if state["generation_attempt"] < MAX_REWRITE_ATTEMPTS:
+        return "rewrite_sql"
     return "finish"
 
 

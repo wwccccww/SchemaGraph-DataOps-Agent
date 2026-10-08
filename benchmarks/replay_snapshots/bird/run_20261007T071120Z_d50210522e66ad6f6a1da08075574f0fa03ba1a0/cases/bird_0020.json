@@ -1,0 +1,210 @@
+{
+  "case_id": "bird_0020",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 5,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolInfo AS (SELECT s.CDSCode, s.School, s.District, s.Charter AS CharterFlag, f.\"Enrollment (K-12)\" AS Enrollment, f.\"Free Meal Count (K-12)\" AS FreeMealCount, f.\"Percent (%) Eligible FRPM (K-12)\" AS FRPMPct FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE s.County = 'Amador' AND s.StatusType = 'Active' AND f.\"Low Grade\" = '9' AND f.\"High Grade\" = '12'), SATData AS (SELECT sc.cds, sc.NumTstTakr, sc.NumGE1500, (sc.AvgScrRead + sc.AvgScrMath + sc.AvgScrWrite) AS TotalScore FROM satscores AS sc WHERE sc.rtype = 'S'), Joined AS (SELECT si.CDSCode, si.School, si.District, si.CharterFlag, si.Enrollment, si.FRPMPct, sd.NumTstTakr, sd.NumGE1500, sd.TotalScore, CASE WHEN si.FRPMPct IS NULL THEN NULL WHEN si.FRPMPct > 0.75 THEN 'High Poverty' ELSE 'Not High Poverty' END AS PovertyLevel, ROW_NUMBER() OVER (ORDER BY si.Enrollment DESC) AS EnrollmentRank FROM SchoolInfo AS si LEFT JOIN SATData AS sd ON sd.cds = si.CDSCode) SELECT COUNT(*) AS TotalSchools, ROUND(AVG(Enrollment), 2) AS AvgEnrollment, SUM(CASE WHEN CharterFlag = 1 THEN 1 ELSE 0 END) AS CharterSchools, SUM(CASE WHEN CharterFlag = 0 THEN 1 ELSE 0 END) AS NonCharterSchools, ROUND(AVG(FRPMPct) * 100, 2) AS AvgFRPMPercentage, (SELECT COUNT(DISTINCT District) FROM SchoolInfo) AS DistrictCount, ROUND(AVG(TotalScore), 2) AS AvgSATScore, ROUND(MAX(CASE WHEN NumTstTakr > 0 THEN NumGE1500 * 100.0 / NumTstTakr END), 2) AS MaxPercentAbove1500, (SELECT School FROM Joined WHERE EnrollmentRank = 1) AS LargestSchool, SUM(CASE WHEN PovertyLevel = 'High Poverty' THEN 1 ELSE 0 END) AS HighPovertySchools FROM Joined",
+    "sql_hash": "sha256:bfd9a79ecb672950ba58d9c0eb4e61b5192dc5c5c7da20affe337bbb3e0880ab",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "TotalSchools",
+      "AvgEnrollment",
+      "CharterSchools",
+      "NonCharterSchools",
+      "AvgFRPMPercentage",
+      "DistrictCount",
+      "AvgSATScore",
+      "MaxPercentAbove1500",
+      "LargestSchool",
+      "HighPovertySchools"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN SATData ON sd.cds = si.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum",
+      "max"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "TotalSchools",
+          "AvgEnrollment",
+          "CharterSchools",
+          "NonCharterSchools",
+          "AvgFRPMPercentage",
+          "DistrictCount",
+          "AvgSATScore",
+          "MaxPercentAbove1500",
+          "LargestSchool",
+          "HighPovertySchools"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN SATData ON sd.cds = si.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum",
+          "max"
+        ]
+      },
+      {
+        "name": "SchoolInfo",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "CharterFlag",
+          "Enrollment",
+          "FreeMealCount",
+          "FRPMPct"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SATData",
+        "projections": [
+          "cds",
+          "NumTstTakr",
+          "NumGE1500",
+          "TotalScore"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "Joined",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "CharterFlag",
+          "Enrollment",
+          "FRPMPct",
+          "NumTstTakr",
+          "NumGE1500",
+          "TotalScore",
+          "PovertyLevel",
+          "EnrollmentRank"
+        ],
+        "joins": [
+          "LEFT JOIN SATData ON sd.cds = si.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:81c15eb11415dde2982b0230cea8f44def995a868c4b10d034f412349df55a7d;2:projection_mismatch:sha256:7eaf654117db5b6f0d3c7836dd96c93405f2b0654f1b98eb17682aab130a8929;3:projection_mismatch:sha256:4a2991da088bb0323e5d790937179f1071c68973f4f2d8b076e712cd8c8a249a;4:projection_mismatch:sha256:257c017cc4b8d9cc6ce406f8b136ca1628006da7502ba486ffb046b85fa02bf6;5:accepted:"
+    ]
+  ]
+}

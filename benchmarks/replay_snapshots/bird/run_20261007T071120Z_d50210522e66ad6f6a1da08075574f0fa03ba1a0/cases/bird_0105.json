@@ -1,0 +1,253 @@
+{
+  "case_id": "bird_0105",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "account",
+    "loan",
+    "district",
+    "client",
+    "trans",
+    "disp",
+    "order",
+    "card"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH target_loan AS (SELECT loan_id, account_id, date AS loan_date FROM loan WHERE date = '1994-08-25'), loan_account AS (SELECT tl.loan_id, tl.loan_date, a.account_id, a.district_id, a.date AS account_open_date FROM target_loan AS tl JOIN account AS a ON a.account_id = tl.account_id), district_info AS (SELECT d.district_id, d.A2 AS district_name, d.A3 AS region, d.A11 AS avg_salary, d.A13 AS unemployment_rate_1995, RANK() OVER (ORDER BY d.A11 DESC) AS salary_rank, RANK() OVER (ORDER BY d.A13 DESC) AS unemployment_rank FROM district AS d), clients_in_district AS (SELECT c.district_id, COUNT(DISTINCT c.client_id) AS num_clients, SUM(CASE WHEN c.gender = 'M' THEN 1 ELSE 0 END) AS male_clients, SUM(CASE WHEN c.gender = 'F' THEN 1 ELSE 0 END) AS female_clients, AVG((JULIANDAY('1994-08-25') - JULIANDAY(c.birth_date)) / 365.25) AS avg_client_age FROM client AS c GROUP BY c.district_id), trans_stats AS (SELECT t.account_id, COUNT(*) AS transactions_before_loan, SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income_before_loan FROM trans AS t JOIN loan_account AS la ON la.account_id = t.account_id WHERE t.date < la.loan_date GROUP BY t.account_id) SELECT la.district_id AS district_id, di.district_name AS district_name, di.region AS region, la.account_open_date AS account_open_date, CAST(JULIANDAY(la.loan_date) - JULIANDAY(la.account_open_date) AS INTEGER) AS days_account_open_before_loan, di.avg_salary AS avg_salary, di.unemployment_rate_1995 AS unemployment_rate_1995, di.salary_rank AS salary_rank, di.unemployment_rank AS unemployment_rank, cid.num_clients AS num_clients, cid.male_clients AS male_clients, cid.female_clients AS female_clients, cid.avg_client_age AS avg_client_age, COALESCE(ts.transactions_before_loan, 0) AS transactions_before_loan, COALESCE(ts.total_income_before_loan, 0) AS total_income_before_loan FROM loan_account AS la JOIN district_info AS di ON di.district_id = la.district_id JOIN clients_in_district AS cid ON cid.district_id = la.district_id LEFT JOIN trans_stats AS ts ON ts.account_id = la.account_id",
+    "sql_hash": "sha256:85304458d3564dc1848b23870129d01bc9ce0e74eb625dfcdb60542560c4ff2c",
+    "referenced_tables": [
+      "account",
+      "client",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "district_id",
+      "district_name",
+      "region",
+      "account_open_date",
+      "days_account_open_before_loan",
+      "avg_salary",
+      "unemployment_rate_1995",
+      "salary_rank",
+      "unemployment_rank",
+      "num_clients",
+      "male_clients",
+      "female_clients",
+      "avg_client_age",
+      "transactions_before_loan",
+      "total_income_before_loan"
+    ],
+    "joins": [
+      "JOIN district_info ON di.district_id = la.district_id",
+      "JOIN clients_in_district ON cid.district_id = la.district_id",
+      "LEFT JOIN trans_stats ON ts.account_id = la.account_id",
+      "JOIN account ON a.account_id = tl.account_id",
+      "JOIN loan_account ON la.account_id = t.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "account_open_date",
+          "days_account_open_before_loan",
+          "avg_salary",
+          "unemployment_rate_1995",
+          "salary_rank",
+          "unemployment_rank",
+          "num_clients",
+          "male_clients",
+          "female_clients",
+          "avg_client_age",
+          "transactions_before_loan",
+          "total_income_before_loan"
+        ],
+        "joins": [
+          "JOIN district_info ON di.district_id = la.district_id",
+          "JOIN clients_in_district ON cid.district_id = la.district_id",
+          "LEFT JOIN trans_stats ON ts.account_id = la.account_id",
+          "JOIN account ON a.account_id = tl.account_id",
+          "JOIN loan_account ON la.account_id = t.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "target_loan",
+        "projections": [
+          "loan_id",
+          "account_id",
+          "loan_date"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "loan_account",
+        "projections": [
+          "loan_id",
+          "loan_date",
+          "account_id",
+          "district_id",
+          "account_open_date"
+        ],
+        "joins": [
+          "JOIN account ON a.account_id = tl.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "district_info",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "avg_salary",
+          "unemployment_rate_1995",
+          "salary_rank",
+          "unemployment_rank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "clients_in_district",
+        "projections": [
+          "district_id",
+          "num_clients",
+          "male_clients",
+          "female_clients",
+          "avg_client_age"
+        ],
+        "joins": [],
+        "group_by": [
+          "c.district_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "trans_stats",
+        "projections": [
+          "account_id",
+          "transactions_before_loan",
+          "total_income_before_loan"
+        ],
+        "joins": [
+          "JOIN loan_account ON la.account_id = t.account_id"
+        ],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "ClientsInDistrict:d.district_id"
+    ],
+    [
+      "predicted_group_by",
+      "clients_in_district:c.district_id | trans_stats:t.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "district_info,clients_in_district,trans_stats"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:fd03f67c9ac452fe60dcefa3e4d54c79586d986a5f5cdb2f37f20ba8af9f33a6;2:accepted:"
+    ]
+  ]
+}

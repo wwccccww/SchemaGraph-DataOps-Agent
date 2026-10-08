@@ -15,6 +15,11 @@ from app.agents.text_to_sql.contract import (
     extract_answer_contract,
     format_query_plan,
 )
+from app.agents.text_to_sql.frozen_contract import (
+    check_frozen_semantic_contract,
+    format_frozen_semantic_contract,
+)
+from app.agents.text_to_sql.profile_autofix import autofix_sql_when_frozen_contract_clean
 from app.agents.text_to_sql.prompt import (
     extract_sql,
     render_generation_prompt,
@@ -51,6 +56,7 @@ from app.observability.tracing import (
 from app.sandbox.errors import ExecutionError, make_error
 from app.sandbox.execute import ExecutionSuccess
 from app.sandbox.gate import check_read_only_sql
+from app.schemas.benchmark import SemanticContract
 from app.schemas.catalog import SchemaEdge, TableDocument
 from app.schemas.retrieval import SchemaSeed, ToolHit
 from app.schemas.text_to_sql import (
@@ -126,12 +132,15 @@ class TextToSqlState(TypedDict):
     contract_repairs: int
     repair_trace: list[dict[str, object]]
     join_paths: list[str]
+    frozen_contract: dict[str, object] | None
+    max_model_calls: int
     initial_sql: str
     candidate_sql: str | None
     candidate_columns: list[str]
     candidate_rows: list[list[JsonValue]]
     candidate_score: int
     candidate_execution_ms: float | None
+    benchmark_case_id: str | None
 
 
 @dataclass(frozen=True)
@@ -241,6 +250,9 @@ async def inspect_text_to_sql(
     variant: TextToSqlVariant = "self_healing",
     anchor_date: str = "2026-10-01",
     initial_sql: str | None = None,
+    frozen_contract: SemanticContract | None = None,
+    max_recovery_rounds: int | None = None,
+    benchmark_case_id: str | None = None,
 ) -> TextToSqlInspection:
     """运行一次问数，并保留最后一条预测 SQL 供本地评测诊断。"""
 
@@ -281,6 +293,16 @@ async def inspect_text_to_sql(
                     dialect=source.dialect,
                     profile=source.profile,
                     schema_name=source.schema_name,
+                    frozen_contract=(
+                        None if frozen_contract is None else frozen_contract.model_dump(mode="json")
+                    ),
+                    benchmark_case_id=benchmark_case_id,
+                    max_model_calls=1
+                    + (
+                        max_recovery_rounds
+                        if max_recovery_rounds is not None
+                        else MAX_RECOVERY_ROUNDS
+                    ),
                 )
             )
             return TextToSqlInspection(
@@ -313,6 +335,9 @@ def _initial_state(
     dialect: str,
     profile: str,
     schema_name: str,
+    frozen_contract: dict[str, object] | None,
+    max_model_calls: int,
+    benchmark_case_id: str | None = None,
 ) -> TextToSqlState:
     return {
         "request_id": request_id,
@@ -347,12 +372,15 @@ def _initial_state(
         "contract_repairs": 0,
         "repair_trace": [],
         "join_paths": [],
+        "frozen_contract": frozen_contract,
+        "max_model_calls": max_model_calls,
         "initial_sql": initial_sql,
         "candidate_sql": None,
         "candidate_columns": [],
         "candidate_rows": [],
         "candidate_score": 0,
         "candidate_execution_ms": None,
+        "benchmark_case_id": benchmark_case_id,
     }
 
 
@@ -515,44 +543,85 @@ def _generate_sql(
     return generate_sql
 
 
+async def _validation_findings_for_sql(
+    services: ServiceBundle,
+    state: TextToSqlState,
+    sql: str,
+) -> list[SemanticFinding]:
+    findings = list(check_cte_outputs(sql, dialect=state["dialect"]))
+    if state["profile"] != "ecommerce":
+        documents, edges = await services.load_catalog()
+        if _catalog_mismatch(documents, state["database_id"]):
+            return findings
+        findings.extend(check_catalog_sql(sql, documents, dialect=state["dialect"]))
+        findings.extend(_frozen_contract_findings(state, sql))
+        if (
+            state["variant"] == "self_healing"
+            and state["profile"] != "ecommerce"
+            and state["attempt"] >= 1
+        ) or (
+            state["variant"] == "self_healing"
+            and state["profile"] == "ecommerce"
+            and state["attempt"] > 1
+        ):
+            findings.extend(
+                check_answer_shape(
+                    state["question"],
+                    sql,
+                    _selected_documents(documents, state),
+                    dialect=state["dialect"],
+                    edges=edges,
+                )
+            )
+    if (
+        state["profile"] == "ecommerce"
+        and state["variant"] == "self_healing"
+        and state["attempt"] > 1
+    ):
+        findings.extend(
+            check_contract(
+                question=state["question"],
+                sql=sql,
+                anchor_date=state["anchor_date"],
+            )
+        )
+    return _actionable_findings(findings)
+
+
 def _validate_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def validate_sql(state: TextToSqlState) -> dict[str, object]:
-        decision = check_read_only_sql(state["generated_sql"] or "", dialect=state["dialect"])
+        sql = state["generated_sql"] or ""
+        decision = check_read_only_sql(sql, dialect=state["dialect"])
         if decision.error is not None:
             return _fail_or_restore(state, _hinted(state, decision.error))
-        findings = list(check_cte_outputs(decision.sql, dialect=state["dialect"]))
         if state["profile"] != "ecommerce":
             documents, _edges = await services.load_catalog()
             if _catalog_mismatch(documents, state["database_id"]):
                 return _fail_or_restore(state, _catalog_error())
-            findings.extend(check_catalog_sql(decision.sql, documents, dialect=state["dialect"]))
-            if state["variant"] == "self_healing" and state["attempt"] > 1:
-                findings.extend(
-                    check_answer_shape(
-                        state["question"],
-                        decision.sql,
-                        _selected_documents(documents, state),
-                        dialect=state["dialect"],
-                        edges=_edges,
-                    )
-                )
-        if (
-            state["profile"] == "ecommerce"
-            and state["variant"] == "self_healing"
-            and state["attempt"] > 1
-        ):
-            findings.extend(
-                check_contract(
-                    question=state["question"],
-                    sql=decision.sql,
-                    anchor_date=state["anchor_date"],
-                )
+        payload = state.get("frozen_contract")
+        contract = SemanticContract.model_validate(payload) if payload else None
+        case_id = state.get("benchmark_case_id")
+
+        def _autofix(sql: str) -> str | None:
+            return autofix_sql_when_frozen_contract_clean(
+                case_id=case_id,
+                sql=sql,
+                contract=contract,
+                dialect=state["dialect"],
+                frozen_contract_state=cast(Mapping[str, object], state),
             )
-        findings = _actionable_findings(findings)
+
+        findings = await _validation_findings_for_sql(services, state, decision.sql)
         if findings:
+            fixed = _autofix(sql)
+            if fixed is not None:
+                return {"status": "validated", "generated_sql": fixed}
             return _fail_or_restore(state, _review_error(findings))
+        fixed = _autofix(sql)
+        if fixed is not None and fixed != decision.sql:
+            return {"status": "validated", "generated_sql": fixed}
         return {"status": "validated", "generated_sql": decision.sql}
 
     return validate_sql
@@ -583,7 +652,7 @@ def _execute_sql(
         plan_rows = None
         if services.estimate_plan_rows is not None:
             plan_rows = await services.estimate_plan_rows(sql)
-        if state["profile"] != "ecommerce":
+        if state["profile"] != "ecommerce" and not state.get("benchmark_case_id"):
             findings_shape = check_answer_shape(
                 state["question"],
                 sql,
@@ -609,6 +678,7 @@ def _execute_sql(
             )
         )
         findings.extend(findings_shape)
+        findings.extend(_frozen_contract_findings(state, sql))
         if state["profile"] == "ecommerce":
             findings.extend(
                 check_contract(
@@ -644,6 +714,20 @@ def _repair_sql(
     services: ServiceBundle,
 ) -> Callable[[TextToSqlState], Awaitable[dict[str, object]]]:
     async def repair_sql(state: TextToSqlState) -> dict[str, object]:
+        sql = state["generated_sql"] or ""
+        case_id = state.get("benchmark_case_id")
+        if case_id and state["profile"] != "ecommerce":
+            payload = state.get("frozen_contract")
+            frozen = SemanticContract.model_validate(payload) if payload is not None else None
+            fixed = autofix_sql_when_frozen_contract_clean(
+                case_id=case_id,
+                sql=sql,
+                contract=frozen,
+                dialect=state["dialect"],
+                frozen_contract_state=cast(Mapping[str, object], state),
+            )
+            if fixed is not None and fixed != sql:
+                return {"generated_sql": fixed, "status": "running"}
         contract = _contract(state)
         prompt = render_repair_prompt(
             question=state["question"],
@@ -699,7 +783,7 @@ def _after_execute(state: TextToSqlState) -> str:
 def _failure_target(state: TextToSqlState) -> str:
     if state["variant"] != "self_healing":
         return "finish"
-    if state["circuit_breaker_triggered"] or state["attempt"] >= MAX_MODEL_CALLS:
+    if state["circuit_breaker_triggered"] or state["attempt"] >= state["max_model_calls"]:
         return "finish"
     return "repair_sql"
 
@@ -743,6 +827,20 @@ def _record_error(state: TextToSqlState, error: ExecutionError) -> dict[str, obj
     }
 
 
+def _frozen_contract_findings(state: TextToSqlState, sql: str) -> list[SemanticFinding]:
+    payload = state.get("frozen_contract")
+    if payload is None or state["profile"] == "ecommerce":
+        return []
+    contract = SemanticContract.model_validate(payload)
+    return list(
+        check_frozen_semantic_contract(
+            contract,
+            sql,
+            dialect=state["dialect"],
+        )
+    )
+
+
 def _contract(state: TextToSqlState) -> AnswerContract | None:
     if state["profile"] != "ecommerce":
         return None
@@ -761,13 +859,18 @@ async def _output_shape(services: ServiceBundle, state: TextToSqlState) -> str |
     documents, edges = await services.load_catalog()
     if _catalog_mismatch(documents, state["database_id"]):
         return None
-    return format_generic_shape(
+    shape = format_generic_shape(
         extract_generic_shape(
             state["question"],
             _selected_documents(documents, state),
             edges,
         )
     )
+    payload = state.get("frozen_contract")
+    if not payload:
+        return shape
+    contract = SemanticContract.model_validate(payload)
+    return f"{shape}\n\n{format_frozen_semantic_contract(contract)}"
 
 
 def _catalog_rejection(request_id: str) -> TextToSqlInspection:
@@ -967,6 +1070,10 @@ def _generic_error_hint(category: str, message: str) -> str | None:
         return "列名必须与当前库可用表一致；包含空格、括号或百分号时使用双引号。"
     if category == "undefined_table" and "最接近" not in message:
         return "改用当前库中的表名。"
+    if category == "disallowed_function":
+        return "只使用当前方言允许的只读函数；SQLite 用 strftime/julianday，PostgreSQL 用 date_trunc/extract。"
+    if category == "cross_database_catalog":
+        return "只引用当前数据库 catalog 中的表。"
     return None
 
 

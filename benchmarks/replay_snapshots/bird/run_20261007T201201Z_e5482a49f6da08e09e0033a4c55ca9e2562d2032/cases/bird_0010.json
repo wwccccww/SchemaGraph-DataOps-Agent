@@ -1,0 +1,182 @@
+{
+  "case_id": "bird_0010",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolRankings AS (SELECT s.cds, s.sname, s.NumTstTakr, s.AvgScrRead, s.AvgScrMath, s.AvgScrWrite, s.NumGE1500, RANK() OVER (ORDER BY s.AvgScrRead DESC) AS ReadingRank FROM satscores AS s WHERE s.NumTstTakr > 10) SELECT sc.School AS SchoolName, sc.County AS County, sc.City AS City, sc.GSoffered AS GradeSpan, sr.AvgScrRead AS ReadingScore, sr.AvgScrMath AS MathScore, sr.AvgScrWrite AS WritingScore, (sr.AvgScrRead + sr.AvgScrMath + sr.AvgScrWrite) AS TotalSATScore, sr.ReadingRank AS ReadingRank, f.\"FRPM Count (Ages 5-17)\" AS FRPMCount, f.\"Percent (%) Eligible FRPM (Ages 5-17)\" AS FRPMPercentage, f.\"Enrollment (Ages 5-17)\" AS Enrollment, (sr.NumGE1500 * 100.0 / sr.NumTstTakr) AS PercentScoring1500Plus, CASE WHEN sc.Charter = 1 THEN 'Charter School' ELSE 'Non-Charter School' END AS SchoolType, CASE WHEN f.\"Percent (%) Eligible FRPM (Ages 5-17)\" > 75 THEN 'High Poverty (>75%)' WHEN f.\"Percent (%) Eligible FRPM (Ages 5-17)\" > 50 THEN 'Moderate Poverty (50%-75%)' WHEN f.\"Percent (%) Eligible FRPM (Ages 5-17)\" > 25 THEN 'Low Poverty (25%-50%)' ELSE 'Very Low Poverty (<=25%)' END AS PovertyLevel FROM SchoolRankings AS sr JOIN schools AS sc ON sc.CDSCode = sr.cds JOIN frpm AS f ON f.CDSCode = sc.CDSCode WHERE sr.ReadingRank = 1 ORDER BY sr.ReadingRank",
+    "sql_hash": "sha256:4fe83967de03751bc88a3345d2e81f5511aef8437b7d56d04c829b083d56c0a8",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "County",
+      "City",
+      "GradeSpan",
+      "ReadingScore",
+      "MathScore",
+      "WritingScore",
+      "TotalSATScore",
+      "ReadingRank",
+      "FRPMCount",
+      "FRPMPercentage",
+      "Enrollment",
+      "PercentScoring1500Plus",
+      "SchoolType",
+      "PovertyLevel"
+    ],
+    "joins": [
+      "JOIN schools ON sc.CDSCode = sr.cds",
+      "JOIN frpm ON f.CDSCode = sc.CDSCode"
+    ],
+    "predicates": [
+      "WHERE sr.ReadingRank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sr.ReadingRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "GradeSpan",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "TotalSATScore",
+          "ReadingRank",
+          "FRPMCount",
+          "FRPMPercentage",
+          "Enrollment",
+          "PercentScoring1500Plus",
+          "SchoolType",
+          "PovertyLevel"
+        ],
+        "joins": [
+          "JOIN schools ON sc.CDSCode = sr.cds",
+          "JOIN frpm ON f.CDSCode = sc.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SchoolRankings",
+        "projections": [
+          "cds",
+          "sname",
+          "NumTstTakr",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "NumGE1500",
+          "ReadingRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "SchoolRankings"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:142b5aa2209d7fb404994bc8528a470aef2717392dbca5e244ceca570dc117e4;2:accepted:"
+    ]
+  ]
+}

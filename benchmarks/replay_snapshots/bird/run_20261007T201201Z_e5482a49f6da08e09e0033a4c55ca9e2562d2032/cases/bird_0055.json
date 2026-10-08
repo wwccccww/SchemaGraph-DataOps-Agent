@@ -1,0 +1,174 @@
+{
+  "case_id": "bird_0055",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: 不要额外输出列 Total Enrollment Ratio、ROUND(c.total_enrollment * 1.0 / NULLIF(NULLIF(h.total_enrollment, 0), 0), 4)；冻结契约仅 Metric、Ratio（问句措辞冲突时以契约为准）；projection_mismatch: 口径：免费餐比例用 Free Meal Count (K-12) * 1.0 / Enrollment (K-12)；若无 FRPM 列再手算",
+  "attempts": 5,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH colusa AS (\n  SELECT\n    COUNT(DISTINCT s.CDSCode) AS total_schools,\n    COUNT(DISTINCT CASE WHEN s.Charter = 1 THEN s.CDSCode END) AS charter_schools,\n    COUNT(DISTINCT CASE WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.5 THEN s.CDSCode END) AS high_frpm_schools,\n    AVG(sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS avg_sat_score,\n    SUM(f.\"FRPM Count (K-12)\") AS total_frpm_students,\n    SUM(f.\"Enrollment (K-12)\") AS total_enrollment\n  FROM schools s\n  LEFT JOIN frpm f ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores sa ON sa.cds = s.CDSCode AND sa.rtype = 'S'\n  WHERE s.County = 'Colusa'\n),\nhumboldt AS (\n  SELECT\n    COUNT(DISTINCT s.CDSCode) AS total_schools,\n    COUNT(DISTINCT CASE WHEN s.Charter = 1 THEN s.CDSCode END) AS charter_schools,\n    COUNT(DISTINCT CASE WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.5 THEN s.CDSCode END) AS high_frpm_schools,\n    AVG(sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS avg_sat_score,\n    SUM(f.\"FRPM Count (K-12)\") AS total_frpm_students,\n    SUM(f.\"Enrollment (K-12)\") AS total_enrollment\n  FROM schools s\n  LEFT JOIN frpm f ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores sa ON sa.cds = s.CDSCode AND sa.rtype = 'S'\n  WHERE s.County = 'Humboldt'\n)\nSELECT 'Total Schools Ratio' AS Metric, ROUND(c.total_schools * 1.0 / NULLIF(h.total_schools, 0), 4) AS Ratio FROM colusa c, humboldt h\nUNION ALL\nSELECT 'Charter Schools Ratio', ROUND(c.charter_schools * 1.0 / NULLIF(h.charter_schools, 0), 4) FROM colusa c, humboldt h\nUNION ALL\nSELECT 'High FRPM Schools Ratio', ROUND(c.high_frpm_schools * 1.0 / NULLIF(h.high_frpm_schools, 0), 4) FROM colusa c, humboldt h\nUNION ALL\nSELECT 'Average SAT Score Ratio', ROUND(c.avg_sat_score * 1.0 / NULLIF(h.avg_sat_score, 0), 4) FROM colusa c, humboldt h\nUNION ALL\nSELECT 'Total FRPM Students Ratio', ROUND(c.total_frpm_students * 1.0 / NULLIF(h.total_frpm_students, 0), 4) FROM colusa c, humboldt h\nUNION ALL\nSELECT 'Total Enrollment Ratio', ROUND(c.total_enrollment * 1.0 / NULLIF(h.total_enrollment, 0), 4) FROM colusa c, humboldt h",
+    "sql_hash": "sha256:972b392aeccaaaa971e0d5c6ca2399be368a591a054d9e82b57831a6ed233f8e",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "Total Enrollment Ratio",
+      "ROUND(c.total_enrollment * 1.0 / NULLIF(NULLIF(h.total_enrollment, 0), 0), 4)"
+    ],
+    "joins": [
+      "CROSS humboldt ON"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "Total Enrollment Ratio",
+          "ROUND(c.total_enrollment * 1.0 / NULLIF(NULLIF(h.total_enrollment, 0), 0), 4)"
+        ],
+        "joins": [
+          "CROSS humboldt ON"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "colusa",
+        "projections": [
+          "total_schools",
+          "charter_schools",
+          "high_frpm_schools",
+          "avg_sat_score",
+          "total_frpm_students",
+          "total_enrollment"
+        ],
+        "joins": [
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "humboldt",
+        "projections": [
+          "total_schools",
+          "charter_schools",
+          "high_frpm_schools",
+          "avg_sat_score",
+          "total_frpm_students",
+          "total_enrollment"
+        ],
+        "joins": [
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "response_shape",
+  "symptoms": [
+    [
+      "missing_projections",
+      "Metric,Ratio"
+    ],
+    [
+      "extra_projections",
+      "ROUND(c.total_enrollment * 1.0 / NULLIF(NULLIF(h.total_enrollment, 0), 0), 4),Total Enrollment Ratio"
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "colusa,humboldt"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=1;predicted=1"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:49c3e0019abe7e51cad8f06ee7af59ccce38fb94b51fd8f4da04a4447a413f02;2:projection_mismatch:sha256:9e3529258c8f3a33ac16e9b233f7f5c119c667bde517d2f51ceaa9bdbcf13b70;3:projection_mismatch:sha256:cdb1afd89e6e72a4bff75627520d4891159de0c2de08fa04bbbe832bd2a499e1;4:projection_mismatch:sha256:9e3529258c8f3a33ac16e9b233f7f5c119c667bde517d2f51ceaa9bdbcf13b70;5:projection_mismatch:sha256:cdb1afd89e6e72a4bff75627520d4891159de0c2de08fa04bbbe832bd2a499e1"
+    ]
+  ]
+}

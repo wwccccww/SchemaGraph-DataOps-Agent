@@ -1,0 +1,261 @@
+{
+  "case_id": "bird_0096",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "account",
+    "client",
+    "disp",
+    "loan",
+    "order",
+    "trans",
+    "card",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH CustomerWeeklyStatements AS (SELECT c.client_id, c.gender, c.birth_date, c.district_id, a.account_id FROM account AS a JOIN disp AS d ON d.account_id = a.account_id AND d.type = 'OWNER' JOIN client AS c ON c.client_id = d.client_id WHERE a.frequency = 'POPLATEK TYDNE'), ClientInfo AS (SELECT cws.client_id, cws.gender, CASE WHEN (CAST(STRFTIME('%Y', '2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', cws.birth_date) AS INTEGER)) < 30 THEN 'Young' WHEN (CAST(STRFTIME('%Y', '2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', cws.birth_date) AS INTEGER)) < 60 THEN 'Middle-aged' ELSE 'Senior' END AS age_group, di.A3 AS region, cws.account_id FROM CustomerWeeklyStatements AS cws JOIN district AS di ON di.district_id = cws.district_id), LoanAndTransactionData AS (SELECT ci.client_id, ci.gender, ci.age_group, ci.region, ci.account_id, (SELECT COUNT(*) FROM card AS cd JOIN disp AS dd ON dd.disp_id = cd.disp_id WHERE dd.client_id = ci.client_id) AS cards_count, (SELECT COUNT(*) FROM loan AS l JOIN account AS aa ON aa.account_id = l.account_id JOIN disp AS dd2 ON dd2.account_id = aa.account_id WHERE dd2.client_id = ci.client_id) AS loans_count, (SELECT COALESCE(SUM(l.amount), 0) FROM loan AS l JOIN account AS aa ON aa.account_id = l.account_id JOIN disp AS dd3 ON dd3.account_id = aa.account_id WHERE dd3.client_id = ci.client_id) AS loans_amount, (SELECT COUNT(*) FROM trans AS t JOIN account AS aa ON aa.account_id = t.account_id JOIN disp AS dd4 ON dd4.account_id = aa.account_id WHERE dd4.client_id = ci.client_id AND t.type IN ('PRIJEM', 'VYDAJ')) AS trans_count, (SELECT COALESCE(SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END), 0) FROM trans AS t JOIN account AS aa ON aa.account_id = t.account_id JOIN disp AS dd5 ON dd5.account_id = aa.account_id WHERE dd5.client_id = ci.client_id AND t.type IN ('PRIJEM', 'VYDAJ')) AS net_balance FROM ClientInfo AS ci) SELECT COUNT(DISTINCT client_id) AS total_weekly_owners, gender AS gender, age_group AS age_group, region AS region, ROUND(AVG(cards_count), 2) AS avg_cards_per_customer, ROUND(AVG(loans_count), 2) AS avg_loans_per_customer, ROUND(AVG(loans_amount), 2) AS avg_loan_amount, ROUND(AVG(trans_count), 2) AS avg_transactions, ROUND(AVG(net_balance), 2) AS avg_net_balance, SUM(CASE WHEN loans_count > 0 THEN 1 ELSE 0 END) AS customers_with_loans, ROUND(CAST(SUM(CASE WHEN loans_count > 0 THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(DISTINCT client_id), 2) AS percent_with_loans FROM LoanAndTransactionData GROUP BY gender, age_group, region ORDER BY total_weekly_owners DESC",
+    "sql_hash": "sha256:5816c88efe73d3c0f3cdb115be9a85a39120f0c690b42916939ebdb487b07a5e",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "total_weekly_owners",
+      "gender",
+      "age_group",
+      "region",
+      "avg_cards_per_customer",
+      "avg_loans_per_customer",
+      "avg_loan_amount",
+      "avg_transactions",
+      "avg_net_balance",
+      "customers_with_loans",
+      "percent_with_loans"
+    ],
+    "joins": [
+      "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+      "JOIN client ON c.client_id = d.client_id",
+      "JOIN district ON di.district_id = cws.district_id",
+      "JOIN disp ON dd.disp_id = cd.disp_id",
+      "JOIN account ON aa.account_id = l.account_id",
+      "JOIN disp ON dd2.account_id = aa.account_id",
+      "JOIN account ON aa.account_id = l.account_id",
+      "JOIN disp ON dd3.account_id = aa.account_id",
+      "JOIN account ON aa.account_id = t.account_id",
+      "JOIN disp ON dd4.account_id = aa.account_id",
+      "JOIN account ON aa.account_id = t.account_id",
+      "JOIN disp ON dd5.account_id = aa.account_id"
+    ],
+    "predicates": [],
+    "group_by": [
+      "gender",
+      "age_group",
+      "region"
+    ],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum"
+    ],
+    "order_by": [
+      "total_weekly_owners DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "total_weekly_owners",
+          "gender",
+          "age_group",
+          "region",
+          "avg_cards_per_customer",
+          "avg_loans_per_customer",
+          "avg_loan_amount",
+          "avg_transactions",
+          "avg_net_balance",
+          "customers_with_loans",
+          "percent_with_loans"
+        ],
+        "joins": [
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON c.client_id = d.client_id",
+          "JOIN district ON di.district_id = cws.district_id",
+          "JOIN disp ON dd.disp_id = cd.disp_id",
+          "JOIN account ON aa.account_id = l.account_id",
+          "JOIN disp ON dd2.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = l.account_id",
+          "JOIN disp ON dd3.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = t.account_id",
+          "JOIN disp ON dd4.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = t.account_id",
+          "JOIN disp ON dd5.account_id = aa.account_id"
+        ],
+        "group_by": [
+          "gender",
+          "age_group",
+          "region"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "CustomerWeeklyStatements",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_id",
+          "account_id"
+        ],
+        "joins": [
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON c.client_id = d.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ClientInfo",
+        "projections": [
+          "client_id",
+          "gender",
+          "age_group",
+          "region",
+          "account_id"
+        ],
+        "joins": [
+          "JOIN district ON di.district_id = cws.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "LoanAndTransactionData",
+        "projections": [
+          "client_id",
+          "gender",
+          "age_group",
+          "region",
+          "account_id",
+          "cards_count",
+          "loans_count",
+          "loans_amount",
+          "trans_count",
+          "net_balance"
+        ],
+        "joins": [
+          "JOIN disp ON dd.disp_id = cd.disp_id",
+          "JOIN account ON aa.account_id = l.account_id",
+          "JOIN disp ON dd2.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = l.account_id",
+          "JOIN disp ON dd3.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = t.account_id",
+          "JOIN disp ON dd4.account_id = aa.account_id",
+          "JOIN account ON aa.account_id = t.account_id",
+          "JOIN disp ON dd5.account_id = aa.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:ci.gender、ci.age_group、ci.region | CustomerWeeklyStatements:T2.client_id、T1.account_id、T1.district_id、T1.date | LoanAndTransactionData:cws.client_id"
+    ],
+    [
+      "predicted_group_by",
+      "outer:gender、age_group、region"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=7;predicted=10"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

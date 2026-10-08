@@ -1,0 +1,135 @@
+{
+  "case_id": "bird_0028",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT s.School AS School, s.DOC AS DOC FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE s.FundingType = 'Locally funded' AND (f.\"Enrollment (K-12)\" - f.\"Enrollment (Ages 5-17)\") > (SELECT AVG(f2.\"Enrollment (K-12)\" - f2.\"Enrollment (Ages 5-17)\") FROM frpm AS f2 JOIN schools AS s2 ON s2.CDSCode = f2.CDSCode WHERE s2.FundingType = 'Locally funded')",
+    "sql_hash": "sha256:4b1ae4ab7ee04cca3f70b55936cd60abce67a48a7c60b635ee1b8c3541c98b86",
+    "referenced_tables": [
+      "frpm",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "DOC"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "JOIN schools ON s2.CDSCode = f2.CDSCode"
+    ],
+    "predicates": [
+      "WHERE s.FundingType = 'Locally funded' AND (f.\"Enrollment (K-12)\" - f.\"Enrollment (Ages 5-17)\") > (SELECT AVG(f2.\"Enrollment (K-12)\" - f2.\"Enrollment (Ages 5-17)\") FROM frpm AS f2 JOIN schools AS s2 ON s2.CDSCode = f2.CDSCode WHERE s2.FundingType = 'Locally funded')"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "DOC"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "JOIN schools ON s2.CDSCode = f2.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

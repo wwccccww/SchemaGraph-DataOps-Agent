@@ -1,0 +1,192 @@
+{
+  "case_id": "bird_0002",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: charter school 语义优先使用 schools 表的 Charter 字段，不要用 frpm 的 Y/N 列",
+  "attempts": 5,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    s.CDSCode,\n    s.Zip AS Zip,\n    s.City AS City,\n    s.School AS CharterSchoolName,\n    f.\"Charter Funding Type\" AS \"Charter Funding Type\",\n    f.\"Enrollment (K-12)\" AS Enrollment,\n    f.\"Percent (%) Eligible FRPM (K-12)\" * 100 AS PercentFRPM,\n    CASE\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" >= 0.75 THEN 'High FRPM'\n      WHEN f.\"Percent (%) Eligible FRPM (K-12)\" >= 0.50 THEN 'Medium FRPM'\n      ELSE 'Low FRPM'\n    END AS FRPMCategory,\n    CAST(strftime('%Y', s.OpenDate) AS INTEGER) AS YearOpened,\n    CASE\n      WHEN s.ClosedDate IS NULL OR s.ClosedDate = '' THEN 'Active'\n      ELSE 'Closed'\n    END AS CurrentStatus,\n    sa.NumTstTakr AS SATTestTakers,\n    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS TotalSATScore\n  FROM frpm f\n  JOIN schools s ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores sa ON sa.cds = s.CDSCode\n  WHERE f.\"District Name\" = 'Fresno County Office of Education'\n    AND f.\"Charter School (Y/N)\" = 1\n    AND f.\"Enrollment (K-12)\" > 0\n)\nSELECT\n  Zip,\n  City,\n  CharterSchoolName,\n  \"Charter Funding Type\",\n  Enrollment,\n  PercentFRPM,\n  FRPMCategory,\n  YearOpened,\n  CurrentStatus,\n  SATTestTakers,\n  TotalSATScore,\n  ROUND(100.0 * SUM(CASE WHEN TotalSATScore > 1500 THEN 1 ELSE 0 END) OVER () / NULLIF(COUNT(TotalSATScore) OVER (), 0), 2) AS PercentageAbove1500,\n  RANK() OVER (ORDER BY TotalSATScore DESC) AS SATRanking,\n  RANK() OVER (ORDER BY Enrollment DESC) AS EnrollmentRanking\nFROM base\nORDER BY SATRanking, EnrollmentRanking;",
+    "sql_hash": "sha256:d4691d406929c6f6cb961d261b466f9dda70835d8fecb1304d6bbf62d7c4f64f",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "Zip",
+      "City",
+      "CharterSchoolName",
+      "Charter Funding Type",
+      "Enrollment",
+      "PercentFRPM",
+      "FRPMCategory",
+      "YearOpened",
+      "CurrentStatus",
+      "SATTestTakers",
+      "TotalSATScore",
+      "PercentageAbove1500",
+      "SATRanking",
+      "EnrollmentRanking"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sa.cds = s.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "sum",
+      "count",
+      "rank"
+    ],
+    "order_by": [
+      "SATRanking ASC",
+      "EnrollmentRanking ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "Zip",
+          "City",
+          "CharterSchoolName",
+          "Charter Funding Type",
+          "Enrollment",
+          "PercentFRPM",
+          "FRPMCategory",
+          "YearOpened",
+          "CurrentStatus",
+          "SATTestTakers",
+          "TotalSATScore",
+          "PercentageAbove1500",
+          "SATRanking",
+          "EnrollmentRanking"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "sum",
+          "count",
+          "rank"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "CDSCode",
+          "Zip",
+          "City",
+          "CharterSchoolName",
+          "Charter Funding Type",
+          "Enrollment",
+          "PercentFRPM",
+          "FRPMCategory",
+          "YearOpened",
+          "CurrentStatus",
+          "SATTestTakers",
+          "TotalSATScore"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:3e820826c67db8f8e44ae1f47ba0a46f692139f6034741e513da01819098654d;2:projection_mismatch:sha256:d1ee74af35a6da2cd57c6b28666cd56f617bf280a6a6982cac99041ab451fe97;3:projection_mismatch:sha256:3e820826c67db8f8e44ae1f47ba0a46f692139f6034741e513da01819098654d;4:projection_mismatch:sha256:d1ee74af35a6da2cd57c6b28666cd56f617bf280a6a6982cac99041ab451fe97;5:projection_mismatch:sha256:3e820826c67db8f8e44ae1f47ba0a46f692139f6034741e513da01819098654d"
+    ]
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "case_id": "bird_0069",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT\n  schools.NCESDist AS NCESDist,\n  schools.School AS School,\n  CASE schools.Charter WHEN 1 THEN 'Charter' WHEN 0 THEN 'Non-Charter' ELSE 'Unknown' END AS SchoolType,\n  schools.StatusType AS CurrentStatus,\n  date(schools.OpenDate) AS OpeningDate,\n  frpm.\"Enrollment (K-12)\" AS Enrollment,\n  CASE\n    WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'Very High Poverty'\n    WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'High Poverty'\n    WHEN frpm.\"Percent (%) Eligible FRPM (K-12)\" > 0.25 THEN 'Moderate Poverty'\n    ELSE 'Low Poverty'\n  END AS PovertyLevel,\n  satscores.AvgScrRead AS AvgReadingScore,\n  satscores.AvgScrMath AS AvgMathScore,\n  satscores.AvgScrWrite AS AvgWritingScore,\n  ROUND((satscores.AvgScrRead + satscores.AvgScrMath + satscores.AvgScrWrite) / 3.0, 2) AS AvgTotalScore,\n  RANK() OVER (ORDER BY frpm.\"Enrollment (K-12)\" DESC) AS EnrollmentRank\nFROM schools\nJOIN frpm ON frpm.CDSCode = schools.CDSCode\nLEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'\nWHERE schools.DOCType = 'State Special Schools'\n  AND schools.SOC LIKE '3%'\nORDER BY frpm.\"Enrollment (K-12)\" DESC;",
+    "sql_hash": "sha256:a411e3fd8a3a2934b2455d312dd9687a062bff4cbe1b89b36719eb641be0a314",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "NCESDist",
+      "School",
+      "SchoolType",
+      "CurrentStatus",
+      "OpeningDate",
+      "Enrollment",
+      "PovertyLevel",
+      "AvgReadingScore",
+      "AvgMathScore",
+      "AvgWritingScore",
+      "AvgTotalScore",
+      "EnrollmentRank"
+    ],
+    "joins": [
+      "JOIN frpm ON frpm.CDSCode = schools.CDSCode",
+      "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+    ],
+    "predicates": [
+      "WHERE schools.DOCType = 'State Special Schools' AND schools.SOC LIKE '3%'"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "frpm.\"Enrollment (K-12)\" DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "NCESDist",
+          "School",
+          "SchoolType",
+          "CurrentStatus",
+          "OpeningDate",
+          "Enrollment",
+          "PovertyLevel",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "AvgTotalScore",
+          "EnrollmentRank"
+        ],
+        "joins": [
+          "JOIN frpm ON frpm.CDSCode = schools.CDSCode",
+          "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9;2:no_progress:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9"
+    ]
+  ]
+}

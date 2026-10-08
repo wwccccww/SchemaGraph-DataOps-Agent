@@ -1,0 +1,839 @@
+contract_version: '1.0'
+benchmark: slow_sql_full
+case_count: 50
+cases:
+- id: slow_select_star_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: select-star
+  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 1
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - select-star
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_select_star_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: select-star
+  sql: 'SELECT * FROM t_order WHERE (user_id + 1) = 2
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - select-star
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_select_star_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: select-star
+  sql: 'SELECT * FROM t_order WHERE (user_id + 2) = 3
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - select-star
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_select_star_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: select-star
+  sql: 'SELECT * FROM t_order WHERE (user_id + 3) = 4
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - select-star
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_select_star_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: select-star
+  sql: 'SELECT * FROM t_order WHERE (user_id + 4) = 5
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - select-star
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_missing_filter_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: missing-filter-on-large-table
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 401\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - missing-filter-on-large-table
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_missing_filter_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: missing-filter-on-large-table
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 402\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - missing-filter-on-large-table
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_missing_filter_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: missing-filter-on-large-table
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 403\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - missing-filter-on-large-table
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_missing_filter_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: missing-filter-on-large-table
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 404\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - missing-filter-on-large-table
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_missing_filter_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: missing-filter-on-large-table
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 405\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - missing-filter-on-large-table
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_function_index_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: function-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE (user_id + 0) = 1
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - function-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_function_index_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: function-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE (user_id + 1) = 2
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - function-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_function_index_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: function-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE (user_id + 2) = 3
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - function-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_function_index_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: function-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE (user_id + 3) = 4
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - function-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_function_index_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: function-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE (user_id + 4) = 5
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - function-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_implicit_cast_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: implicit-cast-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE user_id::text = ''1''
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - implicit-cast-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_implicit_cast_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: implicit-cast-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE user_id::text = ''2''
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - implicit-cast-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_implicit_cast_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: implicit-cast-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE user_id::text = ''3''
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - implicit-cast-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_implicit_cast_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: implicit-cast-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE user_id::text = ''4''
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - implicit-cast-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_implicit_cast_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: implicit-cast-on-index-column
+  sql: 'SELECT order_id FROM t_order WHERE user_id::text = ''5''
+
+    '
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - implicit-cast-on-index-column
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_correlated_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: correlated-subquery
+  sql: "SELECT o.order_id\n                FROM t_order o\n                WHERE o.total_amount > (\n                  SELECT\
+    \ AVG(o2.total_amount)\n                  FROM t_order o2\n                  WHERE o2.user_id = o.user_id AND o2.order_status\
+    \ = 'paid'\n                )\n                AND o.user_id = 1\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - correlated-subquery
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_correlated_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: correlated-subquery
+  sql: "SELECT o.order_id\n                FROM t_order o\n                WHERE o.total_amount > (\n                  SELECT\
+    \ AVG(o2.total_amount)\n                  FROM t_order o2\n                  WHERE o2.user_id = o.user_id AND o2.order_status\
+    \ = 'paid'\n                )\n                AND o.user_id = 2\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - correlated-subquery
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_correlated_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: correlated-subquery
+  sql: "SELECT o.order_id\n                FROM t_order o\n                WHERE o.total_amount > (\n                  SELECT\
+    \ AVG(o2.total_amount)\n                  FROM t_order o2\n                  WHERE o2.user_id = o.user_id AND o2.order_status\
+    \ = 'paid'\n                )\n                AND o.user_id = 3\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - correlated-subquery
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_correlated_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: correlated-subquery
+  sql: "SELECT o.order_id\n                FROM t_order o\n                WHERE o.total_amount > (\n                  SELECT\
+    \ AVG(o2.total_amount)\n                  FROM t_order o2\n                  WHERE o2.user_id = o.user_id AND o2.order_status\
+    \ = 'paid'\n                )\n                AND o.user_id = 4\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - correlated-subquery
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_correlated_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: correlated-subquery
+  sql: "SELECT o.order_id\n                FROM t_order o\n                WHERE o.total_amount > (\n                  SELECT\
+    \ AVG(o2.total_amount)\n                  FROM t_order o2\n                  WHERE o2.user_id = o.user_id AND o2.order_status\
+    \ = 'paid'\n                )\n                AND o.user_id = 5\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - correlated-subquery
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_agg_after_join_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: aggregate-after-join
+  sql: "SELECT o.order_status, SUM(o.total_amount) AS amount\n                FROM t_order o\n                JOIN t_order_detail\
+    \ d ON d.order_id = o.order_id\n                JOIN t_order_detail d2 ON d2.detail_id = d.detail_id\n               \
+    \ WHERE o.user_id >= 1\n                GROUP BY o.order_status\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - aggregate-after-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_agg_after_join_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: aggregate-after-join
+  sql: "SELECT o.order_status, SUM(o.total_amount) AS amount\n                FROM t_order o\n                JOIN t_order_detail\
+    \ d ON d.order_id = o.order_id\n                JOIN t_order_detail d2 ON d2.detail_id = d.detail_id\n               \
+    \ WHERE o.user_id >= 2\n                GROUP BY o.order_status\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - aggregate-after-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_agg_after_join_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: aggregate-after-join
+  sql: "SELECT o.order_status, SUM(o.total_amount) AS amount\n                FROM t_order o\n                JOIN t_order_detail\
+    \ d ON d.order_id = o.order_id\n                JOIN t_order_detail d2 ON d2.detail_id = d.detail_id\n               \
+    \ WHERE o.user_id >= 3\n                GROUP BY o.order_status\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - aggregate-after-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_agg_after_join_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: aggregate-after-join
+  sql: "SELECT o.order_status, SUM(o.total_amount) AS amount\n                FROM t_order o\n                JOIN t_order_detail\
+    \ d ON d.order_id = o.order_id\n                JOIN t_order_detail d2 ON d2.detail_id = d.detail_id\n               \
+    \ WHERE o.user_id >= 4\n                GROUP BY o.order_status\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - aggregate-after-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_agg_after_join_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: aggregate-after-join
+  sql: "SELECT o.order_status, SUM(o.total_amount) AS amount\n                FROM t_order o\n                JOIN t_order_detail\
+    \ d ON d.order_id = o.order_id\n                JOIN t_order_detail d2 ON d2.detail_id = d.detail_id\n               \
+    \ WHERE o.user_id >= 5\n                GROUP BY o.order_status\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - aggregate-after-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_unbounded_sort_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: unbounded-sort
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 5\n                ORDER\
+    \ BY created_at DESC, order_id\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - unbounded-sort
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_unbounded_sort_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: unbounded-sort
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 6\n                ORDER\
+    \ BY created_at DESC, order_id\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - unbounded-sort
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_unbounded_sort_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: unbounded-sort
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 7\n                ORDER\
+    \ BY created_at DESC, order_id\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - unbounded-sort
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_unbounded_sort_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: unbounded-sort
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 8\n                ORDER\
+    \ BY created_at DESC, order_id\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - unbounded-sort
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_unbounded_sort_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: unbounded-sort
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 9\n                ORDER\
+    \ BY created_at DESC, order_id\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - unbounded-sort
+  - rewrite
+  primary_metric: execution_time
+  min_primary_drop: 0.1
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_repeated_distinct_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: repeated-distinct
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 0) = 1\n                ) nested\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - repeated-distinct
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_repeated_distinct_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: repeated-distinct
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 1) = 2\n                ) nested\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - repeated-distinct
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_repeated_distinct_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: repeated-distinct
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 2) = 3\n                ) nested\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - repeated-distinct
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_repeated_distinct_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: repeated-distinct
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 3) = 4\n                ) nested\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - repeated-distinct
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_repeated_distinct_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: repeated-distinct
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 4) = 5\n                ) nested\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - repeated-distinct
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_redundant_join_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: redundant-join
+  sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 1\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - redundant-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_redundant_join_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: redundant-join
+  sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 2\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - redundant-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_redundant_join_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: redundant-join
+  sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 3\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - redundant-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_redundant_join_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: redundant-join
+  sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 4\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - redundant-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_redundant_join_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: redundant-join
+  sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 5\n"
+  index_preconditions: []
+  allowed_rewrite_categories:
+  - redundant-join
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_seq_scan_01
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: seq-scan-on-large-table
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 1\n                )\n"
+  index_preconditions:
+  - DROP INDEX IF EXISTS idx_order_status
+  allowed_rewrite_categories:
+  - seq-scan-on-large-table
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_seq_scan_02
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: seq-scan-on-large-table
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 2\n                )\n"
+  index_preconditions:
+  - DROP INDEX IF EXISTS idx_order_status
+  allowed_rewrite_categories:
+  - seq-scan-on-large-table
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_seq_scan_03
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: seq-scan-on-large-table
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 3\n                )\n"
+  index_preconditions:
+  - DROP INDEX IF EXISTS idx_order_status
+  allowed_rewrite_categories:
+  - seq-scan-on-large-table
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_seq_scan_04
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: seq-scan-on-large-table
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 4\n                )\n"
+  index_preconditions:
+  - DROP INDEX IF EXISTS idx_order_status
+  allowed_rewrite_categories:
+  - seq-scan-on-large-table
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000
+- id: slow_seq_scan_05
+  snapshot_version: ecommerce-v1
+  database_id: ecommerce
+  antipattern: seq-scan-on-large-table
+  sql: "SELECT d.detail_id, d.quantity\n                FROM t_order_detail d\n                WHERE d.order_id NOT IN (\n\
+    \                  SELECT o.order_id FROM t_order o WHERE o.user_id <> 5\n                )\n"
+  index_preconditions:
+  - DROP INDEX IF EXISTS idx_order_status
+  allowed_rewrite_categories:
+  - seq-scan-on-large-table
+  - rewrite
+  primary_metric: planner_cost
+  min_primary_drop: 0.2
+  max_secondary_regression: 0.5
+  order_sensitive: false
+  numeric_tolerance: null
+  timeout_ms: 5000

@@ -4,7 +4,7 @@
 
 本项目通过 Schema-RAG、外键图拓扑和只读执行沙箱，解决 7～12 表关联中无语义中间映射表无法被普通向量检索召回的问题；同时提供基于 SQLGlot 与 PostgreSQL 执行计划的慢 SQL 诊断、改写和结果等价性验证。
 
-> 当前状态：阶段 0–8 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG、Text-to-SQL 纵向闭环、慢 SQL 诊断与四类冒烟用例、自建 132 条用例以及 A/B/C/D 消融和可追溯报告、TPC-DS 派生 30 条查询和 BIRD 50 条复杂用例、OpenTelemetry Trace、密钥扫描、容器资源与网络策略）。50 条慢 SQL 报告尚未实现。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。TPC-DS 派生结果不是官方 TPC-DS 成绩。BIRD 结果只表示公开 Benchmark 兼容性。
+> 当前状态：阶段 0–8 已完成（工程基础、12 表确定性数据、Schema Graph、Schema-RAG 与 Tool-RAG、Text-to-SQL 纵向闭环、慢 SQL 诊断与 50 条 Benchmark 用例定义、自建 132 条用例以及 A/B/C/D 消融和可追溯报告、TPC-DS 派生 30 条查询和 BIRD 50 条复杂用例、OpenTelemetry Trace、密钥扫描、容器资源与网络策略）。慢 SQL 全量 measured 需本地跑 `./scripts/run_slow_sql_benchmark.sh`。性能与准确率百分比均为 Benchmark Target，尚不是实测结果。TPC-DS 派生结果不是官方 TPC-DS 成绩。BIRD 结果只表示公开 Benchmark 兼容性。
 
 ---
 
@@ -110,7 +110,7 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 | TPC-DS 派生 30 条 | Gold 执行 30/30，非空且摘要唯一 | gregrahn/tpcds-kit `5a3a81796992b725c2a8b216767e142609966752`，本地 SF=1。不是官方 TPC-DS 成绩 |
 | BIRD 复杂用例 50 条 | Gold 执行 50/50 | birdsql/bird_sql_dev_20251106 `3c11fb193e5439b338e23677fa0aae11e8b85db9`，受限 SQLite。只表示公开 Benchmark 兼容性 |
 | 自建 EX / 桥表召回 | 未测量 | 需要配置模型后运行消融；报告里的 Measured 保持为空 |
-| 慢 SQL 50 条报告 | 尚未运行 | 当前仓库只有 4 条冒烟用例 |
+| 慢 SQL 50 条 | `benchmarks/slow_sql/full.yaml` + `./scripts/run_slow_sql_benchmark.sh` | 4 条 smoke 集成测试；全量 50 条需 `DEEPSEEK_API_KEY` 与 Postgres 沙箱 |
 
 ## 阶段 0–8 启动
 
@@ -120,11 +120,40 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 
 ```bash
 uv run python -m app.evaluation.ablation
+uv run python -m app.evaluation.external_data freeze-external-gold --source tpcds-derived
+uv run python -m app.evaluation.external_data freeze-external-gold --source bird
+./scripts/fetch_bird_dev_databases.sh   # 下载 MINIDEV dev_databases（见 benchmarks/bird_complex/SOURCE.md）
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
+uv run python -m app.evaluation.external_data check-external-release
+./scripts/p1_release_gate.sh          # Oracle + P0/P1 单测（无 LLM）
+./scripts/p0_post_billing_acceptance.sh --gates-only  # 402 期间：仅 P1 门禁（需 BIRD_DATABASE_ROOT + POSTGRES_*）
+./scripts/p0_post_billing_acceptance.sh # 计费恢复后：preflight + 门禁 + 2× 全量 + acceptance gate
+./scripts/wait_for_billing_and_run_p0.sh # 402 解除后轮询 preflight，就绪则跑上一条全量路径
+./scripts/replay_bird_baseline.sh     # 模型实测基线复分（vendored `benchmarks/replay_snapshots/` 或 reports）
+./scripts/replay_bird_patch_autofix.sh  # PATCH autofix 复分（v12 **17→50**；非新 LLM）
+./scripts/replay_e5482a4_baseline.sh   # e5482a4 vendored measured **24/50** raw
+./scripts/replay_e5482a4_patch_autofix.sh  # e5482a4 **24→50** PATCH（非新 LLM）
+./scripts/print_external_p0_status.sh   # 402：release、preflight、v12 + e5482a4 replay、frozen 摘要
+./scripts/run_external_p0_full_eval_twice.sh # P0：2× TPC-DS + 2× BIRD（80 例，需 BIRD_DATABASE_ROOT）
+python3 -m app.evaluation.llm_preflight       # P0 全量前探测（402→exit 2）
+./scripts/run_tpcds_p0_full_eval_twice.sh # P0：2× 全量 TPC-DS（--full）
+./scripts/run_bird_p0_full_eval_twice.sh  # P0：2× 全量 BIRD（--full）
+./scripts/replay_tpcds_baseline.sh
 ```
 
-后两条命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
+Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。vendored **e5482a4** raw **24/50** 的 **26** 题差分由单测 `test_e5482a4_vendored_run_raw_ex0_inventory` 钉住（见 runbook Step-3）。运维与验收路径见 [`docs/external_gold_p0_runbook.md`](docs/external_gold_p0_runbook.md) 与 [`docs/benchmark.md`](docs/benchmark.md) 外部 P0/P1 清单。
+
+外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
+
+```bash
+uv run python -m app.evaluation.external_model --source tpcds-derived --limit 5
+uv run python -m app.evaluation.external_model --source bird --database-root /path/to/dev_databases --full
+```
+
+全量 `--full` 要求对应 `gold_attestation.json` 为 `gold_matched`。默认 `self_healing` 与 4 轮修复。详见 `docs/benchmark.md` §2.6。
+
+后两条 verify 命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
 
 配置 `DEEPSEEK_API_KEY` 后可以提问或诊断：
 

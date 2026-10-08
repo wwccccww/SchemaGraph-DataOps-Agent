@@ -27,7 +27,10 @@ _MEASURE = re.compile(
     r"|\bpercentage\b|\brate\b",
     re.IGNORECASE,
 )
-_AGGREGATE = re.compile(r"\b(?:sum|count|avg|min|max)\s*\(", re.IGNORECASE)
+_AGGREGATE = re.compile(
+    r"\b(?:sum|count|avg|min|max)\s*\(|\b(?:rank|row_number|dense_rank)\s*\(",
+    re.IGNORECASE,
+)
 _GROUP_AXIS = re.compile(
     r"各|按[^。]{0,16}汇总|按[^。]{0,16}统计"
     r"|\bgroup(?:ed|ing)?\s+(?:them\s+)?by\b"
@@ -60,20 +63,40 @@ _ENTITIES = (
     (re.compile(r"当前住址|current address|customer address"), ("customer_address",)),
     (re.compile(r"顾客|customer"), ("customer",)),
     (re.compile(r"商品类别|item category"), ("item",)),
-    (re.compile(r"门店销售|门店退货|store sales|store returns"), ("store_sales", "store")),
-    (re.compile(r"目录销售|目录退货|catalog sales"), ("catalog_sales", "catalog_page")),
-    (re.compile(r"网站销售|网站退货|web sales"), ("web_sales", "web_site", "web_page")),
-    (re.compile(r"门店|store"), ("store",)),
+    (re.compile(r"促销商品|直邮促销|直邮"), ("item", "promotion")),
+    (re.compile(r"门店销售|store sales"), ("store_sales",)),
+    (re.compile(r"门店退货|store returns"), ("store_returns",)),
+    (re.compile(r"目录退货|catalog returns"), ("catalog_returns",)),
+    (re.compile(r"目录页|catalog page|目录部门"), ("catalog_page",)),
+    (re.compile(r"目录销售|catalog sales"), ("catalog_sales",)),
+    (re.compile(r"网站退货|web returns"), ("web_returns", "web_page")),
+    (re.compile(r"网页类型|web page type"), ("web_page",)),
+    (re.compile(r"网站名|web site name"), ("web_site",)),
+    (re.compile(r"网站销售|web sales"), ("web_sales",)),
+    (
+        re.compile(r"门店所在|同一门店|同店|门店州|各门店|store state"),
+        ("store",),
+    ),
     (re.compile(r"仓库|warehouse"), ("warehouse",)),
     (re.compile(r"促销|promotion"), ("promotion",)),
+    (re.compile(r"呼叫中心|call center"), ("call_center",)),
+    (re.compile(r"配送方式|承运|ship mode"), ("ship_mode",)),
+    (re.compile(r"原因|reason"), ("reason",)),
+    (re.compile(r"收入分段|income band|income_band"), ("income_band", "household_demographics")),
     (re.compile(r"\bschools?\b", re.IGNORECASE), ("schools",)),
-    (re.compile(r"\bSAT\b|\bsatscores\b"), ("satscores",)),
+    (re.compile(r"\bSAT\b|\bsatscores\b|SAT performance", re.IGNORECASE), ("satscores",)),
+    (re.compile(r"charter school|\bcharter\b", re.IGNORECASE), ("schools",)),
+    (re.compile(r"grades?\s+(?:it\s+)?serves|grades served", re.IGNORECASE), ("schools",)),
     (re.compile(r"FRPM|free meal|free or reduced", re.IGNORECASE), ("frpm",)),
+    (re.compile(r"NSLP|Provision Types|Provision Status", re.IGNORECASE), ("frpm",)),
 )
 _MEASURE_COLUMNS = (
     (re.compile(r"销售金额|sales amount"), ("ext_sales_price", "sales_price")),
     (re.compile(r"净利润|net profit"), ("net_profit",)),
-    (re.compile(r"退货金额|return amount"), ("return_amt", "ext_return")),
+    (
+        re.compile(r"退货金额|return amount"),
+        ("return_amount", "cr_return_amount", "wr_return_amt", "return_amt"),
+    ),
     (re.compile(r"库存数量|在手库存|quantity on hand"), ("quantity_on_hand", "inv_quantity")),
 )
 
@@ -116,7 +139,11 @@ def extract_generic_shape(
     grouping = _GROUP_AXIS.search(question) is not None
     measured = _MEASURE.search(question) is not None
     dimensions = _dimensions(question, documents, grouping=grouping and measured)
-    entities = _entities(question, visible)
+    entities = _merge_dimension_entities(
+        _entities(question, visible),
+        question,
+        documents,
+    )
     formulas, formula_columns = _formulas(question, documents)
     joins = _join_hints(question, documents, edges)
     return GenericShape(
@@ -189,6 +216,419 @@ def check_answer_shape(
                         f"问句点名的列 {column.name} 没有出现在投影或过滤中",
                     )
                 )
+    if re.search(r"performance level|SAT performance", question, re.IGNORECASE):
+        if re.search(r"avgscr(read|math|write)", sql, re.IGNORECASE) and "case" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SAT performance level 应使用 CASE 归类，不要只投影原始 AvgScr 列",
+                )
+            )
+        if re.search(r"\bjoin\s+satscores\b", sql, re.IGNORECASE) and not re.search(
+            r"left\s+join\s+satscores", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "missing_entity",
+                    "SAT 指标应对 satscores 使用 LEFT JOIN（cds=CDSCode），不要 INNER JOIN 丢掉无 SAT 学校",
+                )
+            )
+        if (
+            re.search(r"performance level", question, re.IGNORECASE)
+            and re.search(r"'High'|'Medium'|'Low'", sql)
+            and "below average" not in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SATPerformance 标签用 No SAT Data / Below Average / Average / Above Average，"
+                    "不要用 High/Medium/Low",
+                )
+            )
+    if re.search(
+        r"FRPM percentage levels|categorizing.*FRPM|FRPMCategory",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(
+            r"THEN\s+'High'|THEN\s+'Medium'|THEN\s+'Low'",
+            sql,
+            re.IGNORECASE,
+        ) and not re.search(r"High FRPM|Medium FRPM|Low FRPM", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档标签用 High FRPM / Medium FRPM / Low FRPM，"
+                    "阈值按 frpm 小数列 >0.75 / >0.50，不要用 High/Medium/Low 或 ×100 后的百分比阈值",
+                )
+            )
+        if re.search(
+            r"Percent\s*\(\%\)\s*Eligible\s*FRPM[\s\S]*?\*\s*100|\*\s*100\s+AS\s+PercentFRPM",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PercentFRPM 直接用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，不要 ×100",
+                )
+            )
+        if re.search(r">=\s*0\.75|>=\s*0\.50", sql) and re.search(r"High FRPM|Medium FRPM", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档比较用严格 >0.75 / >0.50（BIRD Gold），不要用 >=",
+                )
+            )
+    if re.search(
+        r"highest average SAT Reading|highest.*Reading score",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"Enrollment \(K-12\)|FRPM Count \(K-12\)", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SAT Reading 榜首题 frpm 用 Ages 5-17 列（Enrollment/FRPM Count/Percent FRPM），"
+                    "不要用 K-12 列",
+                )
+            )
+        if re.search(r"NumGE1500.*100\s*/\s*Enrollment|/ Enrollment", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PercentScoring1500Plus 用 NumGE1500*100/NumTstTakr，不要除以 Enrollment",
+                )
+            )
+        if re.search(r"order by.*limit\s+1", sql, re.IGNORECASE) and not re.search(
+            r"readingrank\s*=\s*1", lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "最高 Reading 用 RANK() OVER (ORDER BY AvgScrRead DESC) 后 WHERE ReadingRank=1，"
+                    "不要仅 ORDER BY … LIMIT 1",
+                )
+            )
+        if re.search(r"GSserved", sql) and "gsoffered" not in lowered:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "GradeSpan 投影 schools.GSoffered，不要用 GSserved",
+                )
+            )
+        if re.search(r"High FRPM|School Type", sql) and "Non-Charter School" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SchoolType 用 Charter/Non-Charter School CASE；PovertyLevel 用 "
+                    "High/Moderate/Low/Very Low Poverty (>75%…) 基于 Ages 5-17 FRPM 小数",
+                )
+            )
+    if re.search(
+        r"magnet schools.*(500|SAT test takers)|over 500 SAT",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"School Type|Educational Option Type", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Magnet SAT 题 SchoolType/EducationalOption 用 schools.SOCType 与 schools.EdOpsName，"
+                    "不要用 frpm 的 School Type / Educational Option Type",
+                )
+            )
+        if re.search(r"Free Meal Count \(K-12\).*100|Free Meal Count.*Enrollment", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FreeReducedMealPercentage 用 frpm.`Percent (%) Eligible FRPM (K-12)` 小数列，"
+                    "不要用 Free Meal Count/Enrollment×100",
+                )
+            )
+        if re.search(r"High FRPM|Medium FRPM|Low FRPM", sql) and "High Poverty" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PovertyLevel 标签：High Poverty / Moderate Poverty / Low Poverty / "
+                    "Very Low Poverty（FRPM 小数 >0.75/>0.50/>0.25）",
+                )
+            )
+        if re.search(r"Above Average", sql) and "Excellent" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "PerformanceCategory：Excellent(>1800)/Good(>1500)/Average(>1200)/Below Average",
+                )
+            )
+        if re.search(
+            r"rank\s*\(\s*\)\s+over\s*\(\s*partition\s+by\s+county",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "县级排名 CountyRank 用 DENSE_RANK() OVER (PARTITION BY County …)，不要用 RANK()",
+                )
+            )
+    if re.search(
+        r"top 10 schools.*free or reduced|highest number of students eligible for free",
+        question,
+        re.I,
+    ):
+        if re.search(
+            r"order by[\s\S]*limit\s+10", sql, re.IGNORECASE
+        ) and "frpm_rank<=" not in lowered.replace(" ", ""):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Top-10 FRPM：RANK() + WHERE frpm_rank<=10，不要 ORDER BY … LIMIT 10",
+                )
+            )
+    if re.search(r"enrollment exceeding 500|total enrollment exceeding 500", question, re.I):
+        if re.search(r"THEN 'High'|THEN 'Medium'|THEN 'Low'", sql) and "High FRPM" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPM 分档标签用 High FRPM / Medium FRPM / Low FRPM",
+                )
+            )
+        if re.search(r"Enrollment \(K-12\)", sql) and "Ages 5-17" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "TotalEnrollment 需 K-12 与 Ages 5-17 之和",
+                )
+            )
+    if re.search(r"fully virtual", question, re.IGNORECASE):
+        if re.search(r"Virtual\s*=\s*'Fully Virtual'", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "schools.Virtual 为 F/P/N 代码；fully virtual 用 Virtual='F'，"
+                    "输出 VirtualStatus 用 CASE 映射 Fully Virtual",
+                )
+            )
+        if re.search(r"GSserved\s+AS\s+SchoolType", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "SchoolType 用 Charter School / Regular School（schools.Charter），不要用 GSserved",
+                )
+            )
+    if re.search(r"partially virtual", question, re.IGNORECASE):
+        if re.search(r"Virtual\s*=\s*'Partially Virtual'|Virtual\s*=\s*'P'", sql, re.I):
+            if re.search(r"Virtual\s*=\s*'Partially Virtual'", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "partially virtual 过滤用 schools.Virtual='P'，VirtualStatus 用 CASE 输出标签",
+                    )
+                )
+    if re.search(
+        r"charter schools.*County Office|County Office of Education.*charter",
+        question,
+        re.IGNORECASE,
+    ):
+        if re.search(r"\bs\.School\b|\bschools\.School\b", sql, re.IGNORECASE) and (
+            "school name" not in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "CharterSchoolName 用 frpm.`School Name`，不要用 schools.School",
+                )
+            )
+        if re.search(r"YearOpened|year each school opened", question, re.IGNORECASE) and re.search(
+            r"cast\s*\(\s*strftime\s*\(\s*'%Y'",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "YearOpened 用 STRFTIME('%Y', OpenDate) 文本年，不要 CAST AS INTEGER",
+                )
+            )
+        if re.search(r"rankings|PercentageAbove1500|SAT performance metrics", question, re.I):
+            if re.search(r"sum\s*\(\s*case\s+when\s+totalsatscore\s*>\s*1500", sql, re.I):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "PercentageAbove1500 用 satscores NumGE1500/NumTstTakr（WHERE rtype='S'），"
+                        "不要对 TotalSATScore>1500 做窗口 COUNT",
+                    )
+                )
+            if (
+                re.search(r"order by\s+satranking", sql, re.I)
+                and "total satscore desc" not in lowered
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "排序：NULL SAT 置后，再 TotalSATScore DESC、Enrollment DESC；"
+                        "不要仅 ORDER BY SATRanking",
+                    )
+                )
+    if re.search(r"County Office of Education", question, re.IGNORECASE):
+        if re.search(r"County Name", sql) and re.search(r"Office of Education", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "County Office of Education 学区过滤用 frpm.`District Name` = "
+                    "'Fresno County Office of Education'（或问句中的 COE 名称），不要用 `County Name`",
+                )
+            )
+        if re.search(r"\bs\.Charter\b|\bschools\.Charter\b", sql, re.IGNORECASE) and (
+            "charter school (y/n)" not in lowered
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "charter 过滤优先 frpm.`Charter School (Y/N)` = 1（与 BIRD Gold 一致），"
+                    "不要仅用 schools.Charter",
+                )
+            )
+    if (
+        re.search(r"charter", question, re.IGNORECASE)
+        and not re.search(r"County Office of Education", question, re.IGNORECASE)
+        and any(document.table_name.lower() == "schools" for document in documents)
+    ):
+        if "charter school (y/n)" in lowered and re.search(r"\bschools\b", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "charter school 语义优先使用 schools 表的 Charter 字段，不要用 frpm 的 Y/N 列",
+                )
+            )
+    if re.search(r"\btop\s+\d+\b", question, re.IGNORECASE) and re.search(
+        r"limit\s+\d+\s*\)\s*select",
+        sql,
+        re.IGNORECASE,
+    ):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "Top-N 学校：在 CTE 用 RANK() OVER (ORDER BY FRPM Count DESC)，外层 WHERE rank<=N；"
+                "不要在 CTE 内 ORDER BY ... LIMIT（SQLite 易错且难自愈）",
+            )
+        )
+    if re.search(r"top 5.*ownership code 66|ownership code 66.*top 5", question, re.IGNORECASE):
+        if re.search(r"row_number\s*\(", sql, re.IGNORECASE) and re.search(
+            r"FRPMRank|FRPM Rank", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "FRPMRank 用 RANK() OVER (ORDER BY FRPM Count DESC)，不要用 ROW_NUMBER",
+                )
+            )
+        if re.search(r"Low Grade|High Grade", sql):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "Top-5 FRPM（SOC=66）Gold 不按 Low/High Grade 过滤，仅 SOC=66 与 Enrollment>0",
+                )
+            )
+        if re.search(r"High FRPM' WHEN.*Medium FRPM", sql) and "Very High FRPM" not in sql:
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "EligibilityCategory：Very High FRPM / High FRPM / Moderate FRPM / Low FRPM",
+                )
+            )
+    if re.search(r"Multiple Provision Types", question, re.IGNORECASE):
+        if "multiple provision types" not in lowered.replace("_", " "):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "问句要求 Multiple Provision Types，WHERE 需 frpm.`NSLP Provision Status` "
+                    "= 'Multiple Provision Types'",
+                )
+            )
+    has_loan = any(document.table_name.lower() == "loan" for document in documents)
+    if has_loan and re.search(
+        r"running with no issues|running without issues",
+        question,
+        re.IGNORECASE,
+    ):
+        if (
+            re.search(r"status\s*=\s*'A'", sql, re.IGNORECASE)
+            and re.search(r"status\s*=\s*'C'", sql, re.IGNORECASE) is None
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "正常进行中的贷款用 loan.status = 'C' 计入 running OK，不是 'A'",
+                )
+            )
+        if re.search(r"count\s*\(\s*\*\s*\)", sql, re.IGNORECASE) and not re.search(
+            r"count\s*\(\s*status\s*\)",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "running OK 占比分母用 COUNT(status)，不要用 COUNT(*)",
+                )
+            )
+        if re.search(r"round\s*\(\s*avg\s*\(\s*duration", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "avg_duration 用 AVG(duration) 原精度，中间 CTE 不要 ROUND",
+                )
+            )
+        if re.search(r"avg_loan_amount|avg\s*\(\s*amount\s*\)", sql, re.IGNORECASE) and (
+            not re.search(r"round\s*\(\s*[^)]*avg_loan_amount", sql, re.IGNORECASE)
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "最终 SELECT 对 avg_loan_amount 用 ROUND(..., 2)，avg_duration 保持 CTE 原精度",
+                )
+            )
+        if re.search(
+            r"round\s*\(\s*100(?:\.0)?\s*\*\s*sum\s*\(\s*running",
+            sql,
+            re.IGNORECASE,
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "percentage_running_ok 在 CTE 用 CAST(SUM(running_ok) AS REAL)*100/COUNT(status)，"
+                    "只在最终 SELECT ROUND；diff_from_overall 依赖未 ROUND 的中间值",
+                )
+            )
+        if re.search(r"\bok_cnt\b|\bcnt\s*\*", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "running OK 占比用 SUM(CASE WHEN status='C' THEN 1 END) 与 COUNT(status)，"
+                    "CTE 列名 percentage_running_ok = CAST(SUM(...) AS REAL)*100/COUNT(status)",
+                )
+            )
+        if re.search(r"overall_percentage\s*\*\s*100", sql, re.IGNORECASE):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "overall_stats 的 percentage 已是 0–100 刻度时，最终 SELECT 只 ROUND(o.percentage)，不要 *100",
+                )
+            )
+    has_frpm = any(document.table_name.lower() == "frpm" for document in documents)
+    if has_frpm and re.search(r"County Name|Alameda|Los Angeles|Fresno", question, re.IGNORECASE):
+        if "county name" not in lowered and re.search(
+            r"\bschools\.county\b|\bs\.county\b", sql, re.IGNORECASE
+        ):
+            findings.append(
+                SemanticFinding(
+                    "projection_mismatch",
+                    "县级过滤优先用 frpm.`County Name`（或 schools.County 与问句县名一致），"
+                    "不要混用错误县列导致漏行。",
+                )
+            )
     return tuple(findings)
 
 
@@ -254,6 +694,19 @@ def check_generic_shape(
         )
     if shape.formula_columns and not _formula_used(shape.formula_columns, sql):
         findings.append(SemanticFinding("projection_mismatch", f"口径：{shape.formulas[0]}"))
+    if dialect == "sqlite" and re.search(
+        r"julianday\s*\(\s*['\"]now['\"]|date\s*\(\s*['\"]now['\"]|"
+        r"strftime\s*\([^)]*['\"]now['\"]",
+        sql,
+        re.IGNORECASE,
+    ):
+        findings.append(
+            SemanticFinding(
+                "projection_mismatch",
+                "计算校龄等相对日期时不要使用 date('now') 或 julianday('now')，"
+                "改用问句给定的 anchor 日期或列中的 OpenDate 差值常量。",
+            )
+        )
     return tuple(findings)
 
 
@@ -304,13 +757,40 @@ def _dimensions(
     return tuple(found)
 
 
+def _merge_dimension_entities(
+    entities: tuple[str, ...],
+    question: str,
+    documents: Sequence[TableDocument],
+) -> tuple[str, ...]:
+    """分组维度对应的维表也要出现在 SQL 中。"""
+
+    visible = {document.table_name.lower(): document.table_name for document in documents}
+    names = list(entities)
+    for labels, _tokens, tables in _DIMENSIONS:
+        label = next((item for item in labels if _contains(question, item)), None)
+        if label is None or not _dimension_requested(question, label):
+            continue
+        for table in tables:
+            resolved = visible.get(table.lower())
+            if resolved is not None and resolved not in names:
+                names.append(resolved)
+    return tuple(dict.fromkeys(names))
+
+
 def _entities(
     question: str,
     visible: dict[str, TableDocument],
 ) -> tuple[str, ...]:
     names: list[str] = []
+    sold_through_store = (
+        "store_sales" in visible and re.search(r"卖过|售出|销售过|门店卖", question) is not None
+    )
+    if sold_through_store:
+        names.append(visible["store_sales"].table_name)
     for pattern, tables in _ENTITIES:
         if pattern.search(question) is None:
+            continue
+        if sold_through_store and tables == ("store",):
             continue
         for table in tables:
             if table.lower() in visible and table not in names:
@@ -341,13 +821,27 @@ def _formulas(
     question: str,
     documents: Sequence[TableDocument],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if re.search(
+        r"FRPM eligibility|Eligible FRPM|Percent.*FRPM|FRPM percentage",
+        question,
+        re.IGNORECASE,
+    ):
+        pct = _first_column(
+            documents,
+            ("percent (%) eligible frpm (k-12)", "percent (%) eligible frpm", "eligible frpm"),
+        )
+        if pct is not None:
+            return (
+                f"FRPM 比例用 frpm `{pct}` * 100 AS FRPMPercentage，"
+                "不要仅用 Free Meal Count/Enrollment 重算",
+            ), (pct,)
     if re.search(r"rate|比例|百分比|percentage", question, re.IGNORECASE) is None:
         return (), ()
     count = _first_column(documents, ("free meal count", "frpm count"))
     enrollment = _first_column(documents, ("enrollment (k-12)", "enrollment"))
     if count is None or enrollment is None:
         return (), ()
-    text = f"免费餐比例用 {count} * 1.0 / {enrollment}，不要直接用现成百分比列代替"
+    text = f"免费餐比例用 {count} * 1.0 / {enrollment}；若无 FRPM 列再手算"
     return (text,), (count, enrollment)
 
 
@@ -356,19 +850,214 @@ def _join_hints(
     documents: Sequence[TableDocument],
     edges: Sequence[SchemaEdge],
 ) -> tuple[str, ...]:
-    if re.search(r"当前住址|current address", question, re.IGNORECASE) is None:
-        return ()
+    hints: list[str] = []
     visible = {document.table_name.lower() for document in documents}
-    if "customer_address" not in visible:
-        return ()
-    for edge in edges:
-        tables = {edge.source_table.lower(), edge.target_table.lower()}
-        if tables != {"customer", "customer_address"}:
-            continue
-        left = f"{edge.source_table}.{edge.source_columns[0]}"
-        right = f"{edge.target_table}.{edge.target_columns[0]}"
-        return (f"当前住址用 {left} = {right} 连接，不要只用 IS NOT NULL",)
-    return ("当前住址必须连接 customer_address，不要只用 IS NOT NULL",)
+    if (
+        re.search(r"直邮|dmail", question, re.IGNORECASE)
+        and re.search(r"商品|item", question, re.IGNORECASE)
+        and "item" in visible
+        and "promotion" in visible
+    ):
+        hints.append(
+            "直邮促销商品：store_sales.ss_item_sk IN (SELECT p_item_sk FROM promotion "
+            "WHERE p_channel_dmail='Y')，并 JOIN item；不要 JOIN promotion 事实行。"
+        )
+    elif (
+        re.search(r"促销|promotion", question, re.IGNORECASE)
+        and "promotion" in visible
+        and re.search(r"名称|目的", question)
+    ):
+        hints.append(
+            "促销名称/目的：JOIN promotion ON 事实表 ss_promo_sk/cs_promo_sk/ws_promo_sk = p_promo_sk，"
+            "投影 promotion.p_promo_name 或 p_purpose。"
+        )
+    if re.search(r"收入|income", question, re.IGNORECASE) and "income_band" in visible:
+        hints.append("收入分段用 income_band 连接 household_demographics，不要省略 income_band。")
+    if (
+        re.search(r"收入带|购买潜力|income|buy potential", question, re.IGNORECASE)
+        and "household_demographics" in visible
+        and "store_sales" in visible
+    ):
+        hints.append(
+            "收入带/购买潜力：store_sales JOIN customer，再 household_demographics "
+            "ON customer.c_current_hdemo_sk = hd_demo_sk，JOIN income_band；"
+            "不要用 ss_hdemo_sk 直连 household；问句未提门店州时不要 JOIN store。"
+        )
+    if (
+        re.search(r"配送|承运|ship mode|ship_mode", question, re.IGNORECASE)
+        and "ship_mode" in visible
+    ):
+        hints.append("配送方式需 JOIN ship_mode，不要只用销售事实表上的 sk 列名猜测。")
+    if re.search(r"网站名|web site name", question, re.IGNORECASE) and "web_site" in visible:
+        hints.append("网站维度用 web_site 表，通过 web_sales 或 catalog_sales 关联。")
+    if re.search(r"既在.+又在", question) and {"store_sales", "web_sales"} <= visible:
+        hints.append(
+            "跨渠道顾客：用 web_sales 子集（customer+item）过滤 store_sales，"
+            "最终只汇总门店销售金额；不要 UNION ALL 合并两渠道金额。"
+        )
+    if "比较" in question and {"store_sales", "web_sales"} <= visible:
+        hints.append(
+            "渠道对比：各渠道独立 CTE 汇总后按 item_category/sales_year JOIN，"
+            "输出 store_sales_amount 与 web_sales_amount 两列，不要 UNION 成单列。"
+        )
+    if {"schools", "frpm", "satscores"} <= visible or ("schools" in visible and "frpm" in visible):
+        hints.append(
+            "California schools：schools 与 frpm/satscores 用 CDSCode 与 satscores.cds 连接，"
+            "不要对 schools 与 frpm 做无键笛卡尔积。"
+        )
+    if "frpm" in visible and re.search(
+        r"NSLP|Provision Status|free meal rate|FRPM|Enrollment \(K-12\)",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "餐食/NSLP/Enrollment 过滤或度量在 frpm（如 `NSLP Provision Status`、`County Name`），"
+            "schools 上的 Magnet/GSserved 过滤仍需 JOIN frpm ON CDSCode。"
+        )
+    if re.search(r"Multiple Provision Types", question, re.IGNORECASE) and "frpm" in visible:
+        hints.append(
+            "问句点名 Multiple Provision Types 时 WHERE 需 "
+            "frpm.`NSLP Provision Status` = 'Multiple Provision Types'（与 schools 条件 AND）。"
+        )
+    if "satscores" in visible and re.search(
+        r"performance level|SAT performance",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "SAT performance level：satscores LEFT JOIN；Total=AvgScrRead+AvgScrMath+AvgScrWrite；"
+            "CASE 标签 No SAT Data / Below Average(<1200) / Average(1200–1500) / Above Average。"
+        )
+    if "frpm" in visible and re.search(
+        r"free meal rate|FRPM|Enrollment \(K-12\)",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append("frpm 算餐食比例时在 WHERE 加 `Enrollment (K-12)` > 0，避免除零或无效行。")
+    if (
+        "schools" in visible
+        and "satscores" in visible
+        and re.search(r"district average|district avg|compare.*district", question, re.IGNORECASE)
+    ):
+        hints.append(
+            "学区 SAT 均分按 schools.District 聚合 satscores，不要用 satscores.dname 代替 schools.District。"
+        )
+    if {"disp", "client", "account"} <= visible and re.search(
+        r"owner|account holder|client.*account|card holder",
+        question,
+        re.IGNORECASE,
+    ):
+        if not re.search(
+            r"approved first|balance from|increase rate.*balance",
+            question,
+            re.IGNORECASE,
+        ):
+            hints.append(
+                "Financial 库：account 与 client 经 disp 连接，账户持有人用 disp.type = 'OWNER'。"
+            )
+    if re.search(r"approved first|loan was approved first", question, re.IGNORECASE):
+        hints.append(
+            "「当日最早获批贷款」用 WHERE loan_id = (SELECT MIN(loan_id) FROM loan WHERE date = …) "
+            "限定单笔 loan，避免同日多笔 fan-out；路径 loan→account→trans，不要 JOIN disp。"
+        )
+    if (
+        re.search(
+            r"increase rate.*balance|account balance from",
+            question,
+            re.IGNORECASE,
+        )
+        and {"loan", "account", "trans"} <= visible
+    ):
+        hints.append(
+            "余额增长率：loan JOIN account JOIN trans，用 IIF 按两日期 SUM(balance)；"
+            "不要加 disp 或 loan.status='C'。"
+        )
+    if (
+        "loan" in visible
+        and "district" in visible
+        and re.search(
+            r"\bregion\b|district\.A3",
+            question,
+            re.IGNORECASE,
+        )
+    ):
+        hints.append("Financial 区域维度用 district.A3（经 account.district_id JOIN district）。")
+    if "loan" in visible and re.search(
+        r"running with no issues|running without issues|no issues.*loan",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "Financial：贷款正常进行中/无问题用 loan.status = 'C' 计数，不要用 status = 'A'。"
+        )
+    if "loan" in visible and re.search(
+        r"loan size category|size category", question, re.IGNORECASE
+    ):
+        hints.append(
+            "贷款规模分档 CASE 标签用 Small / Medium / Large（按 amount 阈值），"
+            "不要用 '<50K' 等字面区间字符串。"
+        )
+    if {"loan", "account", "trans"} <= visible:
+        hints.append(
+            "Financial：loan.account_id → account → trans（trans.account_id = account.account_id）；"
+            "需 account 表时不要跳过。"
+        )
+    if "loan" in visible and re.search(
+        r"compare.*overall|overall average|performance compare",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "与 overall 对比：overall 汇总 CTE 按 loan_size_category 等并行维度 GROUP BY，"
+            "再 JOIN 对齐该键；不要单行 CROSS JOIN 全局百分比。"
+        )
+    if "loan" in visible and re.search(
+        r"running with no issues|percentage of loans running",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "running OK 占比：COUNT(status) 作分母；CTE 内 percentage 不 ROUND；"
+            "avg_duration 不 ROUND；最终 SELECT 再 ROUND percentage 与 diff_from_overall。"
+        )
+    if "schools" in visible and re.search(r"fully virtual|partially virtual", question, re.I):
+        hints.append(
+            "Virtual：schools.Virtual 代码 F=Fully/P=Partially/N=Not；过滤用 F 或 P，"
+            "VirtualStatus 用 CASE 输出可读标签；SchoolType 用 Charter/Regular School。"
+        )
+    if "frpm" in visible and re.search(
+        r"County Office of Education|FRPM percentage levels",
+        question,
+        re.IGNORECASE,
+    ):
+        hints.append(
+            "COE charter 题：frpm.`District Name` 过滤学区；`Charter School (Y/N)`=1；"
+            "CharterSchoolName=frpm.`School Name`；PercentFRPM 用小数列（不×100）；"
+            "FRPMCategory 严格 >0.75/>0.50；YearOpened=STRFTIME('%Y',OpenDate)；"
+            "PercentageAbove1500=NumGE1500/NumTstTakr（rtype='S'）；"
+            "ORDER BY NULL SAT 最后、TotalSATScore DESC、Enrollment DESC。"
+        )
+    if re.search(r"账单地址|收货地址|bill address|ship address", question, re.IGNORECASE):
+        if "customer_address" in visible and "web_sales" in visible:
+            hints.append(
+                "账单/收货地址州：web_sales.ws_bill_addr_sk 与 ws_ship_addr_sk 各 JOIN 一次 customer_address，"
+                "并 JOIN customer ON ws_bill_customer_sk = c_customer_sk；过滤 bill_state <> ship_state。"
+            )
+    if (
+        re.search(r"当前住址|current address", question, re.IGNORECASE)
+        and "customer_address" in visible
+    ):
+        for edge in edges:
+            tables = {edge.source_table.lower(), edge.target_table.lower()}
+            if tables != {"customer", "customer_address"}:
+                continue
+            left = f"{edge.source_table}.{edge.source_columns[0]}"
+            right = f"{edge.target_table}.{edge.target_columns[0]}"
+            hints.append(f"当前住址用 {left} = {right} 连接，不要只用 IS NOT NULL")
+            break
+        else:
+            hints.append("当前住址必须连接 customer_address，不要只用 IS NOT NULL")
+    return tuple(hints)
 
 
 def _dimension_line(dimension: GenericDimension) -> str:

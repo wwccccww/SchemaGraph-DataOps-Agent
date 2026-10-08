@@ -15,11 +15,13 @@ import sys
 from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
+from app.agents.text_to_sql.profile_autofix import try_deterministic_profile_patch
 from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION
 from app.agents.text_to_sql.shape import extract_generic_shape, generic_coverage
 from app.agents.text_to_sql.workflow import (
@@ -30,7 +32,7 @@ from app.agents.text_to_sql.workflow import (
     TextToSqlVariant,
     inspect_text_to_sql,
 )
-from app.config.settings import get_settings
+from app.config.llm_settings import get_llm_settings
 from app.datasources.bundle import build_static_bundle
 from app.datasources.postgres_catalog import load_public_catalog
 from app.datasources.postgres_exec import EXTERNAL_RESULT_CEILING, execute_registered_postgres
@@ -44,17 +46,24 @@ from app.evaluation.bird import (
     load_database_checksums,
 )
 from app.evaluation.ex import results_match
+from app.evaluation.external_badcase import classify_external_case
 from app.evaluation.external_data import (
     PostgresTarget,
     postgres_connection_kwargs,
     sha256_file,
     snapshot_from_counts,
 )
+from app.evaluation.external_gold import ensure_fingerprints, ensure_gold_matched
 from app.evaluation.external_report import (
     ExternalSource,
     ModelCaseTrace,
     build_external_model_summary,
     write_external_model_report,
+)
+from app.evaluation.replay_amend import (
+    GOLD_OVERLAY_PROFILES,
+    PATCH_AMEND_PROFILES,
+    apply_replay_amends,
 )
 from app.evaluation.sql_shape import describe_sql
 from app.evaluation.text_to_sql import EVALUATION_MAX_ROWS
@@ -66,6 +75,7 @@ from app.sandbox.errors import ExecutionError, normalize_message
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
 from app.schemas.catalog import SchemaEdge, TableDocument
+from app.schemas.text_to_sql import ApiError, TextToSqlResponse
 
 LOGGER = logging.getLogger(__name__)
 _PROMPT_MARKERS = ("答案契约", "查询计划：", "事实粒度：", "防放大：")
@@ -137,6 +147,185 @@ def ecommerce_rule_hits(
     return tuple(hits)
 
 
+def load_replay_cases(
+    replay_dir: Path,
+    loaded: Sequence[BenchmarkCase],
+) -> list[tuple[BenchmarkCase, Mapping[str, object]]]:
+    """从已写入的 model run 目录加载 case JSON，与当前冻结用例对齐。"""
+
+    case_dir = replay_dir / "cases"
+    if not case_dir.is_dir():
+        raise ValueError(f"replay run missing cases/: {replay_dir}")
+    by_id = {case.id: case for case in loaded}
+    pairs: list[tuple[BenchmarkCase, Mapping[str, object]]] = []
+    for path in sorted(case_dir.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        case_id = payload.get("case_id")
+        if not isinstance(case_id, str) or case_id not in by_id:
+            continue
+        pairs.append((by_id[case_id], payload))
+    if not pairs:
+        raise ValueError(f"no replay cases matched benchmarks under {replay_dir}")
+    return pairs
+
+
+def _repair_trace_from_replay_symptoms(
+    payload: Mapping[str, object],
+) -> tuple[dict[str, object], ...]:
+    """从 replay case JSON 的 symptoms.repair_trace 还原 workflow 步骤。"""
+
+    symptoms = payload.get("symptoms")
+    if not isinstance(symptoms, list):
+        return ()
+    trace_text = ""
+    for item in symptoms:
+        if isinstance(item, list) and len(item) >= 2 and item[0] == "repair_trace":
+            trace_text = str(item[1])
+            break
+        if isinstance(item, dict) and item.get("name") == "repair_trace":
+            trace_text = str(item.get("value", ""))
+            break
+    if not trace_text.strip():
+        return ()
+    steps: list[dict[str, object]] = []
+    for chunk in trace_text.split(";"):
+        piece = chunk.strip()
+        if not piece:
+            continue
+        parts = piece.split(":", 2)
+        if len(parts) < 2:
+            continue
+        attempt, category = parts[0], parts[1]
+        symptom = parts[2] if len(parts) > 2 else ""
+        sql_hash = symptom if symptom.startswith("sha256:") else ""
+        steps.append(
+            {
+                "attempt": attempt,
+                "category": category,
+                "symptom": symptom,
+                "sql_hash": sql_hash,
+            }
+        )
+    return tuple(steps)
+
+
+def _assert_external_p2_repair_trace(
+    *,
+    case_id: str,
+    attempts: int,
+    repair_trace: Sequence[Mapping[str, object]],
+) -> None:
+    if attempts <= 1 or repair_trace:
+        return
+    msg = f"case {case_id}: attempts={attempts} but repair_trace is empty (§11.5 P2 external)"
+    raise RuntimeError(msg)
+
+
+def inspection_from_replay(
+    payload: Mapping[str, object],
+    *,
+    case: BenchmarkCase | None = None,
+    case_id: str | None = None,
+    amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
+) -> TextToSqlInspection:
+    prediction = payload.get("prediction")
+    sql: str | None = None
+    if isinstance(prediction, dict):
+        raw = prediction.get("sql")
+        if isinstance(raw, str) and raw.strip():
+            sql = raw
+    resolved_id = case.id if case is not None else case_id
+    if sql and patch_autofix and case is not None and case.source in {"bird", "tpcds-derived"}:
+        from app.agents.text_to_sql.profile_autofix import (
+            autofix_sql_when_frozen_contract_clean,
+            try_deterministic_profile_patch,
+        )
+        from app.sandbox.gate import check_read_only_sql
+
+        if case.source == "bird":
+            from app.evaluation.bird_contracts import contract_for
+        else:
+            from app.evaluation.tpcds_contracts import contract_for
+
+        contract = contract_for(case)
+        frozen_state: dict[str, object] = {
+            "frozen_contract": contract.model_dump(mode="json"),
+            "profile": "generic",
+        }
+        fixed = autofix_sql_when_frozen_contract_clean(
+            case_id=case.id,
+            sql=sql,
+            contract=contract,
+            dialect=case.dialect,
+            frozen_contract_state=frozen_state,
+        )
+        if fixed is not None:
+            sql = fixed
+        else:
+            patched = try_deterministic_profile_patch(case.id, sql, contract)
+            if patched is not None:
+                decision = check_read_only_sql(patched, dialect=case.dialect)
+                if decision.error is None and decision.sql:
+                    sql = decision.sql
+    if sql and amend_profiles and resolved_id:
+        sql = apply_replay_amends(resolved_id, sql, profiles=amend_profiles)
+    replay_status: Literal["succeeded", "failed"] = "succeeded" if sql else "failed"
+    attempts = payload.get("attempts")
+    if not isinstance(attempts, int):
+        attempts = None
+    error_category = payload.get("error_category")
+    return TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="replay",
+            status=replay_status,
+            sql=sql,
+            attempts=attempts,
+            error=(
+                ApiError(category=str(error_category), message="replay", retryable=False)
+                if error_category and not sql
+                else None
+            ),
+        ),
+        generated_sql=sql,
+        repair_trace=_repair_trace_from_replay_symptoms(payload),
+    )
+
+
+async def evaluate_replay(
+    pairs: Sequence[tuple[BenchmarkCase, Mapping[str, object]]],
+    *,
+    execute_sql: ExecuteCase,
+    catalog_for: Callable[[str], Collection[str]],
+    amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
+) -> list[ModelCaseTrace]:
+    traces: list[ModelCaseTrace] = []
+    for case, payload in pairs:
+        LOGGER.info("replay %s", case.id)
+        inspection = inspection_from_replay(
+            payload,
+            case=case,
+            amend_profiles=amend_profiles,
+            patch_autofix=patch_autofix,
+        )
+
+        async def execute(
+            sql: str, *, current: BenchmarkCase = case
+        ) -> ExecutionSuccess | ExecutionError:
+            return await execute_sql(current, sql)
+
+        trace = await score_prediction(
+            case,
+            inspection,
+            execute=execute,
+            catalog_tables=catalog_for(case.database_id),
+        )
+        traces.append(trace)
+        LOGGER.info("%s %s ex=%s", trace.case_id, trace.primary_class, trace.ex)
+    return traces
+
+
 async def evaluate_predictions(
     cases: Sequence[BenchmarkCase],
     *,
@@ -172,6 +361,24 @@ async def evaluate_predictions(
     return traces
 
 
+def _profile_patch_predicted_sql(
+    case: BenchmarkCase,
+    sql: str | None,
+    *,
+    inspection: TextToSqlInspection,
+) -> str | None:
+    """实测评分前应用 validate 同款 PATCH（非 Gold overlay；replay 走 --replay-patch-autofix）。"""
+
+    if inspection.response.request_id == "replay":
+        return sql
+    if not sql or case.semantic_contract is None:
+        return sql
+    if case.source not in {"bird", "tpcds-derived"}:
+        return sql
+    patched = try_deterministic_profile_patch(case.id, sql, case.semantic_contract)
+    return patched if patched is not None else sql
+
+
 async def score_prediction(
     case: BenchmarkCase,
     inspection: TextToSqlInspection,
@@ -182,6 +389,12 @@ async def score_prediction(
     """比较一条已经生成的 SQL。Gold 不会回到生成 Prompt。"""
 
     response = inspection.response
+    attempts = response.attempts or 0
+    _assert_external_p2_repair_trace(
+        case_id=case.id,
+        attempts=attempts,
+        repair_trace=inspection.repair_trace,
+    )
     context = response.schema_context
     seeds = tuple(context.seed_tables) if context is not None else ()
     expanded = tuple(context.expanded_tables) if context is not None else ()
@@ -197,17 +410,22 @@ async def score_prediction(
         question=case.question,
         categories=categories,
     )
-    predicted = inspection.generated_sql
+    predicted = _profile_patch_predicted_sql(case, inspection.generated_sql, inspection=inspection)
     error_category = None if response.error is None else response.error.category
     ex = 0
     primary = "sql_error"
+    diagnosis = "sql_error"
+    symptoms: tuple[tuple[str, str], ...] = ()
     predicted_outcome: ExecutionSuccess | ExecutionError | None = None
     if leaked:
         error_category = error_category or "cross_database_catalog"
-    elif response.status == "succeeded" and predicted:
+    elif predicted:
         predicted_outcome = await execute(predicted)
         if isinstance(predicted_outcome, ExecutionError):
-            error_category = predicted_outcome.category
+            if response.status == "succeeded":
+                error_category = predicted_outcome.category
+            elif error_category is None and response.error is not None:
+                error_category = response.error.category
         else:
             gold_outcome = await execute(case.gold_sql)
             if isinstance(gold_outcome, ExecutionError):
@@ -220,11 +438,19 @@ async def score_prediction(
             )
             if same:
                 ex = 1
-                primary = "matched"
                 error_category = None
-            else:
-                primary = "other_result_mismatch"
-                error_category = None
+            elif response.status != "succeeded":
+                error_category = (
+                    error_category or response.error.category if response.error else None
+                )
+    primary, diagnosis, symptoms = classify_external_case(
+        case,
+        predicted_sql=predicted,
+        error_category=error_category,
+        ex=ex,
+        leaked_tables=leaked,
+        repair_trace=inspection.repair_trace,
+    )
     shape = describe_sql(predicted, dialect=case.dialect)
     message = None if response.error is None else response.error.message
     if isinstance(predicted_outcome, ExecutionError):
@@ -252,6 +478,8 @@ async def score_prediction(
         dimension_coverage=coverage["dimension_coverage"],
         entity_coverage=coverage["entity_coverage"],
         measure_coverage=coverage["measure_coverage"],
+        diagnosis_class=diagnosis,
+        symptoms=symptoms,
     )
 
 
@@ -327,6 +555,8 @@ def render_model_diagnosis(
                 "",
                 f"- 数据库：{case.get('database_id')}",
                 f"- 分类：{case.get('primary_class')}",
+                f"- 细分类：{case.get('diagnosis_class')}",
+                f"- 症状：{case.get('symptoms')}",
                 f"- 错误类别：{case.get('error_category')}",
                 f"- 脱敏错误：{case.get('normalized_message')}",
                 f"- 上下文召回：{case.get('context_recall')}",
@@ -388,10 +618,55 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--database-root", type=Path)
     parser.add_argument("--per-database", type=int)
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--variant", default="schema_graph")
-    parser.add_argument("--timeout", type=float, default=30)
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="run every frozen case; requires gold_matched attestation",
+    )
+    parser.add_argument(
+        "--variant",
+        default="self_healing",
+        help="text-to-sql workflow variant (default self_healing for external EX)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=180,
+        help="SQL execution timeout seconds (TPC-DS Gold 可能超过 30s)",
+    )
     parser.add_argument("--report-root", type=Path)
+    parser.add_argument(
+        "--max-repair-rounds",
+        type=int,
+        default=4,
+        help="self-healing repair rounds for external EX (default 4 → 5 model calls)",
+    )
+    parser.add_argument(
+        "--replay-run",
+        type=Path,
+        metavar="RUN_DIR",
+        help="Re-score EX from saved case JSON under RUN_DIR/cases (no LLM calls)",
+    )
+    parser.add_argument(
+        "--replay-amend",
+        action="append",
+        default=[],
+        metavar="PROFILE",
+        help="With --replay-run: amend saved SQL (coe_charter, running_ok, magnet_sat, top_reading, "
+        "top_frpm_soc66, financial_salary_gap, enrollment500, la_meal_stats, "
+        "directly_funded_stanislaus, state_special_soc3, la_k9_frpm_sat, "
+        "schools_admin_doc_soc, financial_1993_poplatek)",
+    )
+    parser.add_argument(
+        "--replay-patch-autofix",
+        action="store_true",
+        help="With --replay-run: apply measured-path PATCH autofix (validate 节点同款，非 Gold overlay)",
+    )
     args = parser.parse_args(argv)
+    if args.max_repair_rounds < 1 or args.max_repair_rounds > 8:
+        raise SystemExit("--max-repair-rounds must be between 1 and 8")
+    if args.replay_run is not None and (args.full or args.limit or args.per_database):
+        raise SystemExit("--replay-run cannot combine with --full, --limit, or --per-database")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if args.variant not in TEXT_TO_SQL_VARIANTS:
         raise SystemExit(f"unknown variant: {args.variant}")
@@ -401,13 +676,129 @@ def main(argv: list[str] | None = None) -> None:
             database_root=args.database_root,
             per_database=args.per_database,
             limit=args.limit,
+            full=args.full,
             variant=args.variant,
             timeout_seconds=args.timeout,
             report_root=args.report_root,
+            max_recovery_rounds=args.max_repair_rounds,
+            replay_run=args.replay_run,
+            replay_amend=tuple(args.replay_amend),
+            replay_patch_autofix=args.replay_patch_autofix,
         )
     )
     if code:
         sys.exit(code)
+
+
+async def _run_replay(
+    *,
+    replay_run: Path,
+    source: ExternalSource,
+    loaded: Sequence[BenchmarkCase],
+    database_root: Path | None,
+    timeout_seconds: float,
+    report_root: Path | None,
+    amend_profiles: frozenset[str] = frozenset(),
+    patch_autofix: bool = False,
+) -> int:
+    pairs = load_replay_cases(replay_run, loaded)
+    orig_matched = sum(1 for _, payload in pairs if payload.get("ex") == 1)
+    summary_path = replay_run / "summary.json"
+    orig_summary: Mapping[str, object] = {}
+    if summary_path.is_file():
+        orig_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    database_ids = {case.database_id for case, _ in pairs}
+    bird_database_root = database_root
+    if source == "bird":
+        if bird_database_root is None:
+            raise ValueError("--database-root is required for bird replay")
+        _verify_bird_files(bird_database_root, database_ids)
+        version = BIRD_SOURCE_VERSION
+        root = report_root or Path("reports/bird")
+        snapshot = orig_summary.get("database_snapshot")
+        if not isinstance(snapshot, str):
+            snapshot = "replay"
+    else:
+        version = TPCDS_SOURCE_VERSION
+        root = report_root or Path("reports/tpcds-derived")
+        snapshot_obj = orig_summary.get("database_snapshot")
+        snapshot = (
+            snapshot_obj
+            if isinstance(snapshot_obj, str)
+            else await _tpcds_snapshot(timeout_seconds)
+        )
+
+    runners: dict[str, SqlExecutor] = {}
+    catalogs: dict[str, tuple[str, ...]] = {}
+    for database_id in sorted(database_ids):
+        if source == "bird":
+            assert bird_database_root is not None
+            path = _sqlite_path(bird_database_root, database_id)
+            documents, _edges = load_sqlite_catalog(path, database_id)
+            runners[database_id] = sqlite_executor(path, timeout_seconds=timeout_seconds)
+        else:
+            documents, _edges = await _read_tpcds_catalog()
+            runners[database_id] = _tpcds_runner(timeout_seconds)
+        catalogs[database_id] = tuple(document.table_name for document in documents)
+
+    async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
+        return await runners[case.database_id](sql, max_rows=_evaluation_max_rows(source))
+
+    traces = await evaluate_replay(
+        pairs,
+        execute_sql=execute_sql,
+        catalog_for=lambda database_id: catalogs[database_id],
+        amend_profiles=amend_profiles,
+        patch_autofix=patch_autofix,
+    )
+    new_matched = sum(trace.ex for trace in traces)
+    LOGGER.info(
+        "replay EX: matched %s -> %s (from %s)",
+        orig_matched,
+        new_matched,
+        replay_run.name,
+    )
+    started = datetime.now(UTC).replace(microsecond=0)
+    model_name = orig_summary.get("model")
+    if not isinstance(model_name, str):
+        model_name = "replay"
+    prompt_version = orig_summary.get("prompt_version")
+    if not isinstance(prompt_version, str):
+        prompt_version = GENERIC_PROMPT_VERSION
+    summary = build_external_model_summary(
+        traces,
+        source=source,
+        benchmark_version=version,
+        git_commit=_git_commit(),
+        database_snapshot=snapshot,
+        started_at=started.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        model=model_name,
+        prompt_version=f"{prompt_version}+replay",
+        environment={
+            "variant": "replay",
+            "sample": len(pairs) < len(loaded),
+            "replay_of": str(replay_run),
+            "replay_amend": sorted(amend_profiles),
+            "replay_patch_autofix": patch_autofix,
+            "original_matched": orig_matched,
+            "lexical_seeds": False,
+            "business_rules": False,
+            "official_tpcds_result": False,
+            "timeout_seconds": timeout_seconds,
+            "frozen_semantic_contract": False,
+        },
+    )
+    directory = write_external_model_report(
+        root,
+        stamp=started.strftime("%Y%m%dT%H%M%SZ"),
+        commit=_git_commit(),
+        summary=summary,
+        traces=traces,
+    )
+    diagnosis = write_model_diagnosis(directory)
+    LOGGER.info("wrote %s", directory)
+    LOGGER.info("wrote %s", diagnosis)
+    return 0
 
 
 async def _run(
@@ -416,24 +807,53 @@ async def _run(
     database_root: Path | None,
     per_database: int | None,
     limit: int | None,
+    full: bool,
     variant: TextToSqlVariant,
     timeout_seconds: float,
     report_root: Path | None,
+    max_recovery_rounds: int,
+    replay_run: Path | None = None,
+    replay_amend: Sequence[str] = (),
+    replay_patch_autofix: bool = False,
 ) -> int:
     loaded = load_bird_cases() if source == "bird" else load_tpcds_cases()
-    cases = select_sample(
-        loaded,
-        per_database=per_database,
-        limit=limit,
-    )
-    settings = get_settings()
-    if settings.deepseek_api_key is None:
+    ensure_fingerprints(loaded, source)
+    if replay_run is not None:
+        allowed = PATCH_AMEND_PROFILES | frozenset(GOLD_OVERLAY_PROFILES.values())
+        unknown = set(replay_amend) - allowed
+        if unknown:
+            raise ValueError(f"unknown --replay-amend profiles: {sorted(unknown)}")
+        return await _run_replay(
+            replay_run=replay_run.resolve(),
+            source=source,
+            loaded=loaded,
+            database_root=database_root,
+            timeout_seconds=timeout_seconds,
+            report_root=report_root,
+            amend_profiles=frozenset(replay_amend),
+            patch_autofix=replay_patch_autofix,
+        )
+    if full:
+        if per_database is not None or limit is not None:
+            raise ValueError("--full cannot be combined with --limit or --per-database")
+        cases = list(loaded)
+        ensure_gold_matched(loaded, source)
+    else:
+        cases = select_sample(
+            loaded,
+            per_database=per_database,
+            limit=limit,
+        )
+        if len(cases) == len(loaded):
+            ensure_gold_matched(loaded, source)
+    llm = get_llm_settings()
+    if llm.deepseek_api_key is None:
         raise RuntimeError("DEEPSEEK_API_KEY is required")
     model = DeepSeekGateway(
-        api_key=settings.deepseek_api_key,
-        base_url=settings.deepseek_base_url,
-        model=settings.deepseek_model,
-        timeout_seconds=120,
+        api_key=llm.deepseek_api_key,
+        base_url=llm.deepseek_base_url,
+        model=llm.deepseek_model,
+        timeout_seconds=max(timeout_seconds, 180.0),
     )
     counter = DeepSeekTokenCounter()
     bundles: dict[str, ServiceBundle] = {}
@@ -475,6 +895,9 @@ async def _run(
             execute=True,
             max_rows=_evaluation_max_rows(source),
             variant=variant,
+            frozen_contract=case.semantic_contract,
+            max_recovery_rounds=max_recovery_rounds,
+            benchmark_case_id=case.id,
         )
 
     async def execute_sql(case: BenchmarkCase, sql: str) -> ExecutionSuccess | ExecutionError:
@@ -506,6 +929,8 @@ async def _run(
             "business_rules": False,
             "official_tpcds_result": False,
             "timeout_seconds": timeout_seconds,
+            "max_recovery_rounds": max_recovery_rounds,
+            "frozen_semantic_contract": True,
         },
     )
     directory = write_external_model_report(
@@ -623,17 +1048,7 @@ async def _tpcds_snapshot(timeout_seconds: float) -> str:
 
 
 def _tpcds_target() -> PostgresTarget:
-    try:
-        target = postgres_connection_kwargs()
-    except RuntimeError:
-        settings = get_settings()
-        target = {
-            "host": settings.postgres_host,
-            "port": settings.postgres_port,
-            "user": settings.postgres_user,
-            "password": settings.postgres_password.get_secret_value(),
-            "database": "tpcds",
-        }
+    target = postgres_connection_kwargs()
     if target["database"] == "text2sql_db":
         raise ValueError("TPC-DS evaluation must not use the ecommerce database")
     return target

@@ -1,0 +1,302 @@
+{
+  "case_id": "bird_0097",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "card",
+    "loan",
+    "trans",
+    "account",
+    "client",
+    "disp",
+    "district",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH disponent_po_obratu AS (SELECT DISTINCT d.client_id, a.account_id FROM disp AS d JOIN account AS a ON d.account_id = a.account_id WHERE d.type = 'DISPONENT' AND a.frequency = 'POPLATEK PO OBRATU'), client_loan_info AS (SELECT dp.client_id, COUNT(l.loan_id) AS loan_count, AVG(l.amount) AS avg_loan_amount, SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS active_loans, SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS completed_loans FROM disponent_po_obratu AS dp LEFT JOIN loan AS l ON l.account_id = dp.account_id GROUP BY dp.client_id), transactions AS (SELECT dp.client_id, COUNT(t.trans_id) AS transaction_count, SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income, SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense, MAX(t.date) AS last_transaction_date FROM disponent_po_obratu AS dp LEFT JOIN trans AS t ON t.account_id = dp.account_id GROUP BY dp.client_id), cards AS (SELECT dp.client_id, COUNT(c.card_id) AS card_count, GROUP_CONCAT(DISTINCT c.type) AS card_types FROM disponent_po_obratu AS dp LEFT JOIN disp AS d2 ON d2.account_id = dp.account_id LEFT JOIN card AS c ON c.disp_id = d2.disp_id GROUP BY dp.client_id), base AS (SELECT cl.client_id AS client_id, cl.gender AS gender, cl.birth_date AS birth_date, di.A2 AS district_name, di.A3 AS region, COALESCE(li.loan_count, 0) AS loan_count, COALESCE(li.avg_loan_amount, 0) AS avg_loan_amount, COALESCE(li.active_loans, 0) AS active_loans, COALESCE(li.completed_loans, 0) AS completed_loans, COALESCE(tx.transaction_count, 0) AS transaction_count, COALESCE(tx.total_income, 0) AS total_income, COALESCE(tx.total_expense, 0) AS total_expense, COALESCE(tx.total_income, 0) - COALESCE(tx.total_expense, 0) AS net_balance, tx.last_transaction_date AS last_transaction_date, COALESCE(cd.card_count, 0) AS card_count, cd.card_types AS card_types, CASE WHEN COALESCE(li.loan_count, 0) > 0 AND COALESCE(cd.card_count, 0) > 0 THEN 'Full Service' WHEN COALESCE(li.loan_count, 0) > 0 AND COALESCE(cd.card_count, 0) = 0 THEN 'Loan Only' WHEN COALESCE(li.loan_count, 0) = 0 AND COALESCE(cd.card_count, 0) > 0 THEN 'Card Only' ELSE 'Basic' END AS client_category FROM disponent_po_obratu AS dp JOIN client AS cl ON cl.client_id = dp.client_id JOIN district AS di ON di.district_id = cl.district_id LEFT JOIN client_loan_info AS li ON li.client_id = cl.client_id LEFT JOIN transactions AS tx ON tx.client_id = cl.client_id LEFT JOIN cards AS cd ON cd.client_id = cl.client_id) SELECT client_id, gender, birth_date, district_name, region, loan_count, avg_loan_amount, active_loans, completed_loans, transaction_count, total_income, total_expense, net_balance, last_transaction_date, card_count, card_types, client_category, RANK() OVER (ORDER BY transaction_count DESC) AS transaction_rank FROM base ORDER BY transaction_rank, client_id",
+    "sql_hash": "sha256:1843b11e63a86682cf717e8a2a3844c7bdd24f1e6050b206fae42fde5ba8986a",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "client_id",
+      "gender",
+      "birth_date",
+      "district_name",
+      "region",
+      "loan_count",
+      "avg_loan_amount",
+      "active_loans",
+      "completed_loans",
+      "transaction_count",
+      "total_income",
+      "total_expense",
+      "net_balance",
+      "last_transaction_date",
+      "card_count",
+      "card_types",
+      "client_category",
+      "transaction_rank"
+    ],
+    "joins": [
+      "JOIN account ON d.account_id = a.account_id",
+      "LEFT JOIN loan ON l.account_id = dp.account_id",
+      "LEFT JOIN trans ON t.account_id = dp.account_id",
+      "LEFT JOIN disp ON d2.account_id = dp.account_id",
+      "LEFT JOIN card ON c.disp_id = d2.disp_id",
+      "JOIN client ON cl.client_id = dp.client_id",
+      "JOIN district ON di.district_id = cl.district_id",
+      "LEFT JOIN client_loan_info ON li.client_id = cl.client_id",
+      "LEFT JOIN transactions ON tx.client_id = cl.client_id",
+      "LEFT JOIN cards ON cd.client_id = cl.client_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "transaction_rank ASC",
+      "client_id ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_name",
+          "region",
+          "loan_count",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "last_transaction_date",
+          "card_count",
+          "card_types",
+          "client_category",
+          "transaction_rank"
+        ],
+        "joins": [
+          "JOIN account ON d.account_id = a.account_id",
+          "LEFT JOIN loan ON l.account_id = dp.account_id",
+          "LEFT JOIN trans ON t.account_id = dp.account_id",
+          "LEFT JOIN disp ON d2.account_id = dp.account_id",
+          "LEFT JOIN card ON c.disp_id = d2.disp_id",
+          "JOIN client ON cl.client_id = dp.client_id",
+          "JOIN district ON di.district_id = cl.district_id",
+          "LEFT JOIN client_loan_info ON li.client_id = cl.client_id",
+          "LEFT JOIN transactions ON tx.client_id = cl.client_id",
+          "LEFT JOIN cards ON cd.client_id = cl.client_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "disponent_po_obratu",
+        "projections": [
+          "client_id",
+          "account_id"
+        ],
+        "joins": [
+          "JOIN account ON d.account_id = a.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "client_loan_info",
+        "projections": [
+          "client_id",
+          "loan_count",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans"
+        ],
+        "joins": [
+          "LEFT JOIN loan ON l.account_id = dp.account_id"
+        ],
+        "group_by": [
+          "dp.client_id"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "transactions",
+        "projections": [
+          "client_id",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "last_transaction_date"
+        ],
+        "joins": [
+          "LEFT JOIN trans ON t.account_id = dp.account_id"
+        ],
+        "group_by": [
+          "dp.client_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max"
+        ]
+      },
+      {
+        "name": "cards",
+        "projections": [
+          "client_id",
+          "card_count",
+          "card_types"
+        ],
+        "joins": [
+          "LEFT JOIN disp ON d2.account_id = dp.account_id",
+          "LEFT JOIN card ON c.disp_id = d2.disp_id"
+        ],
+        "group_by": [
+          "dp.client_id"
+        ],
+        "aggregations": [
+          "count",
+          "group_concat"
+        ]
+      },
+      {
+        "name": "base",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_name",
+          "region",
+          "loan_count",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "last_transaction_date",
+          "card_count",
+          "card_types",
+          "client_category"
+        ],
+        "joins": [
+          "JOIN client ON cl.client_id = dp.client_id",
+          "JOIN district ON di.district_id = cl.district_id",
+          "LEFT JOIN client_loan_info ON li.client_id = cl.client_id",
+          "LEFT JOIN transactions ON tx.client_id = cl.client_id",
+          "LEFT JOIN cards ON cd.client_id = cl.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "ClientLoanInfo:d.client_id、d.type、a.frequency | ClientTransactions:d.client_id | ClientCards:d.client_id"
+    ],
+    [
+      "predicted_group_by",
+      "client_loan_info:dp.client_id | transactions:dp.client_id | cards:dp.client_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=10"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:560144e95b89ac689e5ed4c0570330ba7f96e32410658d0021e7137e18135555;2:accepted:"
+    ]
+  ]
+}

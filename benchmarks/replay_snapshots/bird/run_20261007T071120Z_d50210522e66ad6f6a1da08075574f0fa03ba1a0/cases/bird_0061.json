@@ -1,0 +1,198 @@
+{
+  "case_id": "bird_0061",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: FRPMCount 用 frpm `FRPM Count (K-12)`，不是 Free Meal Count；projection_mismatch: FRPMPercent 用 `Percent (%) Eligible FRPM (K-12)` 小数列",
+  "attempts": 5,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH CharterSchoolStats AS (\n  SELECT\n    s.CDSCode,\n    s.School,\n    s.City,\n    f.\"Enrollment (K-12)\" AS EnrollmentK12,\n    f.\"Free Meal Count (K-12)\" AS FRPMCount,\n    CASE WHEN f.\"Enrollment (K-12)\" > 0\n         THEN f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\"\n         ELSE NULL END AS FRPMPercent,\n    CASE\n      WHEN f.\"Enrollment (K-12)\" > 0 AND f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" > 0.75 THEN 'High FRPM'\n      WHEN f.\"Enrollment (K-12)\" > 0 AND f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" > 0.50 THEN 'Medium FRPM'\n      ELSE 'Low FRPM'\n    END AS FRPMCategory,\n    ROW_NUMBER() OVER (PARTITION BY s.City ORDER BY f.\"Enrollment (K-12)\" DESC) AS SizeRank,\n    sa.NumTstTakr AS SATTestTakers,\n    sa.AvgScrRead AS SATReadingScore,\n    sa.AvgScrMath AS SATMathScore,\n    sa.AvgScrWrite AS SATWritingScore,\n    (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS SATTotalScore,\n    CASE WHEN sa.NumTstTakr > 0\n         THEN sa.NumGE1500 * 1.0 / sa.NumTstTakr\n         ELSE NULL END AS PercentOver1500,\n    CASE\n      WHEN sa.NumTstTakr IS NULL THEN 'No SAT Data'\n      WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) > 1500 THEN 'High Performing'\n      WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) >= 1200 THEN 'Average Performing'\n      ELSE 'Low Performing'\n    END AS SATPerformanceCategory\n  FROM schools s\n  JOIN frpm f ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores sa ON sa.cds = s.CDSCode AND sa.rtype = 'S'\n  WHERE s.DOC = '52'\n    AND s.Charter = 1\n    AND s.StatusType = 'Active'\n    AND s.City = 'Hickman'\n)\nSELECT\n  CDSCode,\n  School,\n  City,\n  EnrollmentK12,\n  FRPMCount,\n  FRPMPercent,\n  FRPMCategory,\n  SizeRank,\n  SATTestTakers,\n  SATReadingScore,\n  SATMathScore,\n  SATWritingScore,\n  SATTotalScore,\n  PercentOver1500,\n  SATPerformanceCategory,\n  (SELECT COUNT(*) FROM CharterSchoolStats) AS TotalCharterSchools,\n  (SELECT AVG(EnrollmentK12) FROM CharterSchoolStats) AS AvgCharterEnrollment\nFROM CharterSchoolStats\nORDER BY SizeRank;",
+    "sql_hash": "sha256:15088e468148c1eb9003cca6420748b4d5f48dc459a46ac24db453a889909047",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "CDSCode",
+      "School",
+      "City",
+      "EnrollmentK12",
+      "FRPMCount",
+      "FRPMPercent",
+      "FRPMCategory",
+      "SizeRank",
+      "SATTestTakers",
+      "SATReadingScore",
+      "SATMathScore",
+      "SATWritingScore",
+      "SATTotalScore",
+      "PercentOver1500",
+      "SATPerformanceCategory",
+      "TotalCharterSchools",
+      "AvgCharterEnrollment"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sa.cds = s.CDSCode AND sa.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg"
+    ],
+    "order_by": [
+      "SizeRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "CDSCode",
+          "School",
+          "City",
+          "EnrollmentK12",
+          "FRPMCount",
+          "FRPMPercent",
+          "FRPMCategory",
+          "SizeRank",
+          "SATTestTakers",
+          "SATReadingScore",
+          "SATMathScore",
+          "SATWritingScore",
+          "SATTotalScore",
+          "PercentOver1500",
+          "SATPerformanceCategory",
+          "TotalCharterSchools",
+          "AvgCharterEnrollment"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg"
+        ]
+      },
+      {
+        "name": "CharterSchoolStats",
+        "projections": [
+          "CDSCode",
+          "School",
+          "City",
+          "EnrollmentK12",
+          "FRPMCount",
+          "FRPMPercent",
+          "FRPMCategory",
+          "SizeRank",
+          "SATTestTakers",
+          "SATReadingScore",
+          "SATMathScore",
+          "SATWritingScore",
+          "SATTotalScore",
+          "PercentOver1500",
+          "SATPerformanceCategory"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = s.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:406b7dfd32a881dd3a7bd7688c322fc8484dd6b8c180b06b982a07bdfe3d80da;2:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807;3:projection_mismatch:sha256:406b7dfd32a881dd3a7bd7688c322fc8484dd6b8c180b06b982a07bdfe3d80da;4:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807;5:projection_mismatch:sha256:406b7dfd32a881dd3a7bd7688c322fc8484dd6b8c180b06b982a07bdfe3d80da"
+    ]
+  ]
+}

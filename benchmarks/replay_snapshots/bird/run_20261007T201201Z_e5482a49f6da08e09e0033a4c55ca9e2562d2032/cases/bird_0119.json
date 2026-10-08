@@ -1,0 +1,265 @@
+{
+  "case_id": "bird_0119",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 3,
+  "seed_tables": [
+    "client",
+    "district",
+    "loan",
+    "card",
+    "disp",
+    "trans",
+    "account",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH AccountsIn1993 AS (\n  SELECT a.account_id, a.district_id, a.date AS account_open_date\n  FROM account a\n  WHERE a.frequency = 'POPLATEK PO OBRATU'\n    AND STRFTIME('%Y', a.date) = '1993'\n),\nAccountStats AS (\n  SELECT ai.account_id,\n         COUNT(t.trans_id) AS transaction_count,\n         SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income,\n         SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense,\n         MAX(t.balance) - MIN(t.balance) AS balance_volatility\n  FROM AccountsIn1993 ai\n  LEFT JOIN trans t ON t.account_id = ai.account_id\n  GROUP BY ai.account_id\n),\nClientDetails AS (\n  SELECT ai.account_id,\n         COUNT(DISTINCT c.client_id) AS client_count,\n         GROUP_CONCAT(DISTINCT c.gender) AS owner_gender,\n         AVG((JULIANDAY(ai.account_open_date) - JULIANDAY(c.birth_date)) / 365.25) AS avg_client_age\n  FROM AccountsIn1993 ai\n  LEFT JOIN disp d ON d.account_id = ai.account_id\n  LEFT JOIN client c ON c.client_id = d.client_id\n  GROUP BY ai.account_id\n),\nLoanInfo AS (\n  SELECT ai.account_id,\n         COUNT(l.loan_id) AS loan_count,\n         SUM(l.amount) AS total_loan_amount,\n         AVG(l.duration) AS avg_loan_duration_months,\n         SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS running_loans,\n         SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS finished_loans,\n         SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) AS defaulted_loans\n  FROM AccountsIn1993 ai\n  LEFT JOIN loan l ON l.account_id = ai.account_id\n  GROUP BY ai.account_id\n)\nSELECT ai.account_id AS account_id,\n       ds.A2 AS district_name,\n       ds.A3 AS district_region,\n       CASE\n         WHEN ds.A10 < 50000 THEN 'Rural'\n         WHEN ds.A10 < 200000 THEN 'Semi-Urban'\n         ELSE 'Urban'\n       END AS urbanization_category,\n       ast.transaction_count AS transaction_count,\n       (COALESCE(ast.total_income, 0) - COALESCE(ast.total_expense, 0)) AS net_cash_flow,\n       ast.balance_volatility AS balance_volatility,\n       cd.client_count AS client_count,\n       cd.owner_gender AS owner_gender,\n       cd.avg_client_age AS avg_client_age,\n       li.loan_count AS loan_count,\n       li.total_loan_amount AS total_loan_amount,\n       li.avg_loan_duration_months AS avg_loan_duration_months,\n       li.running_loans AS running_loans,\n       li.finished_loans AS finished_loans,\n       li.defaulted_loans AS defaulted_loans,\n       CASE\n         WHEN li.loan_count IS NULL OR li.loan_count = 0 THEN 'No Loans'\n         WHEN li.defaulted_loans > 0 THEN 'High Risk'\n         ELSE 'Low Risk'\n       END AS risk_category\nFROM AccountsIn1993 ai\nJOIN district ds ON ds.district_id = ai.district_id\nLEFT JOIN AccountStats ast ON ast.account_id = ai.account_id\nLEFT JOIN ClientDetails cd ON cd.account_id = ai.account_id\nLEFT JOIN LoanInfo li ON li.account_id = ai.account_id\nORDER BY ds.A3, ds.A2, ai.account_id;",
+    "sql_hash": "sha256:a688eeb6403e35b225df7540ba396a57f2232d3d3a5055e83741bf02f12cb1b9",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "district_name",
+      "district_region",
+      "urbanization_category",
+      "transaction_count",
+      "net_cash_flow",
+      "balance_volatility",
+      "client_count",
+      "owner_gender",
+      "avg_client_age",
+      "loan_count",
+      "total_loan_amount",
+      "avg_loan_duration_months",
+      "running_loans",
+      "finished_loans",
+      "defaulted_loans",
+      "risk_category"
+    ],
+    "joins": [
+      "JOIN district ON ds.district_id = ai.district_id",
+      "LEFT JOIN AccountStats ON ast.account_id = ai.account_id",
+      "LEFT JOIN ClientDetails ON cd.account_id = ai.account_id",
+      "LEFT JOIN LoanInfo ON li.account_id = ai.account_id",
+      "LEFT JOIN trans ON t.account_id = ai.account_id",
+      "LEFT JOIN disp ON d.account_id = ai.account_id",
+      "LEFT JOIN client ON c.client_id = d.client_id",
+      "LEFT JOIN loan ON l.account_id = ai.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "ds.A3 ASC",
+      "ds.A2 ASC",
+      "ai.account_id ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "district_name",
+          "district_region",
+          "urbanization_category",
+          "transaction_count",
+          "net_cash_flow",
+          "balance_volatility",
+          "client_count",
+          "owner_gender",
+          "avg_client_age",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans",
+          "risk_category"
+        ],
+        "joins": [
+          "JOIN district ON ds.district_id = ai.district_id",
+          "LEFT JOIN AccountStats ON ast.account_id = ai.account_id",
+          "LEFT JOIN ClientDetails ON cd.account_id = ai.account_id",
+          "LEFT JOIN LoanInfo ON li.account_id = ai.account_id",
+          "LEFT JOIN trans ON t.account_id = ai.account_id",
+          "LEFT JOIN disp ON d.account_id = ai.account_id",
+          "LEFT JOIN client ON c.client_id = d.client_id",
+          "LEFT JOIN loan ON l.account_id = ai.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountsIn1993",
+        "projections": [
+          "account_id",
+          "district_id",
+          "account_open_date"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountStats",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "balance_volatility"
+        ],
+        "joins": [
+          "LEFT JOIN trans ON t.account_id = ai.account_id"
+        ],
+        "group_by": [
+          "ai.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max",
+          "min"
+        ]
+      },
+      {
+        "name": "ClientDetails",
+        "projections": [
+          "account_id",
+          "client_count",
+          "owner_gender",
+          "avg_client_age"
+        ],
+        "joins": [
+          "LEFT JOIN disp ON d.account_id = ai.account_id",
+          "LEFT JOIN client ON c.client_id = d.client_id"
+        ],
+        "group_by": [
+          "ai.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "group_concat",
+          "avg"
+        ]
+      },
+      {
+        "name": "LoanInfo",
+        "projections": [
+          "account_id",
+          "loan_count",
+          "total_loan_amount",
+          "avg_loan_duration_months",
+          "running_loans",
+          "finished_loans",
+          "defaulted_loans"
+        ],
+        "joins": [
+          "LEFT JOIN loan ON l.account_id = ai.account_id"
+        ],
+        "group_by": [
+          "ai.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "AccountStats:a.account_id | ClientDetails:a.account_id | LoanInfo:a.account_id"
+    ],
+    [
+      "predicted_group_by",
+      "AccountStats:ai.account_id | ClientDetails:ai.account_id | LoanInfo:ai.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "AccountStats,ClientDetails,LoanInfo"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=8"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b51b818be628af807785d397426595bb3ba3e019aeacf72e77f170dfad7e1c29;2:projection_mismatch:sha256:2013c7cd838e3f3a287fe3ca8b37670ebf77877d40939671de35ef755caa9a3f;3:no_progress:sha256:2013c7cd838e3f3a287fe3ca8b37670ebf77877d40939671de35ef755caa9a3f"
+    ]
+  ]
+}

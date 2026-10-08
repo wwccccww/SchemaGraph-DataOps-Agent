@@ -55,6 +55,8 @@ _CONCEPTS = (
     (("顾客", "客户", "customer"), ("customer",)),
     (("住址", "地址", "address"), ("address",)),
     (("商品", "类别", "category", "item"), ("item",)),
+    (("直邮", "dmail"), ("promotion",)),
+    (("促销商品",), ("item", "promotion")),
     (("门店", "store"), ("store",)),
     (("目录", "catalog"), ("catalog",)),
     (("网站", "网页", "web"), ("web",)),
