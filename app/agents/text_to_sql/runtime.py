@@ -14,6 +14,7 @@ from app.llm.tokenizer import DeepSeekTokenCounter
 from app.retrieval.embedder import BgeM3Embedder, Embedder
 from app.retrieval.index import search_dynamic_schema_seeds, search_tools
 from app.schema_registry.indexing import schema_version_from_fingerprint
+from app.schema_registry.tenant import default_runtime_database_id
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess, execute_readonly
 from app.sandbox.explain import explain_readonly
@@ -51,6 +52,7 @@ def build_default_services() -> ServiceBundle:
             model=settings.deepseek_model,
         ),
         token_counter=DeepSeekTokenCounter(),
+        database_id=default_runtime_database_id(settings),
     )
 
 

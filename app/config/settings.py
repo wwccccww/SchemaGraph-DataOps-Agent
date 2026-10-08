@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     deepseek_api_key: SecretStr | None = None
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
-    text_to_sql_catalog_mode: Literal["fixed_ecommerce", "live_public"] = "fixed_ecommerce"
+    text_to_sql_catalog_mode: Literal["fixed_ecommerce", "live_public"] = "live_public"
     schema_registry_auto_activate: bool = True
     schema_registry_auto_index: bool = False
     schema_registry_require_embeddings: bool = False

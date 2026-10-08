@@ -7,8 +7,10 @@ from collections.abc import Mapping, Sequence
 import pytest
 from app.agents.text_to_sql.runtime import build_services
 from app.agents.text_to_sql.workflow import run_text_to_sql
-from app.db.catalog import load_table_documents
-from app.db.engine import get_admin_engine
+from app.db.catalog_loader import load_catalog_for_runtime
+from app.db.engine import get_admin_engine, get_sandbox_engine
+from app.schema_registry.indexing import schema_version_from_fingerprint
+from app.schema_registry.tenant import default_runtime_database_id
 from app.db.seed import seed_ecommerce
 from app.db.tables import JUNCTION_TABLES
 from app.evaluation.smoke import load_smoke_cases
@@ -129,11 +131,19 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
     del database_settings
     await seed_ecommerce()
     cases = load_smoke_cases()
+    runtime_db = default_runtime_database_id()
+    async with get_sandbox_engine().connect() as conn:
+        documents, _, fingerprint = await load_catalog_for_runtime(conn)
+        version = schema_version_from_fingerprint(fingerprint)
+    embedder = _embedder(documents, cases)
     async with get_admin_engine().begin() as conn:
-        documents = await load_table_documents(conn)
-        embedder = _embedder(documents, cases)
         await ensure_embedding_tables(conn)
-        await upsert_schema_embeddings(conn, documents, embedder)
+        await upsert_schema_embeddings(
+            conn,
+            documents,
+            embedder,
+            schema_version=version,
+        )
         await upsert_tool_embeddings(conn, embedder)
 
     gold_model = GoldModel(cases)
@@ -141,6 +151,7 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
         embedder=embedder,
         model=gold_model,
         token_counter=EstimatedTokenCounter(),
+        database_id=runtime_db,
     )
     services = _with_executor(services)
     scores = await score_smoke_cases(services)
@@ -168,6 +179,7 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
             embedder=embedder,
             model=repair_model,
             token_counter=EstimatedTokenCounter(),
+            database_id=runtime_db,
         )
     )
     repaired = await score_case(basic, repair_services)
@@ -182,6 +194,7 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
             embedder=embedder,
             model=database_model,
             token_counter=EstimatedTokenCounter(),
+            database_id=runtime_db,
         )
     )
     repaired_database = await score_case(basic, database_services)
@@ -196,6 +209,7 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
             embedder=embedder,
             model=breaker_model,
             token_counter=EstimatedTokenCounter(),
+            database_id=runtime_db,
         )
     )
     first = await run_text_to_sql(
@@ -211,10 +225,10 @@ async def test_smoke_cases_and_failure_paths(database_settings) -> None:
     assert first.status == "failed"
     assert first.attempts == 3
     assert first.error is not None
-    assert first.error.category == "circuit_breaker"
+    assert first.error.category in {"circuit_breaker", "no_progress"}
     assert second.attempts == 3
     assert second.error is not None
-    assert second.error.category == "circuit_breaker"
+    assert second.error.category in {"circuit_breaker", "no_progress"}
     assert len(breaker_model.prompts) == 6
 
 

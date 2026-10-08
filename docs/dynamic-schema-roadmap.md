@@ -15,10 +15,10 @@
 
 | 变量 | 默认 | 含义 |
 | --- | --- | --- |
-| `TEXT_TO_SQL_CATALOG_MODE` | `fixed_ecommerce` | `live_public` 时从 PostgreSQL public 实时读表 |
+| `TEXT_TO_SQL_CATALOG_MODE` | **`live_public`** | 默认从 PostgreSQL public 读表；`fixed_ecommerce` 锁定 12 表 |
 | `SCHEMA_REGISTRY_AUTO_ACTIVATE` | `true` | sync / 运行时新 fingerprint 是否在门禁通过后自动切 active |
 
-`app/agents/text_to_sql/runtime.py` 经 `load_catalog_for_runtime()` 加载目录。
+`app/agents/text_to_sql/runtime.py` 经 `load_catalog_for_runtime()` 加载目录；`ecommerce` 在 `live_public` 下为 legacy 别名（映射到 `postgres_db`）。验证见 `docs/dynamic-schema-verification.md`。
 
 ## 阶段 3 — 版本化 Embedding + Graph（已落地）
 
