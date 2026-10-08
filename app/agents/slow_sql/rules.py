@@ -10,43 +10,12 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
 
-from app.db.tables import JUNCTION_TABLES
+from app.agents.slow_sql.rule_catalog import DEFAULT_RULE_CATALOG, RuleCatalog
 
 Severity = Literal["high", "medium", "low"]
 _ARITHMETIC = (exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod, exp.Neg)
 _COMPARISONS = (exp.EQ, exp.NEQ, exp.GT, exp.LT, exp.GTE, exp.LTE, exp.In, exp.Like, exp.ILike)
-LARGE_TABLES = frozenset({"t_order", "t_order_detail"})
-_CHILD_TABLES = JUNCTION_TABLES | frozenset({"t_order_detail"})
-_INDEXED_COLUMNS = frozenset(
-    {
-        ("t_user_level", "level_id"),
-        ("t_region", "region_id"),
-        ("t_user", "user_id"),
-        ("t_user", "user_level_id"),
-        ("t_user_region_map", "map_id"),
-        ("t_user_region_map", "user_id"),
-        ("t_user_region_map", "region_id"),
-        ("t_merchant", "merchant_id"),
-        ("t_category", "category_id"),
-        ("t_product", "product_id"),
-        ("t_product", "category_id"),
-        ("t_product", "merchant_id"),
-        ("t_coupon", "coupon_id"),
-        ("t_order", "order_id"),
-        ("t_order", "user_id"),
-        ("t_order", "created_at"),
-        ("t_order", "order_status"),
-        ("t_order_coupon_rel", "rel_id"),
-        ("t_order_coupon_rel", "order_id"),
-        ("t_order_coupon_rel", "coupon_id"),
-        ("t_order_detail", "detail_id"),
-        ("t_order_detail", "order_id"),
-        ("t_order_detail", "product_id"),
-        ("t_promo_sku_rel", "rel_id"),
-        ("t_promo_sku_rel", "product_id"),
-        ("t_promo_sku_rel", "coupon_id"),
-    }
-)
+LARGE_TABLES = DEFAULT_RULE_CATALOG.large_tables
 _RULE_ORDER = (
     "select-star",
     "missing-filter-on-large-table",
@@ -104,16 +73,21 @@ _FINDINGS: Mapping[str, Finding] = {
 }
 
 
-def diagnose_sql(sql: str) -> tuple[Finding, ...]:
+def diagnose_sql(
+    sql: str,
+    *,
+    catalog: RuleCatalog | None = None,
+) -> tuple[Finding, ...]:
     """返回静态规则命中。解析失败时不猜测，交给 SQL 门禁处理。"""
 
+    resolved = catalog or DEFAULT_RULE_CATALOG
     try:
         expression = sqlglot.parse_one(sql, read="postgres")
     except SqlglotError:
         return ()
     flags = {rule_id: False for rule_id in _RULE_ORDER}
     for select in expression.find_all(exp.Select):
-        _inspect_select(select, flags)
+        _inspect_select(select, flags, resolved)
     if isinstance(expression, exp.Expression) and _correlated(expression):
         flags["correlated-subquery"] = True
     if len(list(expression.find_all(exp.Distinct))) >= 2:
@@ -121,29 +95,34 @@ def diagnose_sql(sql: str) -> tuple[Finding, ...]:
     return tuple(_FINDINGS[rule_id] for rule_id in _RULE_ORDER if flags[rule_id])
 
 
-def finding_for_seq_scan(nodes: Sequence[tuple[str, str | None]]) -> Finding | None:
+def finding_for_seq_scan(
+    nodes: Sequence[tuple[str, str | None]],
+    *,
+    catalog: RuleCatalog | None = None,
+) -> Finding | None:
     """计划里的大表顺序扫描。Parallel Seq Scan 与 Seq Scan 同样计数。"""
 
+    resolved = catalog or DEFAULT_RULE_CATALOG
     sequential = {"Seq Scan", "Parallel Seq Scan"}
     for node_type, relation in nodes:
-        if node_type in sequential and relation in LARGE_TABLES:
+        if node_type in sequential and relation in resolved.large_tables:
             return _FINDINGS["seq-scan-on-large-table"]
     return None
 
 
-def _inspect_select(select: exp.Select, flags: dict[str, bool]) -> None:
+def _inspect_select(select: exp.Select, flags: dict[str, bool], catalog: RuleCatalog) -> None:
     tables = _direct_tables(select)
     aliases = _alias_map(tables)
     if any(_is_star(projection) for projection in select.expressions):
         flags["select-star"] = True
     predicates = _predicates(select)
-    if _missing_large_table_filter(tables, aliases, predicates):
+    if _missing_large_table_filter(tables, aliases, predicates, catalog):
         flags["missing-filter-on-large-table"] = True
-    if _predicate_match(predicates, aliases, _wraps_indexed_column):
+    if _predicate_match(predicates, aliases, lambda node, aliases: _wraps_indexed_column(node, aliases, catalog)):
         flags["function-on-index-column"] = True
-    if _predicate_match(predicates, aliases, _casts_indexed_column):
+    if _predicate_match(predicates, aliases, lambda node, aliases: _casts_indexed_column(node, aliases, catalog)):
         flags["implicit-cast-on-index-column"] = True
-    if _aggregate_after_join(select, tables, aliases):
+    if _aggregate_after_join(select, tables, aliases, catalog):
         flags["aggregate-after-join"] = True
     if select.args.get("order") is not None and select.args.get("limit") is None:
         flags["unbounded-sort"] = True
@@ -198,6 +177,7 @@ def _missing_large_table_filter(
     tables: Sequence[exp.Table],
     aliases: Mapping[str, str],
     predicates: Sequence[exp.Expression],
+    catalog: RuleCatalog,
 ) -> bool:
     referenced = {
         resolved[0]
@@ -205,7 +185,9 @@ def _missing_large_table_filter(
         for column in _local_columns(predicate)
         if (resolved := _resolve(column, aliases)) is not None
     }
-    return any(table.name in LARGE_TABLES and table.name not in referenced for table in tables)
+    return any(
+        table.name in catalog.large_tables and table.name not in referenced for table in tables
+    )
 
 
 def _predicate_match(
@@ -221,34 +203,43 @@ def _predicate_match(
     return False
 
 
-def _wraps_indexed_column(node: exp.Expression, aliases: Mapping[str, str]) -> bool:
+def _wraps_indexed_column(
+    node: exp.Expression,
+    aliases: Mapping[str, str],
+    catalog: RuleCatalog,
+) -> bool:
     current = _unwrap(node)
     if isinstance(current, exp.Column | exp.Cast):
         return False
     if not isinstance(current, (exp.Func, *_ARITHMETIC)):
         return False
     for column in current.find_all(exp.Column):
-        if _resolve(column, aliases) in _INDEXED_COLUMNS:
+        if _resolve(column, aliases) in catalog.indexed_columns:
             return True
     return False
 
 
-def _casts_indexed_column(node: exp.Expression, aliases: Mapping[str, str]) -> bool:
+def _casts_indexed_column(
+    node: exp.Expression,
+    aliases: Mapping[str, str],
+    catalog: RuleCatalog,
+) -> bool:
     current = _unwrap(node)
     if not isinstance(current, exp.Cast):
         return False
     inner = _unwrap(current.this)
     if not isinstance(inner, exp.Column):
         return False
-    return _resolve(inner, aliases) in _INDEXED_COLUMNS
+    return _resolve(inner, aliases) in catalog.indexed_columns
 
 
 def _aggregate_after_join(
     select: exp.Select,
     tables: Sequence[exp.Table],
     aliases: Mapping[str, str],
+    catalog: RuleCatalog,
 ) -> bool:
-    if not any(table.name in _CHILD_TABLES for table in tables):
+    if not any(table.name in catalog.child_tables for table in tables):
         return False
     roots: list[exp.Expression] = list(select.expressions)
     having = select.args.get("having")
@@ -260,7 +251,7 @@ def _aggregate_after_join(
                 continue
             for column in aggregate.find_all(exp.Column):
                 resolved = _resolve(column, aliases)
-                if resolved is not None and resolved[0] not in _CHILD_TABLES:
+                if resolved is not None and resolved[0] not in catalog.child_tables:
                     return True
     return False
 

@@ -10,9 +10,12 @@ from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 
+from app.agents.slow_sql.autofix import try_autofix_sql
 from app.agents.slow_sql.metrics import drop, shared_buffer_access
+from app.agents.slow_sql.optimizer_context import OptimizerContext
 from app.agents.slow_sql.plan import PlanNode, PlanSummary
 from app.agents.slow_sql.prompt import SYSTEM_PROMPT, render_rewrite_prompt
+from app.agents.slow_sql.rule_catalog import DEFAULT_RULE_CATALOG, RuleCatalog
 from app.agents.slow_sql.rules import Finding, diagnose_sql, finding_for_seq_scan
 from app.agents.text_to_sql.prompt import extract_sql
 from app.db.catalog import DATABASE_ID
@@ -94,6 +97,8 @@ class SlowSqlServices:
     model: ChatModel
     explain: Explainer
     execute: SqlExecutor
+    rule_catalog: RuleCatalog | None = None
+    optimizer_context: OptimizerContext | None = None
 
 
 def build_graph(services: SlowSqlServices) -> Any:
@@ -101,7 +106,7 @@ def build_graph(services: SlowSqlServices) -> Any:
 
     builder = StateGraph(SlowSqlState)
     builder.add_node("validate_sql", cast(Any, _validate_sql))
-    builder.add_node("diagnose_static", cast(Any, _diagnose_static))
+    builder.add_node("diagnose_static", cast(Any, _diagnose_static(services)))
     builder.add_node("explain_plan", cast(Any, _explain_plan(services)))
     builder.add_node("rewrite_sql", cast(Any, _rewrite_sql(services)))
     builder.add_node("verify_equivalence", cast(Any, _verify_equivalence(services)))
@@ -224,9 +229,13 @@ async def _validate_sql(state: SlowSqlState) -> dict[str, object]:
     return {"rendered_sql": decision.sql}
 
 
-async def _diagnose_static(state: SlowSqlState) -> dict[str, object]:
-    findings = diagnose_sql(state["rendered_sql"])
-    return {"findings": [_finding_dict(item) for item in findings]}
+def _diagnose_static(services: SlowSqlServices) -> Callable[[SlowSqlState], Awaitable[dict[str, object]]]:
+    async def node(state: SlowSqlState) -> dict[str, object]:
+        catalog = services.rule_catalog or DEFAULT_RULE_CATALOG
+        findings = diagnose_sql(state["rendered_sql"], catalog=catalog)
+        return {"findings": [_finding_dict(item) for item in findings]}
+
+    return node
 
 
 def _explain_plan(
@@ -242,7 +251,11 @@ def _explain_plan(
                 outcome.error_hash,
             )
         findings = list(state["findings"])
-        scan = finding_for_seq_scan([(item.node_type, item.relation) for item in outcome.nodes])
+        catalog = services.rule_catalog or DEFAULT_RULE_CATALOG
+        scan = finding_for_seq_scan(
+            [(item.node_type, item.relation) for item in outcome.nodes],
+            catalog=catalog,
+        )
         if scan is not None and all(item["rule_id"] != scan.rule_id for item in findings):
             findings.append(_finding_dict(scan))
         return {
@@ -261,27 +274,41 @@ def _rewrite_sql(
     services: SlowSqlServices,
 ) -> Callable[[SlowSqlState], Awaitable[dict[str, object]]]:
     async def node(state: SlowSqlState) -> dict[str, object]:
-        prompt = render_rewrite_prompt(
-            sql=state["sql"],
-            findings=tuple(_finding_from_state(item) for item in state["findings"]),
-            nodes=tuple(_node_from_state(item) for item in state["plan_nodes"]),
-        )
+        findings = tuple(_finding_from_state(item) for item in state["findings"])
+        nodes = tuple(_node_from_state(item) for item in state["plan_nodes"])
         attempt = state["generation_attempt"] + 1
-        try:
-            content = await services.model.complete(
-                (
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ),
-                temperature=REWRITE_TEMPERATURE,
+        catalog = services.rule_catalog or DEFAULT_RULE_CATALOG
+        candidate: str | None = try_autofix_sql(
+            state["sql"],
+            findings,
+            context=services.optimizer_context,
+            catalog=catalog,
+        )
+        if candidate is not None:
+            decision = check_read_only_sql(candidate)
+            candidate = None if decision.error is not None else decision.sql
+        if candidate is None:
+            prompt = render_rewrite_prompt(
+                sql=state["sql"],
+                findings=findings,
+                nodes=nodes,
             )
-        except Exception:
-            logger.info("slow sql rewrite failed with %s", "model_error")
-            return {"candidate_sql": None, "generation_attempt": attempt}
-        decision = check_read_only_sql(extract_sql(content))
-        if decision.error is not None:
-            return {"candidate_sql": None, "generation_attempt": attempt}
-        return {"candidate_sql": decision.sql, "generation_attempt": attempt}
+            try:
+                content = await services.model.complete(
+                    (
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ),
+                    temperature=REWRITE_TEMPERATURE,
+                )
+            except Exception:
+                logger.info("slow sql rewrite failed with %s", "model_error")
+                return {"candidate_sql": None, "generation_attempt": attempt}
+            decision = check_read_only_sql(extract_sql(content))
+            if decision.error is not None:
+                return {"candidate_sql": None, "generation_attempt": attempt}
+            candidate = decision.sql
+        return {"candidate_sql": candidate, "generation_attempt": attempt}
 
     return node
 

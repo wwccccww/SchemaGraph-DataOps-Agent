@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from app.schema_registry.diff import SchemaDiff, diff_snapshots
 from app.schema_registry.snapshot import SchemaSnapshot
+
+
+@dataclass(frozen=True)
+class ActivationAudit:
+    database_id: str
+    fingerprint: str
+    activated_at: datetime
+    forced: bool
 
 
 @dataclass
@@ -15,6 +24,7 @@ class SchemaRegistry:
     _versions: dict[str, dict[str, SchemaSnapshot]] = field(default_factory=dict)
     _active: dict[str, str] = field(default_factory=dict)
     _staging: dict[str, str] = field(default_factory=dict)
+    _audit: list[ActivationAudit] = field(default_factory=list)
 
     def _bucket(self, database_id: str) -> dict[str, SchemaSnapshot]:
         return self._versions.setdefault(database_id, {})
@@ -34,13 +44,26 @@ class SchemaRegistry:
             self._staging.pop(snapshot.database_id, None)
         return diff
 
-    def activate(self, database_id: str, fingerprint: str) -> SchemaSnapshot:
+    def activate(self, database_id: str, fingerprint: str, *, forced: bool = False) -> SchemaSnapshot:
         bucket = self._bucket(database_id)
         if fingerprint not in bucket:
             raise KeyError(f"unknown schema fingerprint for {database_id}")
         self._active[database_id] = fingerprint
         self._staging.pop(database_id, None)
+        self._audit.append(
+            ActivationAudit(
+                database_id=database_id,
+                fingerprint=fingerprint,
+                activated_at=datetime.now(tz=UTC),
+                forced=forced,
+            )
+        )
         return bucket[fingerprint]
+
+    def activation_audit(self, database_id: str | None = None) -> tuple[ActivationAudit, ...]:
+        if database_id is None:
+            return tuple(self._audit)
+        return tuple(item for item in self._audit if item.database_id == database_id)
 
     def active_snapshot(self, database_id: str) -> SchemaSnapshot | None:
         fingerprint = self._active.get(database_id)
