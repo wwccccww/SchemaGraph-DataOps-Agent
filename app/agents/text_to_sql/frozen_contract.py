@@ -634,7 +634,7 @@ def check_frozen_semantic_contract(
                 )
             if "SAT Ranking" in contract.projections and re.search(
                 r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY[\s\S]{0,120}"
-                r'(?:Percent\s*\(%\)\s*Eligible\s*FRPM|frpm\.)',
+                r"(?:Percent\s*\(%\)\s*Eligible\s*FRPM|frpm\.)",
                 sql,
                 re.IGNORECASE,
             ):
@@ -1366,11 +1366,15 @@ def check_frozen_semantic_contract(
                         "ClientLoanInfo 按 client_id、disp.type、account.frequency GROUP BY",
                     )
                 )
-            if re.search(r"Cards\s+AS\s*\(", sql, re.IGNORECASE) and re.search(
-                r"card_count|card_types",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"disp_id", sql, re.IGNORECASE):
+            if (
+                re.search(r"Cards\s+AS\s*\(", sql, re.IGNORECASE)
+                and re.search(
+                    r"card_count|card_types",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"disp_id", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -1917,11 +1921,15 @@ def check_frozen_semantic_contract(
                         "ROUND(AVG(CASE month_opened BETWEEN … END)*100,2)",
                     )
                 )
-            if re.search(r"AccountsInLitomerice1996 AS", sql, re.IGNORECASE) and re.search(
-                r"percent_opened_q1",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(r"month_opened", sql, re.IGNORECASE):
+            if (
+                re.search(r"AccountsInLitomerice1996 AS", sql, re.IGNORECASE)
+                and re.search(
+                    r"percent_opened_q1",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(r"month_opened", sql, re.IGNORECASE)
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
@@ -2614,14 +2622,18 @@ def check_frozen_semantic_contract(
                         "Ricci Ulrich：SchoolStats CTE 须含 CDSCode（与 schools/frpm JOIN 粒度一致）",
                     )
                 )
-            if re.search(r"DistrictAverages\s+AS\s*\(", sql, re.IGNORECASE) and re.search(
-                r"DistrictAvgWriteScore",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"DistrictAvgReadScore|DistrictAvgMathScore",
-                sql,
-                re.IGNORECASE,
+            if (
+                re.search(r"DistrictAverages\s+AS\s*\(", sql, re.IGNORECASE)
+                and re.search(
+                    r"DistrictAvgWriteScore",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"DistrictAvgReadScore|DistrictAvgMathScore",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -3070,14 +3082,18 @@ def check_frozen_semantic_contract(
                         "FreeCategory 分档用 0.18/10/30（FreePercent 已为 ×100），不要用 6/12/18",
                     )
                 )
-            if "CountyRank" in contract.projections and re.search(
-                r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
-                sql,
-                re.IGNORECASE,
-            ) and not re.search(
-                r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*PARTITION\s+BY[\s\S]{0,40}County",
-                sql,
-                re.IGNORECASE,
+            if (
+                "CountyRank" in contract.projections
+                and re.search(
+                    r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and not re.search(
+                    r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*PARTITION\s+BY[\s\S]{0,40}County",
+                    sql,
+                    re.IGNORECASE,
+                )
             ):
                 findings.append(
                     SemanticFinding(
@@ -4035,11 +4051,14 @@ def check_frozen_semantic_contract(
                         "AverageSATScore 无 SAT 时保持 NULL（不要 COALESCE SAT 分项为 0）",
                     )
                 )
-            if re.search(
-                r"SUM\s*\(\s*CASE\s+WHEN\s+CharterFlag\s*=",
-                sql,
-                re.IGNORECASE,
-            ) and "Charter School (Y/N)" not in sql:
+            if (
+                re.search(
+                    r"SUM\s*\(\s*CASE\s+WHEN\s+CharterFlag\s*=",
+                    sql,
+                    re.IGNORECASE,
+                )
+                and "Charter School (Y/N)" not in sql
+            ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
