@@ -43,6 +43,8 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_p0_measured_summary.py \
   tests/unit/test_p0_benchmark_docs.py \
   tests/unit/test_p2_benchmark_docs.py \
+  tests/unit/test_step3_benchmark_docs.py \
+  tests/unit/test_print_step3_v60_bird_status_script.py \
   tests/unit/test_apply_p0_measured_benchmark_script.py \
   tests/unit/test_apply_p2_measured_benchmark_script.py \
   tests/unit/test_external_gold_runbook_docs.py \

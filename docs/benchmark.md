@@ -126,6 +126,17 @@ p2_measured_gate=pass
 
 <!-- p2-measured-autogen:end -->
 
+<!-- step3-measured-autogen:start -->
+
+```text
+step3_measured_bird_run1=49/50 ex=0.98 dir=run_20261008T054453Z_2272b5e5e077db536829fd6637e4e152b611ddb8 commit=2272b5e5e077db536829fd6637e4e152b611ddb8 prompt=text-to-sql-generic-v60
+step3_measured_bird_run2=49/50 ex=0.98 dir=run_20261008T054808Z_2272b5e5e077db536829fd6637e4e152b611ddb8 commit=2272b5e5e077db536829fd6637e4e152b611ddb8 prompt=text-to-sql-generic-v60
+step3_stability_bird=stable
+step3_v60_bird_gate=pass
+```
+
+<!-- step3-measured-autogen:end -->
+
 **外部 P0/P1 验收清单（证据导向）**
 
 运维命令与 402/计费后路径见 **[external_gold_p0_runbook.md](./external_gold_p0_runbook.md)**（与下表互补）。
@@ -136,6 +147,7 @@ p2_measured_gate=pass
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
 | 自建 P2 Recovery@3 实测 | `p2-measured-autogen` + `apply_p2_measured_benchmark.sh` | **complete @ `51a26f0`**：Recovery@3 **0.7333**（11/15），self_healing EX **0.9697**（`test_p2_benchmark_docs.py`） |
+| Step-3 BIRD v60 实测 | `step3-measured-autogen` + `print_step3_v60_bird_status.sh` | **49/50×2 stable @ `2272b5e`**（prompt **v60**；gate ≥24/50；log **`/tmp/step3-v60-bird-2x.log`**） |
 | 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `5e4659e`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**（v12）；**e5482a4** raw **24/50**；**live 50/50×2 stable @ `7fd32c8`**（`p0-measured-autogen`）；floor 默认 **`P0_BIRD_MIN_MATCHED=19`**，**50×2** 时可 export **50** |
 | BIRD PATCH / measured 复分 | `--replay-patch-autofix` + live `score_prediction` PATCH | v12 **17→50/50**；**e5482a4** **24→50** replay PATCH；**HEAD catalog** 对 **e5482a4 saved SQL** **50/50** measured PATCH（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch` + vendored snapshot）；均 **非新 LLM** |
