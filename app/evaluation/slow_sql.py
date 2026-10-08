@@ -17,7 +17,7 @@ from app.agents.slow_sql.metrics import (
     shared_buffer_access,
 )
 from app.agents.slow_sql.plan import PlanSummary
-from app.agents.slow_sql.runtime import build_slow_sql_services
+from app.agents.slow_sql.runtime import build_slow_sql_services_with_context
 from app.agents.slow_sql.snapshot import (
     create_case_database,
     create_loaded_snapshot,
@@ -135,7 +135,7 @@ async def _score_case(
             await conn.exec_driver_sql("SET max_parallel_workers_per_gather = 0")
             await conn.commit()
             response = await run_slow_sql(
-                build_slow_sql_services(model, connection=conn),
+                await build_slow_sql_services_with_context(model, connection=conn),
                 sql=case.sql,
                 database_id=case.database_id,
                 run_analyze=True,

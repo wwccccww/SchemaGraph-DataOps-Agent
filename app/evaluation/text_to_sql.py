@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.agents.text_to_sql.workflow import ServiceBundle, run_text_to_sql
+from app.agents.text_to_sql.workflow import ServiceBundle, TextToSqlVariant, run_text_to_sql
 from app.evaluation.ex import results_match
 from app.evaluation.smoke import load_smoke_cases
 from app.sandbox.errors import ExecutionError
@@ -31,15 +31,22 @@ async def score_smoke_cases(services: ServiceBundle) -> list[ExecutionScore]:
     return [await score_case(case, services) for case in load_smoke_cases()]
 
 
-async def score_case(case: BenchmarkCase, services: ServiceBundle) -> ExecutionScore:
+async def score_case(
+    case: BenchmarkCase,
+    services: ServiceBundle,
+    *,
+    database_id: str | None = None,
+    variant: TextToSqlVariant = "self_healing",
+) -> ExecutionScore:
     """生成并执行 Agent SQL，再与 Gold 结果做语义比较。"""
 
     response = await run_text_to_sql(
         services,
         question=case.question,
-        database_id=case.database_id,
+        database_id=database_id or case.database_id,
         execute=True,
         max_rows=1000,
+        variant=variant,
     )
     attempts = response.attempts or 0
     if response.status != "succeeded" or response.sql is None:

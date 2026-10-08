@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.agents.text_to_sql.runtime import get_default_services
+from app.api.deps import TenantHeader
+from app.schema_registry.tenant import ensure_tenant_database_id, normalize_request_database_id
 from app.agents.text_to_sql.workflow import run_text_to_sql
 from app.schemas.text_to_sql import TextToSqlRequest, TextToSqlResponse
 
@@ -37,7 +39,11 @@ def get_text_to_sql_handler() -> TextToSqlHandler:
 async def text_to_sql(
     body: TextToSqlRequest,
     handler: Annotated[TextToSqlHandler, Depends(get_text_to_sql_handler)],
+    tenant_header: TenantHeader = None,
 ) -> TextToSqlResponse:
     """生成只读 SQL，并在请求要求时放到沙箱执行。"""
 
+    normalized = ensure_tenant_database_id(body.database_id, tenant_header=tenant_header)
+    if normalized != body.database_id:
+        body = body.model_copy(update={"database_id": normalized})
     return await handler(body)

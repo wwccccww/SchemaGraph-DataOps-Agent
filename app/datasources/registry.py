@@ -28,15 +28,34 @@ _SOURCES: dict[str, DataSource] = {
     "california_schools": DataSource("california_schools", "sqlite", "generic", "main"),
     "financial": DataSource("financial", "sqlite", "generic", "main"),
 }
+_DYNAMIC: dict[str, DataSource] = {}
+
+
+def register_postgres_catalog_source(
+    database_id: str,
+    *,
+    schema_name: str = "public",
+) -> DataSource:
+    """登记 live public Catalog 对应的 PostgreSQL 库（多 datasource 隔离键）。"""
+
+    source = DataSource(database_id, "postgres", "generic", schema_name)
+    _DYNAMIC[database_id] = source
+    return source
+
+
+def reset_dynamic_data_sources() -> None:
+    _DYNAMIC.clear()
 
 
 def resolve_data_source(database_id: str) -> DataSource | None:
     """返回已登记的数据源。未知标识返回 None。"""
 
-    return _SOURCES.get(database_id)
+    if database_id in _SOURCES:
+        return _SOURCES[database_id]
+    return _DYNAMIC.get(database_id)
 
 
 def registered_database_ids() -> frozenset[str]:
     """当前可以问数的 database_id。"""
 
-    return frozenset(_SOURCES)
+    return frozenset(_SOURCES) | frozenset(_DYNAMIC)

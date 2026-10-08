@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.agents.slow_sql.runtime import get_default_services
+from app.api.deps import TenantHeader
+from app.schema_registry.tenant import ensure_tenant_database_id
 from app.agents.slow_sql.workflow import run_slow_sql
 from app.schemas.slow_sql import SlowSqlRequest, SlowSqlResponse
 
@@ -37,7 +39,9 @@ def get_slow_sql_handler() -> SlowSqlHandler:
 async def diagnose_slow_sql(
     body: SlowSqlRequest,
     handler: Annotated[SlowSqlHandler, Depends(get_slow_sql_handler)],
+    tenant_header: TenantHeader = None,
 ) -> SlowSqlResponse:
     """返回规则、计划摘要和可选改写。未知的运行时指标保持 null。"""
 
+    ensure_tenant_database_id(body.database_id, tenant_header=tenant_header)
     return await handler(body)

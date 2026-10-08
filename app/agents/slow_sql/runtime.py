@@ -6,9 +6,12 @@ from collections.abc import Mapping, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from app.agents.slow_sql.optimizer_context import OptimizerContext, load_optimizer_context
 from app.agents.slow_sql.plan import PlanSummary
+from app.agents.slow_sql.rule_catalog import DEFAULT_RULE_CATALOG, RuleCatalog
 from app.agents.slow_sql.workflow import SlowSqlServices
 from app.config.settings import get_settings
+from app.db.catalog_loader import get_schema_registry
 from app.llm.gateway import ChatModel, DeepSeekGateway
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess, execute_readonly
@@ -37,6 +40,8 @@ def build_slow_sql_services(
     model: ChatModel,
     *,
     connection: AsyncConnection | None = None,
+    rule_catalog: RuleCatalog | None = None,
+    optimizer_context: OptimizerContext | None = None,
 ) -> SlowSqlServices:
     """用调用方提供的模型构造诊断服务。connection 指向隔离库时不使用全局池。"""
 
@@ -46,7 +51,34 @@ def build_slow_sql_services(
     async def execute(sql: str, *, max_rows: int) -> ExecutionSuccess | ExecutionError:
         return await execute_readonly(sql, max_rows=max_rows, connection=connection)
 
-    return SlowSqlServices(model=model, explain=explain, execute=execute)
+    return SlowSqlServices(
+        model=model,
+        explain=explain,
+        execute=execute,
+        rule_catalog=rule_catalog,
+        optimizer_context=optimizer_context,
+    )
+
+
+async def build_slow_sql_services_with_context(
+    model: ChatModel,
+    *,
+    connection: AsyncConnection,
+) -> SlowSqlServices:
+    """从 Registry active 快照与 PG 统计加载 RuleCatalog。"""
+
+    settings = get_settings()
+    database_id = (
+        settings.postgres_db if settings.text_to_sql_catalog_mode == "live_public" else "ecommerce"
+    )
+    snapshot = get_schema_registry().active_snapshot(database_id)
+    context = await load_optimizer_context(connection, snapshot)
+    return build_slow_sql_services(
+        model,
+        connection=connection,
+        rule_catalog=context.catalog,
+        optimizer_context=context,
+    )
 
 
 def get_default_services() -> SlowSqlServices:

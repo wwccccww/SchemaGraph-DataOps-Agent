@@ -6,13 +6,15 @@ from collections.abc import Sequence
 
 from app.agents.text_to_sql.workflow import ServiceBundle
 from app.config.settings import get_settings
-from app.db.catalog import load_foreign_keys, load_table_documents
+from app.db.catalog_loader import load_catalog_for_runtime
 from app.db.engine import get_sandbox_engine
 from app.graph.expand import TokenCounter
 from app.llm.gateway import ChatModel, DeepSeekGateway
 from app.llm.tokenizer import DeepSeekTokenCounter
 from app.retrieval.embedder import BgeM3Embedder, Embedder
 from app.retrieval.index import search_dynamic_schema_seeds, search_tools
+from app.schema_registry.indexing import schema_version_from_fingerprint
+from app.schema_registry.tenant import default_runtime_database_id
 from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess, execute_readonly
 from app.sandbox.explain import explain_readonly
@@ -50,6 +52,7 @@ def build_default_services() -> ServiceBundle:
             model=settings.deepseek_model,
         ),
         token_counter=DeepSeekTokenCounter(),
+        database_id=default_runtime_database_id(settings),
     )
 
 
@@ -58,8 +61,11 @@ def build_services(
     embedder: Embedder,
     model: ChatModel,
     token_counter: TokenCounter,
+    database_id: str = "ecommerce",
 ) -> ServiceBundle:
     """用调用方提供的编码器和模型组装工作流。"""
+
+    settings = get_settings()
 
     async def select_tools(question: str) -> Sequence[ToolHit]:
         async with get_sandbox_engine().connect() as conn:
@@ -67,13 +73,23 @@ def build_services(
 
     async def select_seeds(question: str) -> Sequence[SchemaSeed]:
         async with get_sandbox_engine().connect() as conn:
-            documents = await load_table_documents(conn)
-            return await search_dynamic_schema_seeds(conn, question, embedder, documents)
+            documents, _, fingerprint = await load_catalog_for_runtime(conn, settings)
+            version = schema_version_from_fingerprint(fingerprint)
+            catalog_db = documents[0].database_id if documents else settings.postgres_db
+            schema_name = documents[0].schema_name if documents else "public"
+            return await search_dynamic_schema_seeds(
+                conn,
+                question,
+                embedder,
+                documents,
+                database_id=catalog_db,
+                schema_name=schema_name,
+                schema_version=version,
+            )
 
     async def load_catalog() -> tuple[Sequence[TableDocument], Sequence[SchemaEdge]]:
         async with get_sandbox_engine().connect() as conn:
-            documents = await load_table_documents(conn)
-            edges = await load_foreign_keys(conn)
+            documents, edges, _ = await load_catalog_for_runtime(conn, settings)
         return documents, edges
 
     async def execute(sql: str, *, max_rows: int) -> ExecutionSuccess | ExecutionError:
@@ -93,4 +109,5 @@ def build_services(
         execute=execute,
         token_counter=token_counter,
         estimate_plan_rows=estimate_plan_rows,
+        database_id=database_id,
     )

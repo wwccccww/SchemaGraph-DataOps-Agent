@@ -32,7 +32,9 @@ from app.agents.text_to_sql.shape import (
     extract_generic_shape,
     format_generic_shape,
 )
-from app.datasources.registry import resolve_data_source
+from app.datasources.registry import register_postgres_catalog_source, resolve_data_source
+from app.config.settings import get_settings
+from app.schema_registry.tenant import normalize_request_database_id
 from app.graph.expand import (
     DEFAULT_MAX_TOTAL_TABLES,
     TokenCounter,
@@ -247,6 +249,11 @@ async def inspect_text_to_sql(
     identifier = request_id or f"req_{uuid4().hex}"
     if variant not in TEXT_TO_SQL_VARIANTS:
         raise ValueError(f"unknown text-to-sql variant: {variant}")
+    raw_database_id = database_id
+    database_id = normalize_request_database_id(database_id)
+    settings = get_settings()
+    if settings.text_to_sql_catalog_mode == "live_public":
+        register_postgres_catalog_source(settings.postgres_db)
     final: TextToSqlState | None = None
     with request_span("text_to_sql") as span:
         try:
@@ -265,8 +272,14 @@ async def inspect_text_to_sql(
                     ),
                     generated_sql=None,
                 )
-            if services.database_id != database_id:
+            service_db = normalize_request_database_id(services.database_id, settings)
+            if service_db != database_id:
                 return _catalog_rejection(identifier)
+            profile = source.profile
+            if raw_database_id == "ecommerce":
+                legacy = resolve_data_source("ecommerce")
+                if legacy is not None:
+                    profile = legacy.profile
             graph = cast(CompiledGraph, build_graph(services))
             final = await graph.ainvoke(
                 _initial_state(
@@ -279,7 +292,7 @@ async def inspect_text_to_sql(
                     anchor_date=anchor_date,
                     initial_sql=initial_sql or "",
                     dialect=source.dialect,
-                    profile=source.profile,
+                    profile=profile,
                     schema_name=source.schema_name,
                 )
             )
@@ -796,7 +809,12 @@ def _catalog_error() -> ExecutionError:
 
 
 def _catalog_mismatch(documents: Sequence[TableDocument], database_id: str) -> bool:
-    return any(document.database_id != database_id for document in documents)
+    settings = get_settings()
+    target = normalize_request_database_id(database_id, settings)
+    return any(
+        normalize_request_database_id(document.database_id, settings) != target
+        for document in documents
+    )
 
 
 def _dialect_label(dialect: str) -> str:
