@@ -92,11 +92,11 @@ TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
 <!-- p0-measured-autogen:start -->
 
 ```text
-p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261007T194508Z_54d1b15aec2508359c774c7c79179eb2c6666934 commit=54d1b15aec2508359c774c7c79179eb2c6666934 prompt=text-to-sql-generic-v59
-p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261007T195104Z_54d1b15aec2508359c774c7c79179eb2c6666934 commit=54d1b15aec2508359c774c7c79179eb2c6666934 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261008T021124Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261008T022531Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
 p0_stability_tpcds=stable
-p0_measured_bird_run1=24/50 ex=0.48 dir=run_20261007T200451Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032 commit=e5482a49f6da08e09e0033a4c55ca9e2562d2032 prompt=text-to-sql-generic-v59
-p0_measured_bird_run2=24/50 ex=0.48 dir=run_20261007T201201Z_e5482a49f6da08e09e0033a4c55ca9e2562d2032 commit=e5482a49f6da08e09e0033a4c55ca9e2562d2032 prompt=text-to-sql-generic-v59
+p0_measured_bird_run1=49/50 ex=0.98 dir=run_20261008T022948Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=49/50 ex=0.98 dir=run_20261008T023304Z_219b500c807afbfb2916e140fa96808515ef7183 commit=219b500c807afbfb2916e140fa96808515ef7183 prompt=text-to-sql-generic-v59
 p0_stability_bird=stable
 p0_acceptance_gate=pass
 ```
