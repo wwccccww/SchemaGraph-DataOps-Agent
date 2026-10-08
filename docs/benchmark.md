@@ -106,8 +106,22 @@ p0_acceptance_gate=pass
 <!-- p2-measured-autogen:start -->
 
 ```text
-p2_measured_complete=false
-pending: ./scripts/run_custom_ablation.sh then ./scripts/apply_p2_measured_benchmark.sh
+p2_custom_run_dir=run_20261008T053835Z_51a26f0a2e7391f64c60ec872185e26e0bdff9cf
+p2_git_commit=51a26f0a2e7391f64c60ec872185e26e0bdff9cf
+p2_model=deepseek-chat
+p2_prompt_version=text-to-sql-v3
+p2_measured_complete=true
+p2_schema_graph_ex_overall=0.9167
+p2_self_healing_ex_overall=0.9697
+p2_recovery_at_3_rate=0.7333
+p2_recovery_at_3_recovered=11
+p2_recovery_at_3_failed=4
+p2_recovery_at_3_denominator=15
+p2_recovery_at_3_excluded_first_attempt=117
+p2_paired_recovery_rate=0.6364
+p2_paired_recovered=7
+p2_paired_initial_failures=11
+p2_measured_gate=pass
 ```
 
 <!-- p2-measured-autogen:end -->
@@ -121,6 +135,7 @@ pending: ./scripts/run_custom_ablation.sh then ./scripts/apply_p2_measured_bench
 | Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
 | Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
 | 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
+| 自建 P2 Recovery@3 实测 | `p2-measured-autogen` + `apply_p2_measured_benchmark.sh` | **complete @ `51a26f0`**：Recovery@3 **0.7333**（11/15），self_healing EX **0.9697**（`test_p2_benchmark_docs.py`） |
 | 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `5e4659e`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
 | 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**（v12）；**e5482a4** raw **24/50**；**live 50/50×2 stable @ `7fd32c8`**（`p0-measured-autogen`）；floor 默认 **`P0_BIRD_MIN_MATCHED=19`**，**50×2** 时可 export **50** |
 | BIRD PATCH / measured 复分 | `--replay-patch-autofix` + live `score_prediction` PATCH | v12 **17→50/50**；**e5482a4** **24→50** replay PATCH；**HEAD catalog** 对 **e5482a4 saved SQL** **50/50** measured PATCH（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch` + vendored snapshot）；均 **非新 LLM** |

@@ -46,6 +46,10 @@ def test_benchmark_md_has_p2_autogen_markers() -> None:
     text = (root / "docs/benchmark.md").read_text(encoding="utf-8")
     assert P2_MEASURED_AUTOGEN_START in text
     assert P2_MEASURED_AUTOGEN_END in text
+    autogen = text.split(P2_MEASURED_AUTOGEN_START, 1)[1].split(P2_MEASURED_AUTOGEN_END, 1)[0]
+    assert "p2_measured_gate=pass" in autogen
+    assert "p2_recovery_at_3_rate=" in autogen
+    assert "p2_measured_complete=true" in autogen
 
 
 def test_patch_p2_benchmark_measured_section_replaces_once(tmp_path: Path) -> None:
