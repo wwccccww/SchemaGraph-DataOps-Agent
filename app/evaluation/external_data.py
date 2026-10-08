@@ -12,7 +12,10 @@ import json
 import logging
 import os
 import re
+import ssl
 import subprocess
+import time
+import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -696,23 +699,40 @@ def _sqlite_path(database_root: Path, database_id: str) -> Path:
     return database_root / database_id / f"{database_id}.sqlite"
 
 
-def _download(url: str, dest: Path, expected: str) -> None:
+def _download(url: str, dest: Path, expected: str, *, retries: int = 4) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url, timeout=120) as response, dest.open("wb") as handle:
-        while True:
-            chunk = response.read(1024 * 1024)
-            if not chunk:
+    last_exc: BaseException | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            dest.unlink(missing_ok=True)
+            with urllib.request.urlopen(url, timeout=120) as response, dest.open("wb") as handle:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+            digest = sha256_file(dest)
+            if digest != expected:
+                preview = dest.read_bytes()[:64].lstrip().lower()
+                dest.unlink(missing_ok=True)
+                if preview.startswith(b"<!doctype html") or preview.startswith(b"<html"):
+                    raise RuntimeError(
+                        "download returned HTML instead of the pinned archive "
+                        "(upstream quota or auth page)"
+                    )
+                raise RuntimeError("downloaded file did not match the pinned digest")
+            return
+        except RuntimeError:
+            raise
+        except (urllib.error.URLError, ssl.SSLError, TimeoutError, OSError) as exc:
+            last_exc = exc
+            dest.unlink(missing_ok=True)
+            if attempt >= retries:
                 break
-            handle.write(chunk)
-    digest = sha256_file(dest)
-    if digest != expected:
-        preview = dest.read_bytes()[:64].lstrip().lower()
-        dest.unlink(missing_ok=True)
-        if preview.startswith(b"<!doctype html") or preview.startswith(b"<html"):
-            raise RuntimeError(
-                "download returned HTML instead of the pinned archive (upstream quota or auth page)"
-            )
-        raise RuntimeError("downloaded file did not match the pinned digest")
+            time.sleep(min(2**attempt, 16))
+    raise RuntimeError(
+        f"download failed after {retries} attempts for {url}: {last_exc}"
+    ) from last_exc
 
 
 def _json_default(value: object) -> str:
