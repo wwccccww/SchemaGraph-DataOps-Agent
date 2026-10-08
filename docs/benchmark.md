@@ -103,6 +103,15 @@ p0_acceptance_gate=pass
 
 <!-- p0-measured-autogen:end -->
 
+<!-- p2-measured-autogen:start -->
+
+```text
+p2_measured_complete=false
+pending: ./scripts/run_custom_ablation.sh then ./scripts/apply_p2_measured_benchmark.sh
+```
+
+<!-- p2-measured-autogen:end -->
+
 **外部 P0/P1 验收清单（证据导向）**
 
 运维命令与 402/计费后路径见 **[external_gold_p0_runbook.md](./external_gold_p0_runbook.md)**（与下表互补）。
@@ -612,7 +621,7 @@ P2：
 
 - 所有 `attempts > 1` 的 case 都保存“触发症状 → 修复变化 → 最终结果”链路；
 - 相同 SQL 或相同症状不允许无变化地连续消耗三轮；
-- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**（Oracle 132 + repair_trace/Recovery@3 schema 单测）；全量实测 **`./scripts/run_custom_ablation.sh`**（132×4 variant，写入 `reports/custom/run_*`）；
+- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**（Oracle 132 + repair_trace/Recovery@3 schema 单测）；全量实测 **`./scripts/run_custom_ablation.sh`**（132×4 variant，写入 `reports/custom/run_*`）→ **`./scripts/apply_p2_measured_benchmark.sh`** 更新 **`p2-measured-autogen`**（`python3 -m app.evaluation.p2_custom_ablation_summary --acceptance-gate`）；
 - Schema Graph 的 Junction Table Recall 和 Required Table Recall 不得回退；
 - EX、分类计数和组间转移矩阵由原始 case JSON 重算，不能手工填写。
 
