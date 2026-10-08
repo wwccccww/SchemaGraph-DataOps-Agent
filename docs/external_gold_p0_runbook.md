@@ -105,7 +105,7 @@ p0_acceptance_gate=pass
 
 若 BIRD 稳定高于 **`P0_BIRD_MIN_MATCHED`**（默认 **19/50**），acceptance stdout 会打印 **`p0_baseline_followup=…`**；据此同步 vendored 峰值 run、**`P0_BIRD_MIN_MATCHED`** 与 `test_p0_external_measured_baseline.py`（replay 断言）。
 
-**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 在 **validate**、**repair** 与 **实测 `score_prediction`**（非 replay）均会尝试；**`--replay-run`** 仍用 **`--replay-patch-autofix`**。另修正实测常见 **`ROUND(..., 2) AS PercentHighScorers`** 与 **Below/Average/Above** 分档 → Gold **High/Medium/Low**（含 CTE 内 **`sa.AvgScrRead+…`** 形，**219b500** live 保存 SQL 仅 **`Average`→`Medium`** 标签差 → PATCH 后 offline **EX=1**；**7645bbb** / **881dd08** / **a78b594** 同理）。v12 vendored 峰值同理。
+**bird_0003 High-FRPM**：勿用 Free Meal/Enrollment 充当 FRPM 小数；**`high_frpm_frpm_pct` PATCH** 在 **validate**、**repair** 与 **实测 `score_prediction`**（非 replay）均会尝试；**`--replay-run`** 仍用 **`--replay-patch-autofix`**。另修正实测常见 **`ROUND(..., 2) AS PercentHighScorers`** 与 **Below/Average/Above** 分档 → Gold **High/Medium/Low**（含 CTE 内 **`sa.AvgScrRead+…`** 与 **`COALESCE(sa.*,0)+…`** 形；**5e4659e** live run1 **49/50** 即 COALESCE 分档未 PATCH → 补规则后 offline **49→50**）。**219b500** / **7645bbb** / **881dd08** / **a78b594** 同理。v12 vendored 峰值同理。
 
 **bird_0032 Top FRPM (SOC=66)**：实测勿用 **Free Meal/Enrollment** 充当 eligibility；**`top_frpm_soc66` PATCH**（实测路径，非 Gold overlay）改 **FRPM Count/Enrollment** 与 `>=` 分档；**`--replay-amend top_frpm_soc66`** 仍为 Gold 上界估算。
 

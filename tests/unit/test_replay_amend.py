@@ -187,6 +187,26 @@ def test_top_frpm_soc66_patch_amend_makes_7645bbb_run2_measured_0032_match_gold(
     assert results_match(gold, pred, order_sensitive=False)
 
 
+def test_high_frpm_frpm_pct_amend_makes_5e4659e_live_run1_0003_match_gold() -> None:
+    """P0 @ 5e4659e run1：COALESCE SAT 分档 + ROUND PercentHighScorers。"""
+    case_file = Path(
+        "/workspace/reports/bird/run_20261008T034036Z_5e4659e6f4df4587e99794a3e64fa30922c78619/cases/bird_0003.json"
+    )
+    if not case_file.is_file():
+        pytest.skip("5e4659e live bird run1 0003 fixture missing")
+    if not CA_SCHOOLS_DB.is_file():
+        pytest.skip("bird sqlite snapshot missing")
+    conn = sqlite3.connect(CA_SCHOOLS_DB)
+    payload = json.loads(case_file.read_text())
+    sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == "bird_0003")
+    amended = apply_replay_amends("bird_0003", sql, profiles=frozenset({"high_frpm_frpm_pct"}))
+    assert amended != sql
+    gold = conn.execute(case.gold_sql).fetchall()
+    pred = conn.execute(amended).fetchall()
+    assert results_match(gold, pred, order_sensitive=False)
+
+
 def test_high_frpm_frpm_pct_amend_makes_219b500_live_0003_match_gold() -> None:
     """P0 live 49/50：219b500 保存 SQL 仅 PerformanceCategory 分档标签未 PATCH。"""
     case_file = Path(

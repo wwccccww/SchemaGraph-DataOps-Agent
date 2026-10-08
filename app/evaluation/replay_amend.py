@@ -202,6 +202,27 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         out,
         flags=re.IGNORECASE,
     )
+    _sat_coalesce_sum = (
+        r"((?:COALESCE\((?:sa|sat)\.AvgScrRead,\s*0\)\s*\+\s*COALESCE\((?:sa|sat)\.AvgScrMath,\s*0\)\s*"
+        r"\+\s*COALESCE\((?:sa|sat)\.AvgScrWrite,\s*0\)))"
+    )
+    out = re.sub(
+        r"CASE\s+WHEN\s+(?:sa|sat)\.NumTstTakr\s+IS\s+NULL\s+THEN\s+'No SAT Data'\s+"
+        rf"WHEN\s+\({_sat_coalesce_sum}\)\s*<\s*1200\s+THEN\s+'Below Average'\s+"
+        rf"WHEN\s+\(\1\)\s*<=\s*1500\s+THEN\s+'Average'\s+"
+        r"ELSE\s+'Above Average'\s+END\s+AS\s+PerformanceCategory",
+        _gold_perf_from_sum,
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"CASE\s+WHEN\s+((?:sa|sat))\.NumTstTakr\s+>\s*0\s+THEN\s+"
+        r"ROUND\s*\(\s*\1\.NumGE1500\s*\*\s*100\.0\s*/\s*\1\.NumTstTakr\s*,\s*2\s*\)\s+"
+        r"ELSE\s+NULL\s+END\s+AS\s+PercentHighScorers",
+        r"CAST(\1.NumGE1500 AS FLOAT) / NULLIF(\1.NumTstTakr, 0) * 100 AS PercentHighScorers",
+        out,
+        flags=re.IGNORECASE,
+    )
     out = re.sub(
         r"CASE WHEN NumTstTakr > 0 THEN NumGE1500 \* 100\.0 / NumTstTakr END AS PercentHighScorers",
         "CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentHighScorers",
