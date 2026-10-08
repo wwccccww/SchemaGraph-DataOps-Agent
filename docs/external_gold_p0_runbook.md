@@ -32,6 +32,7 @@ python3 -c "from app.evaluation.external_data import tpcds_postgres_catalog_reac
 | **`next_after_billing=./scripts/p0_post_billing_acceptance.sh`** | 同上 |
 | **`unattended_after_billing=./scripts/wait_for_billing_and_run_p0.sh`** | 同上（计费恢复后可选轮询 preflight） |
 | **`while_billing_blocked=… --gates-only`** | `print_external_p0_status.sh`（402 时） |
+| **`p0_bird_min_matched=N`** | `p0_post_billing_acceptance.sh` / `run_external_p0_full_eval_twice.sh`（默认 **19**；`export P0_BIRD_MIN_MATCHED=24` 对齐 e5482a4 稳定 **24×2**） |
 | **`llm_preflight=ready`** | `python3 -m app.evaluation.llm_preflight` 成功 stdout |
 | **`tpcds_postgres_catalog=ready\|unreachable`** | `print_external_p0_status.sh`；`p0_post_billing_acceptance.sh`；`wait_for_billing_and_run_p0.sh`（`tpcds_postgres_catalog_reachable`） |
 | **`bird_sqlite=ready\|missing\|unset\|invalid_root`** | `print_external_p0_status.sh`（`california_schools/california_schools.sqlite` 探针；missing 含 **`fetch_bird_dev_databases.sh`**） |

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from app.evaluation.p0_measured_summary import (
+    RunMeasured,
     baseline_followup_hint,
     format_report,
     load_manifest,
@@ -38,6 +39,31 @@ def test_load_run_measured_from_fixture(tmp_path: Path) -> None:
     loaded = load_run_measured(run)
     assert loaded.fraction_label == "7/50"
     assert loaded.execution_accuracy == 0.14
+
+
+def test_baseline_followup_hint_e5482a4_class_24_with_floor_19() -> None:
+    a = RunMeasured(
+        run_dir=Path("/tmp/a"),
+        benchmark_source="bird",
+        matched=24,
+        case_count=50,
+        execution_accuracy=0.48,
+        git_commit="e5482a4",
+        prompt_version="text-to-sql-generic-v59",
+    )
+    b = RunMeasured(
+        run_dir=Path("/tmp/b"),
+        benchmark_source="bird",
+        matched=24,
+        case_count=50,
+        execution_accuracy=0.48,
+        git_commit="e5482a4",
+        prompt_version="text-to-sql-generic-v59",
+    )
+    hint = baseline_followup_hint([a, b], documented_bird_min=19)
+    assert hint is not None
+    assert "P0_BIRD_MIN_MATCHED=24" in hint
+    assert "bird_stable_matched=24/50" in hint
 
 
 def test_baseline_followup_hint_when_bird_beats_documented_floor() -> None:

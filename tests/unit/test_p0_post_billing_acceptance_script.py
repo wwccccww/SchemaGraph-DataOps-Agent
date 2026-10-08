@@ -21,6 +21,7 @@ def test_p0_post_billing_acceptance_script_exists() -> None:
     assert "run_external_p0_full_eval_twice.sh" in text
     assert "apply_p0_measured_benchmark.sh" in text
     assert "tpcds_postgres_catalog=" in text
+    assert "p0_bird_min_matched=" in text
     assert "acceptance-gate" in text or "Exit:" in text
     assert "P0_FROM_BILLING_WAIT" in text
     assert "P0_PREFLIGHT_WAIT_RETRIES" in text
@@ -196,6 +197,7 @@ exec {real_python} "$@"
     )
     assert completed.returncode == 0, completed.stderr
     assert "mode=gates_only" in completed.stdout
+    assert "p0_bird_min_matched=19" in completed.stdout
     assert "preflight should not run" not in completed.stderr
     assert "p1_release_gate=stub" in completed.stdout
     assert "P0 gates-only OK" in completed.stdout
