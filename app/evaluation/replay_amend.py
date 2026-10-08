@@ -179,9 +179,7 @@ def _amend_bird_0003_high_frpm(sql: str) -> str:
         flags=re.IGNORECASE,
     )
     _sat_alias = r"(?:sa|sat|ss)"
-    _sat_sum = (
-        rf"((?:{_sat_alias})\.AvgScrRead\s*\+\s*(?:{_sat_alias})\.AvgScrMath\s*\+\s*(?:{_sat_alias})\.AvgScrWrite)"
-    )
+    _sat_sum = rf"((?:{_sat_alias})\.AvgScrRead\s*\+\s*(?:{_sat_alias})\.AvgScrMath\s*\+\s*(?:{_sat_alias})\.AvgScrWrite)"
     _gold_perf_from_sum = (
         r"CASE WHEN \1 >= 1500 THEN 'High' "
         r"WHEN \1 >= 1200 THEN 'Medium' ELSE 'Low' END AS PerformanceCategory"
