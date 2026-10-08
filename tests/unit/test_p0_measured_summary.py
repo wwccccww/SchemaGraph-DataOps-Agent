@@ -301,8 +301,12 @@ def test_peak_bird_pair_satisfies_acceptance_bird_rules() -> None:
 def test_live_measured_manifest_runs_pass_full_acceptance_gate_cli() -> None:
     """Billing 后 live manifest 四行（本地 reports/）须 gate pass；无目录则 skip。"""
     root = Path(__file__).resolve().parents[2]
-    tpcds1 = root / "reports/tpcds-derived/run_20261008T033330Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
-    tpcds2 = root / "reports/tpcds-derived/run_20261008T033735Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
+    tpcds1 = (
+        root / "reports/tpcds-derived/run_20261008T033330Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
+    )
+    tpcds2 = (
+        root / "reports/tpcds-derived/run_20261008T033735Z_5e4659e6f4df4587e99794a3e64fa30922c78619"
+    )
     bird1 = root / "reports/bird/run_20261008T041410Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94"
     bird2 = root / "reports/bird/run_20261008T041713Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94"
     if not all(p.is_dir() for p in (tpcds1, tpcds2, bird1, bird2)):
