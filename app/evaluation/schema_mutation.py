@@ -42,6 +42,10 @@ def mutation_canary_cases(cases: Sequence[BenchmarkCase]) -> tuple[BenchmarkCase
     return tuple(case for case in cases if "mutation" in case.tags)
 
 
+def agent_canary_cases(cases: Sequence[BenchmarkCase]) -> tuple[BenchmarkCase, ...]:
+    return tuple(case for case in cases if "agent" in case.tags)
+
+
 async def replay_canary_ex(
     cases: Sequence[BenchmarkCase],
     conn: AsyncConnection,
@@ -104,6 +108,21 @@ async def score_agent_ex_cases(
     return [
         await score_case(by_id[case_id], services, database_id=database_id)
         for case_id in case_ids
+    ]
+
+
+async def score_canary_agent_ex(
+    cases: Sequence[BenchmarkCase],
+    services: ServiceBundle,
+    *,
+    database_id: str,
+) -> list[ExecutionScore]:
+    from app.agents.text_to_sql.workflow import TextToSqlVariant
+
+    variant: TextToSqlVariant = "schema_rag"
+    return [
+        await score_case(case, services, database_id=database_id, variant=variant)
+        for case in cases
     ]
 
 

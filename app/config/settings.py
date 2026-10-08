@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     schema_registry_require_embeddings: bool = False
     schema_registry_persist: bool = False
     schema_registry_allow_force: bool = False
+    schema_registry_tenant_allowlist: str = ""
 
     @field_validator("postgres_user", "postgres_db")
     @classmethod

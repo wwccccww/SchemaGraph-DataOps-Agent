@@ -69,3 +69,25 @@ cases:
     tags:
       - canary
       - mutation
+
+  - id: agent_canary_label
+    database_id: ecommerce
+    source: custom
+    source_version: ecommerce-v1
+    difficulty: basic
+    dialect: postgres
+    question: 读取 schema_mutation_canary 表中 id 为 1 的 label 字段
+    gold_sql: |
+      SELECT label FROM schema_mutation_canary WHERE id = 1
+    required_tables:
+      - schema_mutation_canary
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - label
+    anchor_date: "2026-10-01"
+    tags:
+      - canary
+      - agent
+      - mutation

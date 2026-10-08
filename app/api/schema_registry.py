@@ -15,6 +15,12 @@ from app.retrieval.index import ensure_embedding_tables
 from app.schema_registry.extract import extract_snapshot
 from app.schema_registry.gate import evaluate_activation_gate
 from app.schema_registry.indexing import schema_version_from_fingerprint, sync_embeddings_for_snapshot
+from app.schema_registry.tenant import (
+    default_schema_database_id,
+    ensure_tenant_database_id,
+    tenant_database_ids,
+)
+from app.api.deps import TenantHeader
 
 router = APIRouter(prefix="/v1/schema", tags=["schema"])
 
@@ -52,6 +58,7 @@ class ActivationAuditResponse(BaseModel):
 
 class SchemaActivateRequest(BaseModel):
     fingerprint: str = Field(min_length=8)
+    database_id: str | None = None
 
 
 def _gate_checks_response(snapshot, embedding_rows, settings) -> tuple:
@@ -121,14 +128,23 @@ def _response_from_snapshot(
 
 
 @router.post("/sync", response_model=SchemaSyncResponse)
-async def sync_schema(*, index: bool = False) -> SchemaSyncResponse:
+async def sync_schema(
+    *,
+    index: bool = False,
+    database_id: str | None = None,
+    tenant_header: TenantHeader = None,
+) -> SchemaSyncResponse:
     """提取 Catalog → staging → 可选索引 → 门禁 → 按配置激活。"""
 
     settings = get_settings()
+    target = database_id or default_schema_database_id(settings)
+    ensure_tenant_database_id(target, tenant_header=tenant_header, settings=settings)
     await hydrate_schema_registry()
     registry = get_schema_registry()
     async with get_sandbox_engine().connect() as conn:
-        snapshot = await extract_snapshot(conn, settings)
+        snapshot = await extract_snapshot(conn, settings, database_id=target)
+    if snapshot.database_id != target:
+        raise HTTPException(status_code=409, detail="extracted snapshot database_id mismatch")
     previous = registry.active_snapshot(snapshot.database_id)
     diff = registry.register(snapshot, activate=False)
     await persist_schema_registry(registry)
@@ -169,16 +185,22 @@ async def sync_schema(*, index: bool = False) -> SchemaSyncResponse:
 
 
 @router.post("/activate", response_model=SchemaSyncResponse)
-async def activate_schema(body: SchemaActivateRequest, *, force: bool = False) -> SchemaSyncResponse:
+async def activate_schema(
+    body: SchemaActivateRequest,
+    *,
+    force: bool = False,
+    tenant_header: TenantHeader = None,
+) -> SchemaSyncResponse:
     settings = get_settings()
+    database_id = body.database_id or default_schema_database_id(settings)
+    ensure_tenant_database_id(database_id, tenant_header=tenant_header, settings=settings)
     await hydrate_schema_registry()
-    database_id = (
-        settings.postgres_db if settings.text_to_sql_catalog_mode == "live_public" else "ecommerce"
-    )
     registry = get_schema_registry()
     snapshot = registry.get(database_id, body.fingerprint)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="unknown schema fingerprint")
+    if snapshot.database_id != database_id:
+        raise HTTPException(status_code=403, detail="snapshot belongs to another tenant")
     embedding_rows: int | None = None
     if settings.schema_registry_require_embeddings:
         version = schema_version_from_fingerprint(snapshot.fingerprint)
@@ -233,11 +255,14 @@ async def activate_schema(body: SchemaActivateRequest, *, force: bool = False) -
 
 
 @router.get("/active", response_model=SchemaSyncResponse)
-async def active_schema() -> SchemaSyncResponse:
+async def active_schema(
+    database_id: str | None = None,
+    tenant_header: TenantHeader = None,
+) -> SchemaSyncResponse:
     settings = get_settings()
-    database_id = (
-        settings.postgres_db if settings.text_to_sql_catalog_mode == "live_public" else "ecommerce"
-    )
+    target = database_id or default_schema_database_id(settings)
+    ensure_tenant_database_id(target, tenant_header=tenant_header, settings=settings)
+    database_id = target
     registry = get_schema_registry()
     active = registry.active_snapshot(database_id)
     if active is None:
@@ -260,9 +285,16 @@ async def active_schema() -> SchemaSyncResponse:
 @router.get("/audit", response_model=list[ActivationAuditResponse])
 async def schema_activation_audit(
     database_id: str | None = None,
+    tenant_header: TenantHeader = None,
 ) -> list[ActivationAuditResponse]:
+    settings = get_settings()
+    allowed = tenant_database_ids(settings)
+    if database_id is not None:
+        ensure_tenant_database_id(database_id, tenant_header=tenant_header, settings=settings)
     registry = get_schema_registry()
     rows = registry.activation_audit(database_id)
+    if database_id is None:
+        rows = tuple(item for item in rows if item.database_id in allowed)
     return [
         ActivationAuditResponse(
             database_id=item.database_id,

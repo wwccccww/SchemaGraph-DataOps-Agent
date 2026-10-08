@@ -226,4 +226,6 @@ def _with_executor(services):  # type: ignore[no-untyped-def]
         load_catalog=services.load_catalog,
         execute=_guarded_execute,
         token_counter=services.token_counter,
+        estimate_plan_rows=services.estimate_plan_rows,
+        database_id=services.database_id,
     )

@@ -39,7 +39,8 @@
 - `tests/unit/test_schema_mutation.py`：增表 / 删表 / staging→activate
 - `benchmarks/schema_mutation/canary.yaml` + `app/evaluation/schema_mutation.py`（Gold EX 回放）
 - `tests/integration/test_schema_mutation_canary.py`：增表 → sync → Gold + **Agent EX**（GoldModel）→ 删表后 mutation 用例失败、baseline 仍通过
-- `score_agent_ex_cases()`：`app/evaluation/schema_mutation.py`
+- `tests/integration/test_schema_mutation_live_agent.py`：**live_public** 下单表 Agent EX
+- `score_agent_ex_cases()` / `score_canary_agent_ex()`：`app/evaluation/schema_mutation.py`
 
 ## 阶段 6 — 慢 SQL OptimizerContext（已落地）
 
@@ -58,11 +59,12 @@
 - `gate.py`、`SCHEMA_REGISTRY_REQUIRE_EMBEDDINGS`、sync/activate 门禁
 - 单测：`tests/unit/test_schema_activation_gate.py`
 
-## 阶段 9 — 隔离 / 审计（部分）
+## 阶段 9 — 隔离 / 审计（已落地核心）
 
-- 进程内 `ActivationAudit` + `GET /v1/schema/audit`
+- 进程内 `ActivationAudit` + `GET /v1/schema/audit`（无参时仅返回 allowlist 内租户）
 - 持久化审计表 `schema_registry_activation_audit`（`SCHEMA_REGISTRY_PERSIST=1`）
-- `tests/integration/test_schema_registry_persistence.py`
-- `tests/unit/test_schema_registry_isolation.py`：按 `database_id` 隔离 active 版本
-- `SCHEMA_REGISTRY_ALLOW_FORCE`：默认禁止 `POST /activate?force=true`
-- 待做：跨进程/跨实例租户路由与鉴权
+- `app/schema_registry/tenant.py`：`SCHEMA_REGISTRY_TENANT_ALLOWLIST` + `X-Tenant-Database-Id` 与 body/query 一致
+- Schema / Text-to-SQL / Slow-SQL API 入口校验租户
+- `tests/unit/test_schema_tenant.py`、`tests/unit/test_schema_tenant_api.py`
+- `tests/integration/test_schema_mutation_live_agent.py`：`live_public` + `schema_rag` Agent EX
+- 待做：OAuth/API key 级租户凭证（当前为配置 allowlist）
