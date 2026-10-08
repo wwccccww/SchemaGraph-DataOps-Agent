@@ -696,6 +696,29 @@ def test_e5482a4_ex0_frozen_contract_repair_signals(case_id: str, needles: tuple
         assert any(needle in message for message in messages), (case_id, needle, messages)
 
 
+def test_e5482a4_vendored_ex0_all_have_frozen_findings() -> None:
+    """vendored e5482a4 raw 26/50 EX=0：每题至少 1 条 frozen repair 信号。"""
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.replay_snapshot_paths import bird_e5482a4_measured_run_dir
+
+    run = bird_e5482a4_measured_run_dir()
+    if not run.is_dir():
+        pytest.skip("e5482a4 measured run dir missing")
+    by_id = {c.id: c for c in load_bird_cases()}
+    missing: list[str] = []
+    for path in sorted(run.glob("cases/bird_*.json")):
+        payload = json.loads(path.read_text())
+        if payload.get("ex") == 1:
+            continue
+        case = by_id[path.stem]
+        sql = payload["prediction"]["sql"]
+        if not check_frozen_semantic_contract(case.semantic_contract, sql, dialect="sqlite"):
+            missing.append(path.stem)
+    assert missing == []
+
+
 def test_la_k9_e5482a4_frozen_contract_flags_sat_rank_and_percent() -> None:
     """e5482a4 raw bird_0077：SAT Ranking/Percent/Charter 口径须报 repair 信号。"""
     import json
