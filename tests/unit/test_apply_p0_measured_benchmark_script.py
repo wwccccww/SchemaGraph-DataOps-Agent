@@ -14,3 +14,5 @@ def test_apply_p0_measured_benchmark_script_exists() -> None:
     text = script.read_text(encoding="utf-8")
     assert "--write-benchmark" in text
     assert "p0_measured_manifest.tsv" in text
+    assert "P0_BIRD_MIN_MATCHED" in text
+    assert "p0_bird_min_matched=" in text

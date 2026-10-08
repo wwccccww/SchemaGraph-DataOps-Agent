@@ -6,6 +6,7 @@ cd "$ROOT"
 MANIFEST="${P0_MEASURED_MANIFEST:-$ROOT/reports/p0_measured_manifest.tsv}"
 BENCHMARK="${P0_BENCHMARK_MD:-$ROOT/docs/benchmark.md}"
 BIRD_MIN="${P0_BIRD_MIN_MATCHED:-19}"
+echo "p0_bird_min_matched=${BIRD_MIN}"
 if [[ ! -f "$MANIFEST" ]]; then
   echo "missing manifest: $MANIFEST (run ./scripts/run_external_p0_full_eval_twice.sh first)" >&2
   exit 1
