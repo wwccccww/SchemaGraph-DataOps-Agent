@@ -142,7 +142,7 @@ python3 -m app.evaluation.llm_preflight       # P0 全量前探测（402→exit 
 ./scripts/replay_tpcds_baseline.sh
 ```
 
-Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。运维与验收路径见 [`docs/external_gold_p0_runbook.md`](docs/external_gold_p0_runbook.md) 与 [`docs/benchmark.md`](docs/benchmark.md) 外部 P0/P1 清单。
+Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。vendored **e5482a4** raw **24/50** 的 **26** 题差分由单测 `test_e5482a4_vendored_run_raw_ex0_inventory` 钉住（见 runbook Step-3）。运维与验收路径见 [`docs/external_gold_p0_runbook.md`](docs/external_gold_p0_runbook.md) 与 [`docs/benchmark.md`](docs/benchmark.md) 外部 P0/P1 清单。
 
 外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
 
