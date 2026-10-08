@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     schema_registry_auto_activate: bool = True
     schema_registry_auto_index: bool = False
     schema_registry_require_embeddings: bool = False
+    schema_registry_persist: bool = False
 
     @field_validator("postgres_user", "postgres_db")
     @classmethod

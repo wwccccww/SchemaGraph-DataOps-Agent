@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.config.settings import get_settings
 from app.db.catalog_loader import get_schema_registry, load_catalog_for_runtime
+from app.db.registry_sync import hydrate_schema_registry, persist_activation_audit, persist_schema_registry
 from app.db.engine import get_admin_engine, get_sandbox_engine
 from app.retrieval.embedder import BgeM3Embedder
 from app.retrieval.index import ensure_embedding_tables
@@ -124,11 +125,13 @@ async def sync_schema(*, index: bool = False) -> SchemaSyncResponse:
     """提取 Catalog → staging → 可选索引 → 门禁 → 按配置激活。"""
 
     settings = get_settings()
+    await hydrate_schema_registry()
     registry = get_schema_registry()
     async with get_sandbox_engine().connect() as conn:
         snapshot = await extract_snapshot(conn, settings)
     previous = registry.active_snapshot(snapshot.database_id)
     diff = registry.register(snapshot, activate=False)
+    await persist_schema_registry(registry)
     indexed: int | None = None
     if index or settings.schema_registry_auto_index:
         embedder = BgeM3Embedder()
@@ -146,8 +149,10 @@ async def sync_schema(*, index: bool = False) -> SchemaSyncResponse:
         or settings.schema_registry_auto_activate
     ):
         registry.activate(snapshot.database_id, snapshot.fingerprint)
+        await persist_activation_audit(registry.activation_audit()[-1])
         activated = True
         staging_fp = None
+    await persist_schema_registry(registry)
     active = registry.active_snapshot(snapshot.database_id)
     reported = active if active is not None else snapshot
     return _response_from_snapshot(
@@ -166,6 +171,7 @@ async def sync_schema(*, index: bool = False) -> SchemaSyncResponse:
 @router.post("/activate", response_model=SchemaSyncResponse)
 async def activate_schema(body: SchemaActivateRequest, *, force: bool = False) -> SchemaSyncResponse:
     settings = get_settings()
+    await hydrate_schema_registry()
     database_id = (
         settings.postgres_db if settings.text_to_sql_catalog_mode == "live_public" else "ecommerce"
     )
@@ -208,6 +214,8 @@ async def activate_schema(body: SchemaActivateRequest, *, force: bool = False) -
             },
         )
     active = registry.activate(database_id, body.fingerprint, forced=force)
+    await persist_activation_audit(registry.activation_audit()[-1])
+    await persist_schema_registry(registry)
     return _response_from_snapshot(
         active,
         activated=True,

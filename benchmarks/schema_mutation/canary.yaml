@@ -1,0 +1,71 @@
+contract_version: "1.0"
+description: >
+  Schema 变更后的 EX 回放：核心电商 Gold SQL 必须仍可通过只读沙箱执行；
+  mutation 用例依赖临时表 schema_mutation_canary（由集成测试创建）。
+cases:
+  - id: baseline_user_levels
+    database_id: ecommerce
+    source: custom
+    source_version: ecommerce-v1
+    difficulty: basic
+    dialect: postgres
+    question: baseline replay only
+    gold_sql: |
+      SELECT level_id, level_name
+      FROM t_user_level
+      ORDER BY level_id
+      LIMIT 5
+    required_tables:
+      - t_user_level
+    required_junctions: []
+    order_sensitive: true
+    numeric_tolerance: null
+    expected_columns:
+      - level_id
+      - level_name
+    anchor_date: "2026-10-01"
+    tags:
+      - canary
+      - baseline
+
+  - id: baseline_order_count
+    database_id: ecommerce
+    source: custom
+    source_version: ecommerce-v1
+    difficulty: basic
+    dialect: postgres
+    question: baseline replay only
+    gold_sql: |
+      SELECT COUNT(*)::bigint AS order_count FROM t_order
+    required_tables:
+      - t_order
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - order_count
+    anchor_date: "2026-10-01"
+    tags:
+      - canary
+      - baseline
+
+  - id: post_mutation_canary_table
+    database_id: ecommerce
+    source: custom
+    source_version: ecommerce-v1
+    difficulty: basic
+    dialect: postgres
+    question: canary table after schema sync
+    gold_sql: |
+      SELECT label FROM schema_mutation_canary WHERE id = 1
+    required_tables:
+      - schema_mutation_canary
+    required_junctions: []
+    order_sensitive: false
+    numeric_tolerance: null
+    expected_columns:
+      - label
+    anchor_date: "2026-10-01"
+    tags:
+      - canary
+      - mutation

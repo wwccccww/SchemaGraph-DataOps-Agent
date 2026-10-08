@@ -28,6 +28,22 @@ def test_expand_select_star_uses_optimizer_context_columns() -> None:
     assert "*" not in fixed
 
 
+def test_generic_implicit_cast_on_indexed_column() -> None:
+    catalog = RuleCatalog(
+        large_tables=frozenset(),
+        child_tables=frozenset(),
+        indexed_columns=frozenset({("accounts", "account_id")}),
+    )
+    sql = "SELECT account_id FROM accounts WHERE account_id::text = '42'"
+    fixed = try_autofix_sql(
+        sql,
+        (_finding("implicit-cast-on-index-column"),),
+        catalog=catalog,
+    )
+    assert fixed is not None
+    assert "account_id = '42'" in fixed or 'account_id = "42"' in fixed.replace('"', "'")
+
+
 def test_large_table_guard_uses_catalog_not_hardcoded_only() -> None:
     catalog = RuleCatalog(
         large_tables=frozenset({"events"}),

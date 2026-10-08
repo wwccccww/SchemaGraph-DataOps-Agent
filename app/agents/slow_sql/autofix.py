@@ -95,18 +95,92 @@ def try_autofix_sql(
         stripped = _strip_order_by_when_order_insensitive(current)
         if stripped is not None:
             current = stripped
-    if "function-on-index-column" in rule_ids:
-        current = _USER_ID_ARITH.sub(
-            lambda match: f"user_id = {int(match.group(2)) - int(match.group(1))}",
-            current,
-        )
-    if "implicit-cast-on-index-column" in rule_ids:
-        current = _USER_ID_CAST.sub(r"user_id = \1", current)
+    if "function-on-index-column" in rule_ids or "implicit-cast-on-index-column" in rule_ids:
+        fixed_predicates = _fix_indexed_column_predicates(current, resolved_catalog)
+        if fixed_predicates is not None:
+            current = fixed_predicates
     if "select-star" in rule_ids:
         expanded = _expand_select_star(current, column_map)
         if expanded is not None:
             current = expanded
     return None if current == original else current
+
+
+def _fix_indexed_column_predicates(sql: str, catalog: RuleCatalog) -> str | None:
+    """去掉索引列上的隐式 cast 与 (col + k) 算术比较。"""
+
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return None
+    changed = False
+    indexed = catalog.indexed_columns
+    for eq in list(expression.find_all(exp.EQ)):
+        if _unwrap_arithmetic_equality(eq, indexed):
+            changed = True
+        elif _unwrap_cast_equality(eq, indexed):
+            changed = True
+    if not changed:
+        current = _USER_ID_ARITH.sub(
+            lambda match: f"user_id = {int(match.group(2)) - int(match.group(1))}",
+            sql,
+        )
+        current = _USER_ID_CAST.sub(r"user_id = \1", current)
+        return None if current == sql else current
+    return expression.sql(dialect="postgres")
+
+
+def _unwrap_cast_equality(eq: exp.EQ, indexed: frozenset[tuple[str, str]]) -> bool:
+    left = _unwrap(eq.this)
+    right = _unwrap(eq.expression)
+    if not isinstance(left, exp.Cast) or not isinstance(right, exp.Literal):
+        return False
+    inner = _unwrap(left.this)
+    if not isinstance(inner, exp.Column):
+        return False
+    resolved = _indexed_key(inner, indexed)
+    if resolved is None:
+        return False
+    literal = right.name.strip("'")
+    eq.set("this", exp.column(resolved[1], table=resolved[0]))
+    eq.set("expression", exp.Literal.string(literal))
+    return True
+
+
+def _unwrap_arithmetic_equality(eq: exp.EQ, indexed: frozenset[tuple[str, str]]) -> bool:
+    left = _unwrap(eq.this)
+    right = _unwrap(eq.expression)
+    if not isinstance(left, exp.Add) or not isinstance(right, exp.Literal):
+        return False
+    if not isinstance(left.this, exp.Column) or not isinstance(left.expression, exp.Literal):
+        return False
+    column = left.this
+    resolved = _indexed_key(column, indexed)
+    if resolved is None:
+        return False
+    offset = int(left.expression.name)
+    target = int(right.name)
+    eq.set("this", exp.column(resolved[1], table=resolved[0]))
+    eq.set("expression", exp.Literal.number(str(target - offset)))
+    return True
+
+
+def _indexed_key(column: exp.Column, indexed: frozenset[tuple[str, str]]) -> tuple[str, str] | None:
+    if column.table:
+        candidate = (column.table, column.name)
+        if candidate in indexed:
+            return candidate
+    matches = [item for item in indexed if item[1] == column.name]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+def _unwrap(node: exp.Expression) -> exp.Expression:
+    current = node
+    while isinstance(current, exp.Paren):
+        current = current.this
+    return current
 
 
 def _column_map(context: OptimizerContext | None) -> dict[str, tuple[str, ...]]:

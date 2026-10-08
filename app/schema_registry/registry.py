@@ -76,3 +76,6 @@ class SchemaRegistry:
 
     def get(self, database_id: str, fingerprint: str) -> SchemaSnapshot | None:
         return self._bucket(database_id).get(fingerprint)
+
+    def database_ids(self) -> frozenset[str]:
+        return frozenset(self._versions) | frozenset(self._active) | frozenset(self._staging)
