@@ -9,7 +9,9 @@ from pathlib import Path
 import yaml
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from app.agents.text_to_sql.workflow import ServiceBundle
 from app.evaluation.smoke import execute_gold_sql, load_smoke_cases, single_statement
+from app.evaluation.text_to_sql import ExecutionScore, score_case
 from app.schemas.benchmark import BenchmarkCase
 
 CANARY_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "schema_mutation" / "canary.yaml"
@@ -85,6 +87,24 @@ def assert_all_passed(scores: Sequence[ReplayScore]) -> None:
     if failed:
         detail = "; ".join(f"{item.case_id}: {item.detail}" for item in failed)
         raise AssertionError(f"schema mutation replay failed: {detail}")
+
+
+async def score_agent_ex_cases(
+    case_ids: Sequence[str],
+    services: ServiceBundle,
+    *,
+    database_id: str,
+) -> list[ExecutionScore]:
+    """Text-to-SQL Agent 路径 EX（Gold 仅注入测试模型，不进 Prompt）。"""
+
+    by_id = {case.id: case for case in load_smoke_cases()}
+    missing = [item for item in case_ids if item not in by_id]
+    if missing:
+        raise KeyError(f"unknown smoke case ids: {missing}")
+    return [
+        await score_case(by_id[case_id], services, database_id=database_id)
+        for case_id in case_ids
+    ]
 
 
 def compare_replay_stable(

@@ -31,13 +31,18 @@ async def score_smoke_cases(services: ServiceBundle) -> list[ExecutionScore]:
     return [await score_case(case, services) for case in load_smoke_cases()]
 
 
-async def score_case(case: BenchmarkCase, services: ServiceBundle) -> ExecutionScore:
+async def score_case(
+    case: BenchmarkCase,
+    services: ServiceBundle,
+    *,
+    database_id: str | None = None,
+) -> ExecutionScore:
     """生成并执行 Agent SQL，再与 Gold 结果做语义比较。"""
 
     response = await run_text_to_sql(
         services,
         question=case.question,
-        database_id=case.database_id,
+        database_id=database_id or case.database_id,
         execute=True,
         max_rows=1000,
     )

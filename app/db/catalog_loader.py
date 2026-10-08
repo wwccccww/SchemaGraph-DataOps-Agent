@@ -33,6 +33,10 @@ async def load_catalog_for_runtime(
     from app.db.registry_sync import hydrate_schema_registry, persist_schema_registry
 
     resolved = settings or get_settings()
+    if resolved.text_to_sql_catalog_mode == "live_public":
+        from app.datasources.registry import register_postgres_catalog_source
+
+        register_postgres_catalog_source(resolved.postgres_db)
     await hydrate_schema_registry()
     snapshot = await extract_snapshot(conn, resolved)
     registry = get_schema_registry()

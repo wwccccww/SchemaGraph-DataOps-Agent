@@ -205,6 +205,11 @@ async def activate_schema(body: SchemaActivateRequest, *, force: bool = False) -
         int(embedding_rows) if embedding_rows is not None else None,
         settings,
     )
+    if force and not settings.schema_registry_allow_force:
+        raise HTTPException(
+            status_code=403,
+            detail="forced schema activation is disabled (set SCHEMA_REGISTRY_ALLOW_FORCE=1)",
+        )
     if not gate.passed and not force:
         raise HTTPException(
             status_code=409,

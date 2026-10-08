@@ -31,14 +31,15 @@
 - `POST /v1/schema/sync?index=true`：extract → staging → 可选索引 → 门禁 → 条件 activate
 - `POST /v1/schema/activate?force=`、`GET /v1/schema/active`、`GET /v1/schema/audit`
 - **持久化（可选）**：`SCHEMA_REGISTRY_PERSIST=1` → `app/schema_registry/persistence.py` + `app/db/registry_sync.py`
-- 待做：多 datasource
+- `register_postgres_catalog_source()`：`live_public` 下按 `postgres_db` 登记 generic 数据源
+- Registry 系统表从 live catalog 排除
 
-## 阶段 5 — Schema Mutation 回归集（已落地 canary）
+## 阶段 5 — Schema Mutation 回归集（已落地）
 
 - `tests/unit/test_schema_mutation.py`：增表 / 删表 / staging→activate
 - `benchmarks/schema_mutation/canary.yaml` + `app/evaluation/schema_mutation.py`（Gold EX 回放）
-- `tests/integration/test_schema_mutation_canary.py`：增表 + `live_public` sync + baseline/smoke 子集 EX 仍通过
-- 待做：完整 Text-to-SQL Agent EX 回放（需 LLM）、删表 canary
+- `tests/integration/test_schema_mutation_canary.py`：增表 → sync → Gold + **Agent EX**（GoldModel）→ 删表后 mutation 用例失败、baseline 仍通过
+- `score_agent_ex_cases()`：`app/evaluation/schema_mutation.py`
 
 ## 阶段 6 — 慢 SQL OptimizerContext（已落地）
 
@@ -62,4 +63,6 @@
 - 进程内 `ActivationAudit` + `GET /v1/schema/audit`
 - 持久化审计表 `schema_registry_activation_audit`（`SCHEMA_REGISTRY_PERSIST=1`）
 - `tests/integration/test_schema_registry_persistence.py`
-- 待做：多租户 datasource 隔离、生产强制激活策略
+- `tests/unit/test_schema_registry_isolation.py`：按 `database_id` 隔离 active 版本
+- `SCHEMA_REGISTRY_ALLOW_FORCE`：默认禁止 `POST /activate?force=true`
+- 待做：跨进程/跨实例租户路由与鉴权

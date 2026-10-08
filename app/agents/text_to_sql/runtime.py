@@ -59,8 +59,11 @@ def build_services(
     embedder: Embedder,
     model: ChatModel,
     token_counter: TokenCounter,
+    database_id: str = "ecommerce",
 ) -> ServiceBundle:
     """用调用方提供的编码器和模型组装工作流。"""
+
+    settings = get_settings()
 
     async def select_tools(question: str) -> Sequence[ToolHit]:
         async with get_sandbox_engine().connect() as conn:
@@ -70,14 +73,14 @@ def build_services(
         async with get_sandbox_engine().connect() as conn:
             documents, _, fingerprint = await load_catalog_for_runtime(conn, settings)
             version = schema_version_from_fingerprint(fingerprint)
-            database_id = documents[0].database_id if documents else settings.postgres_db
+            catalog_db = documents[0].database_id if documents else settings.postgres_db
             schema_name = documents[0].schema_name if documents else "public"
             return await search_dynamic_schema_seeds(
                 conn,
                 question,
                 embedder,
                 documents,
-                database_id=database_id,
+                database_id=catalog_db,
                 schema_name=schema_name,
                 schema_version=version,
             )
@@ -104,4 +107,5 @@ def build_services(
         execute=execute,
         token_counter=token_counter,
         estimate_plan_rows=estimate_plan_rows,
+        database_id=database_id,
     )

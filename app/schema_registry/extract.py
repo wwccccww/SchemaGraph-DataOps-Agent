@@ -10,7 +10,15 @@ from app.datasources.postgres_catalog import EXCLUDED_TABLES, load_public_catalo
 from app.schema_registry.snapshot import SchemaSnapshot
 
 # 向量索引与工具表不参与问数 Schema Graph。
-SYSTEM_TABLES = frozenset({"schema_embedding", "tool_embedding"})
+SYSTEM_TABLES = frozenset(
+    {
+        "schema_embedding",
+        "tool_embedding",
+        "schema_registry_snapshot",
+        "schema_registry_state",
+        "schema_registry_activation_audit",
+    }
+)
 
 
 async def extract_fixed_ecommerce_snapshot(conn: AsyncConnection) -> SchemaSnapshot:
