@@ -21,4 +21,4 @@ def test_p2_custom_ablation_gates_script_passes() -> None:
     )
     assert completed.returncode == 0, completed.stderr + completed.stdout
     assert "p2_custom_ablation_gates=pass" in completed.stdout
-    assert "pgvector" in completed.stdout
+    assert "p2_measured_prereq.sh" in completed.stdout
