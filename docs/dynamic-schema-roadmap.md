@@ -24,21 +24,24 @@
 
 `live_public` 会排除 `schema_embedding`、`tool_embedding` 等系统表。
 
-## 阶段 3 — 版本化 Embedding + Graph（待做）
+## 阶段 3 — 版本化 Embedding + Graph（已落地）
 
-- `schema_embedding` 主键增加 `schema_version`
-- 按 fingerprint 增量 upsert / tombstone
-- Graph 边集按 version 缓存
+- `schema_embedding` 主键含 `schema_version`（旧库自动迁移）
+- `upsert_schema_embeddings(..., schema_version=)` 与检索按 active fingerprint 过滤
+- `POST /v1/schema/sync?index=true` 或 `SCHEMA_REGISTRY_AUTO_INDEX=1` 重建该版本向量
+- Graph 边集随 `SchemaSnapshot` / Registry active 版本切换（`load_catalog_for_runtime`）
 
-## 阶段 4 — Sync / Admin API（最小接口已落地）
+## 阶段 4 — Sync / Admin API（部分落地）
 
-- `POST /v1/schema/sync`：提取 Catalog、登记 Registry、返回 diff 摘要
-- `GET /v1/schema/active`：当前 active fingerprint
-- 待做：多 datasource、`/activate` 显式切换、持久化 Registry
+- `POST /v1/schema/sync?index=true`
+- `POST /v1/schema/activate`（body: `fingerprint`）
+- `GET /v1/schema/active`
+- 待做：多 datasource、持久化 Registry、staging→gate 自动激活
 
-## 阶段 5 — Schema Mutation 回归集（待做）
+## 阶段 5 — Schema Mutation 回归集（起步）
 
-- 增删表、改列、改 FK、改索引的自动化 canary
+- `tests/unit/test_schema_mutation.py`：增表 / 删表 / Registry staging→activate
+- 待做：集成级 canary、Text-to-SQL EX 回放
 
 ## 阶段 6–9 — 慢 SQL OptimizerContext、元数据 autofix、门禁激活、多租户（待做）
 

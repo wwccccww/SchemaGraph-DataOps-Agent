@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-chat"
     text_to_sql_catalog_mode: Literal["fixed_ecommerce", "live_public"] = "fixed_ecommerce"
     schema_registry_auto_activate: bool = True
+    schema_registry_auto_index: bool = False
 
     @field_validator("postgres_user", "postgres_db")
     @classmethod

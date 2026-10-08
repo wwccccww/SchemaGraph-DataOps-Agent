@@ -42,6 +42,7 @@ async def ensure_embedding_tables(conn: AsyncConnection) -> None:
         CREATE TABLE IF NOT EXISTS schema_embedding (
             database_id TEXT NOT NULL,
             schema_name TEXT NOT NULL,
+            schema_version TEXT NOT NULL DEFAULT 'legacy',
             table_name TEXT NOT NULL,
             is_junction BOOLEAN NOT NULL,
             embedding_model TEXT NOT NULL,
@@ -50,7 +51,8 @@ async def ensure_embedding_tables(conn: AsyncConnection) -> None:
             document_text TEXT NOT NULL,
             embedding vector(1024) NOT NULL,
             PRIMARY KEY (
-                database_id, schema_name, table_name, embedding_model, embedding_version
+                database_id, schema_name, schema_version, table_name,
+                embedding_model, embedding_version
             )
         )
         """,
@@ -78,12 +80,78 @@ async def ensure_embedding_tables(conn: AsyncConnection) -> None:
     )
     for statement in statements:
         await conn.execute(text(statement))
+    await _migrate_schema_embedding_primary_key(conn)
+
+
+async def _migrate_schema_embedding_primary_key(conn: AsyncConnection) -> None:
+    """旧库补 schema_version 列并扩展主键。"""
+
+    table_exists = await conn.scalar(
+        text(
+            """
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = 'schema_embedding'
+            """
+        )
+    )
+    if table_exists is None:
+        return
+    column_exists = await conn.scalar(
+        text(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'schema_embedding'
+              AND column_name = 'schema_version'
+            """
+        )
+    )
+    pk_has_version = await conn.scalar(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.key_column_usage
+            WHERE table_schema = 'public'
+              AND table_name = 'schema_embedding'
+              AND constraint_name = 'schema_embedding_pkey'
+              AND column_name = 'schema_version'
+            """
+        )
+    )
+    if column_exists is not None and pk_has_version == 1:
+        return
+    if column_exists is None:
+        await conn.execute(
+            text(
+                "ALTER TABLE schema_embedding ADD COLUMN schema_version "
+                "TEXT NOT NULL DEFAULT 'legacy'"
+            )
+        )
+    await conn.execute(
+        text("ALTER TABLE schema_embedding DROP CONSTRAINT IF EXISTS schema_embedding_pkey")
+    )
+    await conn.execute(
+        text(
+            """
+            ALTER TABLE schema_embedding
+            ADD PRIMARY KEY (
+                database_id, schema_name, schema_version, table_name,
+                embedding_model, embedding_version
+            )
+            """
+        )
+    )
 
 
 async def upsert_schema_embeddings(
     conn: AsyncConnection,
     documents: Sequence[TableDocument],
     embedder: Embedder,
+    *,
+    schema_version: str = "legacy",
 ) -> None:
     """保存全部表的元数据和向量，包括 Junction Table。"""
 
@@ -106,6 +174,7 @@ async def upsert_schema_embeddings(
         {
             "database_id": document.database_id,
             "schema_name": document.schema_name,
+            "schema_version": schema_version,
             "table_name": document.table_name,
             "is_junction": document.is_junction,
             "embedding_model": embedder.model_name,
@@ -120,15 +189,17 @@ async def upsert_schema_embeddings(
         text(
             """
             INSERT INTO schema_embedding (
-                database_id, schema_name, table_name, is_junction, embedding_model,
-                embedding_version, content_hash, document_text, embedding
+                database_id, schema_name, schema_version, table_name, is_junction,
+                embedding_model, embedding_version, content_hash, document_text, embedding
             )
             VALUES (
-                :database_id, :schema_name, :table_name, :is_junction, :embedding_model,
-                :embedding_version, :content_hash, :document_text, CAST(:embedding AS vector)
+                :database_id, :schema_name, :schema_version, :table_name, :is_junction,
+                :embedding_model, :embedding_version, :content_hash, :document_text,
+                CAST(:embedding AS vector)
             )
             ON CONFLICT (
-                database_id, schema_name, table_name, embedding_model, embedding_version
+                database_id, schema_name, schema_version, table_name,
+                embedding_model, embedding_version
             )
             DO UPDATE SET
                 is_junction = EXCLUDED.is_junction,
@@ -145,6 +216,7 @@ async def upsert_schema_embeddings(
             DELETE FROM schema_embedding
             WHERE database_id = :database_id
               AND schema_name = :schema_name
+              AND schema_version = :schema_version
               AND embedding_model = :embedding_model
               AND embedding_version = :embedding_version
               AND table_name NOT IN :table_names
@@ -153,6 +225,7 @@ async def upsert_schema_embeddings(
         {
             "database_id": documents[0].database_id,
             "schema_name": documents[0].schema_name,
+            "schema_version": schema_version,
             "embedding_model": embedder.model_name,
             "embedding_version": embedder.model_version,
             "table_names": [document.table_name for document in documents],
@@ -219,6 +292,7 @@ async def search_schema_seeds(
     top_k: int = 5,
     database_id: str = DATABASE_ID,
     schema_name: str = SCHEMA_NAME,
+    schema_version: str = "legacy",
 ) -> list[SchemaSeed]:
     """召回 Top-3～5 张实体种子表。过滤发生在排序截断之前。"""
 
@@ -242,6 +316,7 @@ async def search_schema_seeds(
                 FROM schema_embedding
                 WHERE database_id = :database_id
                   AND schema_name = :schema_name
+                  AND schema_version = :schema_version
                   AND embedding_model = :embedding_model
                   AND embedding_version = :embedding_version
                   AND is_junction = false
@@ -253,6 +328,7 @@ async def search_schema_seeds(
                 "query": query,
                 "database_id": database_id,
                 "schema_name": schema_name,
+                "schema_version": schema_version,
                 "embedding_model": embedder.model_name,
                 "embedding_version": embedder.model_version,
                 "top_k": top_k,
@@ -283,6 +359,7 @@ async def search_dynamic_schema_seeds(
     *,
     database_id: str = DATABASE_ID,
     schema_name: str = SCHEMA_NAME,
+    schema_version: str = "legacy",
 ) -> list[SchemaSeed]:
     """用表名和中文注释选择种子。没有命中时按向量分差截断，不固定补满 5 张。"""
 
@@ -306,6 +383,7 @@ async def search_dynamic_schema_seeds(
                 FROM schema_embedding
                 WHERE database_id = :database_id
                   AND schema_name = :schema_name
+                  AND schema_version = :schema_version
                   AND embedding_model = :embedding_model
                   AND embedding_version = :embedding_version
                   AND is_junction = false
@@ -316,6 +394,7 @@ async def search_dynamic_schema_seeds(
                 "query": query,
                 "database_id": database_id,
                 "schema_name": schema_name,
+                "schema_version": schema_version,
                 "embedding_model": embedder.model_name,
                 "embedding_version": embedder.model_version,
             },
