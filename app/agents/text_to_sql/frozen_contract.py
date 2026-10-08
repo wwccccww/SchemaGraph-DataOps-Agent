@@ -3445,6 +3445,17 @@ def check_frozen_semantic_contract(
                     )
                 )
             if re.search(
+                r'Percent\s*\(%\)\s*Eligible\s*FRPM\s*\(Ages\s*5-17\)"\s*>\s*(?:75|50|25)\b',
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FRPM Ages 5-17 列为小数（0-1）；PovertyLevel 分档用 >0.75/>0.50/>0.25，"
+                        "不要对 Percent (%) 列用 >75/>50/>25",
+                    )
+                )
+            if re.search(
                 r"CASE\s+Charter\s+WHEN\s+1\s+THEN\s+'Yes'|THEN\s+'No'",
                 sql,
                 re.IGNORECASE,

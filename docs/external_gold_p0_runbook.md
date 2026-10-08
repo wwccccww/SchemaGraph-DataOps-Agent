@@ -117,7 +117,7 @@ p0_acceptance_gate=pass
 
 **bird_0006 Magnet SAT**：poverty/performance 标签与 Gold 粒度；measured **`magnet_sat` PATCH** 对齐 Gold SQL（原仅 `--replay-amend` overlay）。
 
-**bird_0010 Top reading SAT**：measured **`top_reading` PATCH**（`top_reading_sat_profile`）对齐 Gold SQL。
+**bird_0010 Top reading SAT**：measured **`top_reading` PATCH**（`top_reading_sat_profile`）对齐 Gold SQL；e5482a4 raw 常对 Ages 5-17 Percent 列用 **`>75/>50/>25`**（应为 **`>0.75/>0.50/>0.25`**）→ frozen **`test_top_reading_e5482a4_frozen_contract_flags_percent_integer_thresholds`**（repair 信号）。
 
 **bird_0011 Enrollment>500 FRPM/SAT**：measured **`enrollment500` PATCH**（`enrollment500_frpm_sat_profile`）对齐 Gold SQL；replay 与实测评分共用 **`try_deterministic_profile_patch`**（Gold 仍可能带 frozen shape finding，故 replay 在 autofix 未通过时 fallback）。
 

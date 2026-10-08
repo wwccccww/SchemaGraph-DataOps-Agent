@@ -639,6 +639,25 @@ def test_top_reading_sat_frozen_contract_flags_v12_bird_0010() -> None:
     assert any("Yes/No" in message or "Charter School" in message for message in messages)
 
 
+def test_top_reading_e5482a4_frozen_contract_flags_percent_integer_thresholds() -> None:
+    """e5482a4 raw bird_0010：Ages 5-17 Percent 列 >75/>50 须报小数阈值（repair 信号）。"""
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.replay_snapshot_paths import bird_e5482a4_measured_run_dir
+
+    case = next(item for item in load_bird_cases() if item.id == "bird_0010")
+    saved_path = bird_e5482a4_measured_run_dir() / "cases" / "bird_0010.json"
+    if not saved_path.is_file():
+        pytest.skip("e5482a4 bird_0010 fixture missing")
+    saved = json.loads(saved_path.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert any("Ages 5-17" in message and ">75" in message for message in messages)
+
+
 def test_adelanto_grade_span_frozen_contract_flags_v12_bird_0078() -> None:
     import json
 
