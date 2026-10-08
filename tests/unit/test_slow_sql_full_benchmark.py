@@ -9,6 +9,12 @@ from app.evaluation.slow_sql import FULL_PATH, FULL_SLOW_SQL_CASE_COUNT, load_fu
 from app.evaluation.slow_sql_catalog import FULL_CASE_COUNT, full_slow_sql_case_payloads
 
 
+def test_full_yaml_matches_catalog() -> None:
+    payload = yaml.safe_load(FULL_PATH.read_text(encoding="utf-8"))
+    assert payload["case_count"] == FULL_CASE_COUNT
+    assert payload["cases"] == full_slow_sql_case_payloads()
+
+
 def test_catalog_defines_fifty_cases() -> None:
     payloads = full_slow_sql_case_payloads()
     assert len(payloads) == FULL_CASE_COUNT == FULL_SLOW_SQL_CASE_COUNT
