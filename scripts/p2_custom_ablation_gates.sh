@@ -8,5 +8,6 @@ uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_co
   tests/unit/test_ablation.py::test_write_ablation_report_accepts_132_custom_zero_shot_skeleton \
   tests/unit/test_ablation.py::test_summary_keeps_targets_and_does_not_pad_a_partial_run \
   tests/unit/test_run_custom_ablation_script.py \
+  tests/unit/test_p2_measured_prereq_script.py \
   -q
-echo "p2_custom_ablation_gates=pass (schema/oracle; measured Recovery@3: Postgres + CREATE EXTENSION vector — e.g. apt postgresql-16-pgvector, then app.db.initialize/seed, ./scripts/run_custom_ablation.sh + llm_preflight)"
+echo "p2_custom_ablation_gates=pass (schema/oracle; measured Recovery@3: ./scripts/p2_measured_prereq.sh then ./scripts/run_custom_ablation.sh + llm_preflight)"
