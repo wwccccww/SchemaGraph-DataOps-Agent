@@ -10,7 +10,7 @@ from app.agents.text_to_sql.contract import AnswerContract, format_answer_contra
 from app.schemas.retrieval import ToolHit
 
 PROMPT_VERSION = "text-to-sql-v3"
-GENERIC_PROMPT_VERSION = "text-to-sql-generic-v59"
+GENERIC_PROMPT_VERSION = "text-to-sql-generic-v60"
 SYSTEM_PROMPT = (
     "你是 PostgreSQL 只读 SQL 生成器。只输出一条 SELECT 或 WITH ... SELECT，"
     "不要解释，不要写入数据，不要使用未给出的工具。"
@@ -130,6 +130,10 @@ _GENERIC_SHAPE_TAIL = (
     "client_category Full Service/Loan Only/Card Only/Basic；"
     "ORDER BY transaction_rank, client_id。"
     "satscores 校级 NumTstTakr/NumGE1500/Enrollment 等聚合须 rtype='S'（勿用 district/county 级 rtype）。"
+    "Directly funded charter：过滤用 frpm.`Charter Funding Type`='Directly funded'（勿用 schools.FundingType）；"
+    "Stanislaus 2000–2005 开校用 schools.OpenDate/strftime 年；CountyStats 在已过滤学校 CTE 上 GROUP BY County，"
+    "再 JOIN 回明细行比较 FRPMPercent 与 CountyAvgFRPMPercent；禁止 CROSS JOIN 单行县级统计。"
+    "县/学区均值对比题：县级聚合键必须与学校行 County（或 district）一致，勿全局笛卡尔积。"
 )
 _GENERIC_SHAPE = (
     "问句中的分组维度必须出现在最终 SELECT 和 GROUP BY 中，不能只写在 WHERE。"
@@ -258,16 +262,34 @@ def _render(
     )
     if repair is not None:
         previous_sql, category, message = repair
-        sections.append(
-            "\n".join(
-                (
-                    "上一次 SQL：",
-                    previous_sql,
-                    "结构化错误：",
-                    f"category: {category}",
-                    f"message: {message}",
-                    "请修复为一条只读 SQL。",
-                )
-            )
-        )
+        repair_lines = [
+            "上一次 SQL：",
+            previous_sql,
+            "结构化错误：",
+            f"category: {category}",
+            f"message: {message}",
+        ]
+        hint = _repair_hint_for_message(message)
+        if hint:
+            repair_lines.extend(("修复提示：", hint))
+        repair_lines.append("请修复为一条只读 SQL。")
+        sections.append("\n".join(repair_lines))
     return "\n\n".join(sections)
+
+
+def _repair_hint_for_message(message: str) -> str | None:
+    """Step-3：结构化修复轮次附加 join/县级聚合提示（不含 Gold SQL）。"""
+    lowered = message.lower()
+    hints: list[str] = []
+    if "countystats" in lowered or "cross join" in lowered or "join_shape" in lowered:
+        hints.append(
+            "县级对比：在过滤后的学校集上 GROUP BY County 得 CountyStats，再 JOIN 回明细；"
+            "禁止 CROSS JOIN 单行县级统计。"
+        )
+    if "directly funded" in lowered or "fundingtype" in lowered or "charter funding" in lowered:
+        hints.append(
+            "Directly funded 用 frpm.`Charter Funding Type`='Directly funded'，勿用 schools.FundingType。"
+        )
+    if not hints:
+        return None
+    return " ".join(hints)

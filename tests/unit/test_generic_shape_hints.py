@@ -2,13 +2,48 @@
 
 from __future__ import annotations
 
-from app.agents.text_to_sql.prompt import GENERIC_PROMPT_VERSION, system_prompt_for
+from app.agents.text_to_sql.prompt import (
+    GENERIC_PROMPT_VERSION,
+    _repair_hint_for_message,
+    render_repair_prompt,
+    system_prompt_for,
+)
 from app.agents.text_to_sql.shape import check_answer_shape
 from app.schemas.catalog import TableDocument
 
 
+def test_generic_prompt_v60_includes_directly_funded_county_join_rules() -> None:
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v60"
+    sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
+    assert "Charter Funding Type" in sqlite_system
+    assert "勿用 schools.FundingType" in sqlite_system
+    assert "禁止 CROSS JOIN 单行县级统计" in sqlite_system
+
+
+def test_repair_hint_for_county_stats_and_directly_funded() -> None:
+    hint = _repair_hint_for_message("join_shape: CountyStats CROSS JOIN forbidden")
+    assert hint is not None
+    assert "GROUP BY County" in hint
+    funded = _repair_hint_for_message("Charter funding type must use frpm column")
+    assert funded is not None
+    assert "Charter Funding Type" in funded
+
+
+def test_render_repair_prompt_appends_repair_hint() -> None:
+    prompt = render_repair_prompt(
+        question="List schools",
+        schema_context="schools",
+        tools=[],
+        previous_sql="SELECT 1",
+        error_category="join_shape_difference",
+        error_message="CountyStats must not CROSS JOIN",
+    )
+    assert "修复提示：" in prompt
+    assert "GROUP BY County" in prompt
+
+
 def test_generic_prompt_v56_includes_weekly_and_disponent_financial() -> None:
-    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v59"
+    assert GENERIC_PROMPT_VERSION == "text-to-sql-generic-v60"
     sqlite_system = system_prompt_for(dialect="sqlite", profile="generic")
     assert "rtype='S'" in sqlite_system
     assert "PerformanceClassification" in sqlite_system
