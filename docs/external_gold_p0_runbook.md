@@ -123,6 +123,8 @@ p0_acceptance_gate=pass
 
 **bird_0077 LA K-9 FRPM/SAT**：Percent 须 **Count/Enrollment×100**；**SAT Ranking** 按 SAT 总分而非 FRPM；**Is_Charter** 为 **Yes (CharterNum)/No** → **`test_la_k9_e5482a4_frozen_contract_flags_sat_rank_and_percent`**。
 
+**bird_0020 / 0062 / 0078 / 0079 / 0104 / 0113**：e5482a4 raw EX=0 上 **`test_e5482a4_ex0_frozen_contract_repair_signals`** 覆盖 Amador free-meal 口径、LA `<0.18%` 阈值、Adelanto grade-span CTE、virtual charter/FRPM%、840 交易 age、98832 previous_loans 等 frozen 信号。
+
 **bird_0011 Enrollment>500 FRPM/SAT**：measured **`enrollment500` PATCH**（`enrollment500_frpm_sat_profile`）对齐 Gold SQL；replay 与实测评分共用 **`try_deterministic_profile_patch`**（Gold 仍可能带 frozen shape finding，故 replay 在 autofix 未通过时 fallback）。
 
 **BIRD 按题 profile catalog**：`app/evaluation/bird_patch_catalog.py` 与 `bird_contracts` 同步；除 **0002/0003/0005/0013/0032/0061/0094/0096/0118** 字符串 PATCH 外，其余 profile 题 measured 路径 **Gold-align PATCH**。402 期间 **`e5482a4` / v12 峰值 replay 均可 50/50**（`--replay-patch-autofix`；**0013** Free-Meal 形、**0096** `CustomerWeeklyStatements` 形走 cohort Gold PATCH）。

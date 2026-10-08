@@ -1013,7 +1013,8 @@ def check_frozen_semantic_contract(
                 if re.search(
                     r"JULIANDAY\s*\([^)]+\)\s*/\s*365\.25|"
                     r"JULIANDAY\s*\(\s*[^)]*transaction[^)]*\)\s*-\s*JULIANDAY\s*\(\s*[^)]*birth|"
-                    r"\*\s*365\.25",
+                    r"\*\s*365\.25|"
+                    r"\*\s*365\s*\+[\s\S]{0,220}\*\s*30",
                     sql,
                     re.IGNORECASE,
                 ):
@@ -1651,6 +1652,22 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "previous_loans 统计该 client 所有账户在贷款日前的 loan 笔数",
+                    )
+                )
+            prev_loans_sub = re.search(
+                r"\(\s*SELECT\s+COUNT\s*\(\s*\*\s*\)[\s\S]{0,500}\)\s+AS\s+previous_loans",
+                sql,
+                re.IGNORECASE,
+            )
+            if prev_loans_sub and not re.search(
+                r"date\s*<\s*'?1996-01-03|loan_date|lc\.loan_date|tl\.loan_date",
+                prev_loans_sub.group(0),
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "previous_loans 仅统计 loan.date 早于 1996-01-03 目标贷款",
                     )
                 )
             if (
@@ -2348,6 +2365,18 @@ def check_frozen_semantic_contract(
                         "不要 SUM(CASE frpm_pct 阈值)",
                     )
                 )
+            if re.search(
+                r"GradeSpanRank[\s\S]{0,220}FROM\s+SchoolStats",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "最常见 grade span：SchoolsByGradeSpan 仅 schools 按 GSserved 计数，"
+                        "不要从 JOIN frpm 的 SchoolStats 派生",
+                    )
+                )
         if "ricci_ulrich_admin_sat_profile=true" in contract.filters:
             if not re.search(
                 r"AdmFName1\s*=\s*'Ricci'[\s\S]*AdmLName1\s*=\s*'Ulrich'",
@@ -2550,12 +2579,57 @@ def check_frozen_semantic_contract(
                         "CharterSchools/NonCharter 用 frpm `Charter School (Y/N)`",
                     )
                 )
-            if re.search(r"free_meal\s*\*\s*1\.0\s*/\s*enrollment", sql, re.IGNORECASE):
+            if re.search(
+                r"Free Meal Count \(K-12\)[\s\S]{0,80}/[\s\S]{0,40}Enrollment \(K-12\)",
+                sql,
+                re.IGNORECASE,
+            ) or re.search(r"free_meal\s*\*\s*1\.0\s*/\s*enrollment", sql, re.IGNORECASE):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
                         "AvgFRPMPercentage 用 AVG(Percent FRPM)*100；"
                         "HighPoverty 用 FRPM>0.75 的 PovertyLevel，不要用 free meal 率",
+                    )
+                )
+            if re.search(
+                r"\(SELECT COUNT\(\*\) FROM SchoolInfo\) AS TotalSchools",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "TotalSchools 用 COUNT(DISTINCT CDSCode)，不要用 COUNT(*)",
+                    )
+                )
+            if re.search(
+                r"CharterSchools[\s\S]{0,120}Charter\s*=\s*1",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CharterSchools/NonCharter 用 frpm `Charter School (Y/N)`",
+                    )
+                )
+            if re.search(r"FreeMealRate\s*>\s*0\.75", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "HighPovertySchools 用 frpm Percent FRPM>0.75，不要用 FreeMealRate",
+                    )
+                )
+            if re.search(
+                r"Below Average|Above Average",
+                sql,
+                re.IGNORECASE,
+            ) and "SATPerformanceLevel" in "".join(contract.projections):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SATPerformanceLevel 用 High/Medium/Low（SAT 总分 ≥1500/≥1200），"
+                        "不要用 Below/Average/Above Average 标签",
                     )
                 )
             if re.search(
@@ -2824,6 +2898,43 @@ def check_frozen_semantic_contract(
                         "projection_mismatch",
                         "FreePercent 已 ×100 时过滤/分档用 <18/<6/<12 等百分数，"
                         "不要与小数 0.18/0.06 混用",
+                    )
+                )
+            if re.search(r"FreePercentage\s*<\s*18\b", sql, re.IGNORECASE) and not re.search(
+                r"FreePercentage\s*<\s*0\.18",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "低于 0.18% free meal：FreePercent<0.18（×100 后仍用 0.18 阈值），不要用 <18",
+                    )
+                )
+            if re.search(
+                r"WHEN\s+f\.FreePercentage\s+<\s*6\s+THEN\s+'Very Low'",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "FreeCategory 分档用 0.18/10/30（FreePercent 已为 ×100），不要用 6/12/18",
+                    )
+                )
+            if "CountyRank" in contract.projections and re.search(
+                r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(
+                r"ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(\s*PARTITION\s+BY[\s\S]{0,40}County",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "CountyRank 用 ROW_NUMBER() OVER (PARTITION BY County ORDER BY FreePercent)",
                     )
                 )
         if "fresno_direct_funded_charter_profile=true" in contract.filters:
@@ -3774,6 +3885,29 @@ def check_frozen_semantic_contract(
                     SemanticFinding(
                         "projection_mismatch",
                         "AverageSATScore 无 SAT 时保持 NULL（不要 COALESCE SAT 分项为 0）",
+                    )
+                )
+            if re.search(
+                r"SUM\s*\(\s*CASE\s+WHEN\s+CharterFlag\s*=",
+                sql,
+                re.IGNORECASE,
+            ) and "Charter School (Y/N)" not in sql:
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Charter/Regular 计数用 frpm.`Charter School (Y/N)`→Charter School/Regular School",
+                    )
+                )
+            if re.search(
+                r"AVG\s*\(\s*FreeMealRate\s*\)\s*\*\s*100",
+                sql,
+                re.IGNORECASE,
+            ) and "AvgFreeReducedMealPercentage" in "".join(contract.projections):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "AvgFreeReducedMealPercentage 用 frpm Percent FRPM×100，"
+                        "不要用 free_meal/enrollment",
                     )
                 )
         slim_loan_path = allowed <= {"account", "loan", "trans"}

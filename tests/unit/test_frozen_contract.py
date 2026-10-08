@@ -659,6 +659,38 @@ def test_fresno_e5482a4_frozen_contract_flags_flat_aggregation() -> None:
     assert any("COUNT(CASE" in message or "SUM" in message for message in messages)
 
 
+@pytest.mark.parametrize(
+    "case_id,needles",
+    [
+        ("bird_0020", ("FreeMealRate", "TotalSchools")),
+        ("bird_0062", ("0.18", "CountyRank")),
+        ("bird_0078", ("SchoolsByGradeSpan",)),
+        ("bird_0079", ("Charter School", "Percent FRPM")),
+        ("bird_0104", ("age_at_transaction", "1998-10-14")),
+        ("bird_0113", ("previous_loans", "1996-01-03")),
+    ],
+)
+def test_e5482a4_ex0_frozen_contract_repair_signals(case_id: str, needles: tuple[str, ...]) -> None:
+    """e5482a4 vendored EX=0：Step-3 frozen 须给出 repair 信号（非 Gold PATCH 替代）。"""
+    import json
+
+    from app.evaluation.bird import load_bird_cases
+    from app.evaluation.replay_snapshot_paths import bird_e5482a4_measured_run_dir
+
+    case = next(item for item in load_bird_cases() if item.id == case_id)
+    saved_path = bird_e5482a4_measured_run_dir() / "cases" / f"{case_id}.json"
+    if not saved_path.is_file():
+        pytest.skip(f"e5482a4 {case_id} fixture missing")
+    saved = json.loads(saved_path.read_text())["prediction"]["sql"]
+    messages = [
+        item.message
+        for item in check_frozen_semantic_contract(case.semantic_contract, saved, dialect="sqlite")
+    ]
+    assert messages, f"{case_id} expected frozen findings"
+    for needle in needles:
+        assert any(needle in message for message in messages), (case_id, needle, messages)
+
+
 def test_la_k9_e5482a4_frozen_contract_flags_sat_rank_and_percent() -> None:
     """e5482a4 raw bird_0077：SAT Ranking/Percent/Charter 口径须报 repair 信号。"""
     import json
