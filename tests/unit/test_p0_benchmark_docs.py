@@ -34,6 +34,9 @@ def test_benchmark_md_has_autogen_markers() -> None:
     text = (root / "docs/benchmark.md").read_text(encoding="utf-8")
     assert P0_MEASURED_AUTOGEN_START in text
     assert P0_MEASURED_AUTOGEN_END in text
+    assert "e5482a4" in text
+    assert "test_e5482a4_vendored_run_raw_ex0_inventory" in text
+    assert "P0_BIRD_MIN_MATCHED=24" in text
 
 
 def test_patch_benchmark_measured_section_replaces_once(tmp_path: Path) -> None:
