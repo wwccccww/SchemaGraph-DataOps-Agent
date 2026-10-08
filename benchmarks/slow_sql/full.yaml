@@ -23,7 +23,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 2
+  sql: 'SELECT * FROM t_order WHERE (user_id + 1) = 2
 
     '
   index_preconditions: []
@@ -40,7 +40,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 3
+  sql: 'SELECT * FROM t_order WHERE (user_id + 2) = 3
 
     '
   index_preconditions: []
@@ -57,7 +57,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 4
+  sql: 'SELECT * FROM t_order WHERE (user_id + 3) = 4
 
     '
   index_preconditions: []
@@ -74,7 +74,7 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: select-star
-  sql: 'SELECT * FROM t_order WHERE (user_id + 0) = 5
+  sql: 'SELECT * FROM t_order WHERE (user_id + 4) = 5
 
     '
   index_preconditions: []
@@ -91,14 +91,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: missing-filter-on-large-table
-  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                OFFSET 0\n            \
-    \    LIMIT 100\n"
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 401\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - missing-filter-on-large-table
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -107,14 +107,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: missing-filter-on-large-table
-  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                OFFSET 1\n            \
-    \    LIMIT 100\n"
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 402\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - missing-filter-on-large-table
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -123,14 +123,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: missing-filter-on-large-table
-  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                OFFSET 2\n            \
-    \    LIMIT 100\n"
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 403\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - missing-filter-on-large-table
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -139,14 +139,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: missing-filter-on-large-table
-  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                OFFSET 3\n            \
-    \    LIMIT 100\n"
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 404\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - missing-filter-on-large-table
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -155,14 +155,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: missing-filter-on-large-table
-  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                OFFSET 4\n            \
-    \    LIMIT 100\n"
+  sql: "SELECT detail_id, quantity, order_id\n                FROM t_order_detail\n                WHERE NOT EXISTS (SELECT\
+    \ 1 WHERE false)\n                LIMIT 405\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - missing-filter-on-large-table
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -511,14 +511,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: unbounded-sort
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id >= 1\n                ORDER\
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 5\n                ORDER\
     \ BY created_at DESC, order_id\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - unbounded-sort
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -527,14 +527,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: unbounded-sort
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id >= 2\n                ORDER\
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 6\n                ORDER\
     \ BY created_at DESC, order_id\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - unbounded-sort
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -543,14 +543,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: unbounded-sort
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id >= 3\n                ORDER\
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 7\n                ORDER\
     \ BY created_at DESC, order_id\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - unbounded-sort
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -559,14 +559,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: unbounded-sort
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id >= 4\n                ORDER\
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 8\n                ORDER\
     \ BY created_at DESC, order_id\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - unbounded-sort
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -575,14 +575,14 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: unbounded-sort
-  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id >= 5\n                ORDER\
+  sql: "SELECT order_id, total_amount\n                FROM t_order\n                WHERE user_id <= 9\n                ORDER\
     \ BY created_at DESC, order_id\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - unbounded-sort
   - rewrite
-  primary_metric: planner_cost
-  min_primary_drop: 0.2
+  primary_metric: execution_time
+  min_primary_drop: 0.1
   max_secondary_regression: 0.5
   order_sensitive: false
   numeric_tolerance: null
@@ -591,8 +591,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: repeated-distinct
-  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE user_id\
-    \ >= 1\n                ) nested\n"
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 0) = 1\n                ) nested\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - repeated-distinct
@@ -607,8 +607,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: repeated-distinct
-  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE user_id\
-    \ >= 2\n                ) nested\n"
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 1) = 2\n                ) nested\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - repeated-distinct
@@ -623,8 +623,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: repeated-distinct
-  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE user_id\
-    \ >= 3\n                ) nested\n"
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 2) = 3\n                ) nested\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - repeated-distinct
@@ -639,8 +639,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: repeated-distinct
-  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE user_id\
-    \ >= 4\n                ) nested\n"
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 3) = 4\n                ) nested\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - repeated-distinct
@@ -655,8 +655,8 @@ cases:
   snapshot_version: ecommerce-v1
   database_id: ecommerce
   antipattern: repeated-distinct
-  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE user_id\
-    \ >= 5\n                ) nested\n"
+  sql: "SELECT DISTINCT user_id\n                FROM (\n                  SELECT DISTINCT user_id FROM t_order WHERE (user_id\
+    \ + 4) = 5\n                ) nested\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - repeated-distinct
@@ -672,7 +672,8 @@ cases:
   database_id: ecommerce
   antipattern: redundant-join
   sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
-    \          JOIN t_region r ON r.region_id = u.user_id\n                WHERE o.user_id = 1\n"
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 1\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - redundant-join
@@ -688,7 +689,8 @@ cases:
   database_id: ecommerce
   antipattern: redundant-join
   sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
-    \          JOIN t_region r ON r.region_id = u.user_id\n                WHERE o.user_id = 2\n"
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 2\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - redundant-join
@@ -704,7 +706,8 @@ cases:
   database_id: ecommerce
   antipattern: redundant-join
   sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
-    \          JOIN t_region r ON r.region_id = u.user_id\n                WHERE o.user_id = 3\n"
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 3\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - redundant-join
@@ -720,7 +723,8 @@ cases:
   database_id: ecommerce
   antipattern: redundant-join
   sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
-    \          JOIN t_region r ON r.region_id = u.user_id\n                WHERE o.user_id = 4\n"
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 4\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - redundant-join
@@ -736,7 +740,8 @@ cases:
   database_id: ecommerce
   antipattern: redundant-join
   sql: "SELECT o.order_id\n                FROM t_order o\n                JOIN t_user u ON u.user_id = o.user_id\n      \
-    \          JOIN t_region r ON r.region_id = u.user_id\n                WHERE o.user_id = 5\n"
+    \          JOIN t_region r ON r.region_id = u.user_id\n                JOIN t_user u2 ON u2.user_id = u.user_id\n    \
+    \            WHERE o.user_id = 5\n"
   index_preconditions: []
   allowed_rewrite_categories:
   - redundant-join

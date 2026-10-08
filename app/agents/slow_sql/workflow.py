@@ -277,7 +277,9 @@ def _rewrite_sql(
         nodes = tuple(_node_from_state(item) for item in state["plan_nodes"])
         attempt = state["generation_attempt"] + 1
         candidate: str | None = None
-        if attempt == 1:
+        if attempt == 1 or (
+            attempt > 1 and state.get("equivalent") is False and state.get("last_candidate_sql")
+        ):
             candidate = try_autofix_sql(state["sql"], findings)
             if candidate is not None:
                 decision = check_read_only_sql(candidate)

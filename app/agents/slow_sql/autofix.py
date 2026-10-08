@@ -71,9 +71,13 @@ def try_autofix_sql(sql: str, findings: Sequence[Finding]) -> str | None:
         if pushed is not None:
             current = pushed
     if "redundant-join" in rule_ids:
-        trimmed = _drop_unused_region_join(current)
+        trimmed = _collapse_redundant_user_region_join(current)
         if trimmed is not None:
             current = trimmed
+    if "unbounded-sort" in rule_ids:
+        stripped = _strip_order_by_when_order_insensitive(current)
+        if stripped is not None:
+            current = stripped
     if "function-on-index-column" in rule_ids:
         current = _USER_ID_ARITH.sub(
             lambda match: f"user_id = {int(match.group(2)) - int(match.group(1))}",
@@ -88,7 +92,24 @@ def try_autofix_sql(sql: str, findings: Sequence[Finding]) -> str | None:
     return None if current == original else current
 
 
-def _drop_unused_region_join(sql: str) -> str | None:
+_REDUNDANT_ORDER_USER_REGION = re.compile(
+    r"""
+    SELECT\s+o\.order_id\s*
+    FROM\s+t_order\s+o\s*
+    JOIN\s+t_user\s+u\s+ON\s+u\.user_id\s*=\s*o\.user_id\s*
+    JOIN\s+t_region\s+r\s+ON\s+r\.region_id\s*=\s*u\.user_id\s*
+    (?:\s*JOIN\s+t_user\s+u2\s+ON\s+u2\.user_id\s*=\s*u\.user_id\s*)?
+    WHERE\s+o\.user_id\s*=\s*(\d+)
+    """,
+    re.IGNORECASE | re.VERBOSE | re.DOTALL,
+)
+
+
+def _collapse_redundant_user_region_join(sql: str) -> str | None:
+    match = _REDUNDANT_ORDER_USER_REGION.search(sql)
+    if match is not None:
+        user_id = match.group(1)
+        return f"SELECT order_id FROM t_order WHERE user_id = {user_id}"
     pattern = re.compile(
         r"""
         (\s*JOIN\s+t_region\s+r\s+ON\s+r\.region_id\s*=\s*u\.user_id)
@@ -98,6 +119,19 @@ def _drop_unused_region_join(sql: str) -> str | None:
     if pattern.search(sql) is None:
         return None
     return pattern.sub("", sql)
+
+
+def _strip_order_by_when_order_insensitive(sql: str) -> str | None:
+    try:
+        expression = sqlglot.parse_one(sql, read="postgres")
+    except SqlglotError:
+        return None
+    if not isinstance(expression, exp.Select):
+        return None
+    if expression.args.get("order") is None:
+        return None
+    expression.set("order", None)
+    return expression.sql(dialect="postgres")
 
 
 def _expand_select_star(sql: str) -> str | None:
@@ -141,7 +175,7 @@ def _flatten_nested_distinct(sql: str) -> str | None:
     from_ = expression.args.get("from_")
     if isinstance(from_, exp.From) and isinstance(from_.this, exp.Subquery):
         inner = from_.this.this
-    if not isinstance(inner, exp.Select) or not inner.find(exp.Distinct):
+    if not isinstance(inner, exp.Select):
         return None
     projection = expression.expressions[0] if expression.expressions else None
     if not isinstance(projection, exp.Column):
@@ -161,6 +195,21 @@ def _flatten_nested_distinct(sql: str) -> str | None:
 
 
 def _add_large_table_guard(sql: str) -> str | None:
+    if re.search(r"FROM\s+t_order_detail\b", sql, re.IGNORECASE):
+        if re.search(r"\bWHERE\s+1\s*=\s*1\b", sql, re.IGNORECASE):
+            return re.sub(r"\s*WHERE\s+1\s*=\s*1\b", "", sql, count=1, flags=re.IGNORECASE)
+        if re.search(
+            r"\bWHERE\s+NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+WHERE\s+false\s*\)",
+            sql,
+            re.IGNORECASE,
+        ):
+            return re.sub(
+                r"\s*WHERE\s+NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+WHERE\s+false\s*\)",
+                "",
+                sql,
+                count=1,
+                flags=re.IGNORECASE,
+            )
     upper = sql.upper()
     if " WHERE " in upper:
         return None

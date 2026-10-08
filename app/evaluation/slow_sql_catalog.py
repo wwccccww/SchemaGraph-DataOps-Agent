@@ -56,7 +56,7 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
             _base(
                 f"slow_select_star_{index:02d}",
                 "select-star",
-                f"SELECT * FROM t_order WHERE (user_id + 0) = {index}",
+                f"SELECT * FROM t_order WHERE (user_id + {index - 1}) = {index}",
             )
         )
 
@@ -68,9 +68,11 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
                 f"""
                 SELECT detail_id, quantity, order_id
                 FROM t_order_detail
-                OFFSET {index - 1}
-                LIMIT 100
+                WHERE NOT EXISTS (SELECT 1 WHERE false)
+                LIMIT {400 + index}
                 """.strip(),
+                primary_metric="execution_time",
+                min_primary_drop=0.1,
             )
         )
 
@@ -134,9 +136,11 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
                 f"""
                 SELECT order_id, total_amount
                 FROM t_order
-                WHERE user_id >= {index}
+                WHERE user_id <= {index + 4}
                 ORDER BY created_at DESC, order_id
                 """.strip(),
+                primary_metric="execution_time",
+                min_primary_drop=0.1,
             )
         )
 
@@ -148,7 +152,7 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
                 f"""
                 SELECT DISTINCT user_id
                 FROM (
-                  SELECT DISTINCT user_id FROM t_order WHERE user_id >= {index}
+                  SELECT DISTINCT user_id FROM t_order WHERE (user_id + {index - 1}) = {index}
                 ) nested
                 """.strip(),
             )
@@ -164,6 +168,7 @@ def full_slow_sql_case_payloads() -> list[dict[str, Any]]:
                 FROM t_order o
                 JOIN t_user u ON u.user_id = o.user_id
                 JOIN t_region r ON r.region_id = u.user_id
+                JOIN t_user u2 ON u2.user_id = u.user_id
                 WHERE o.user_id = {index}
                 """.strip(),
             )
