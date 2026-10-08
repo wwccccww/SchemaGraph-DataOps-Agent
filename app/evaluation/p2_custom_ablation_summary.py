@@ -96,7 +96,9 @@ def resolve_run_dir(root: Path, *, run_dir: Path | None, latest: bool) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Summarize custom ablation Recovery@3 for docs/gates")
+    parser = argparse.ArgumentParser(
+        description="Summarize custom ablation Recovery@3 for docs/gates"
+    )
     parser.add_argument("--run-dir", type=Path, default=None, help="reports/custom/run_* directory")
     parser.add_argument("--latest", action="store_true", help="use newest run under reports/custom")
     parser.add_argument("--write-benchmark", type=Path, default=None)
