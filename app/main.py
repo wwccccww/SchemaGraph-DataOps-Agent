@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from app import __version__
 from app.api.health import router as health_router
 from app.api.slow_sql import router as slow_sql_router
+from app.api.schema_registry import router as schema_registry_router
 from app.api.text_to_sql import router as text_to_sql_router
 from app.db.engine import dispose_engines
 from app.db.initialize import initialize_database_with_retry
@@ -33,6 +34,7 @@ def create_app(*, initialize: bool = True) -> FastAPI:
     app.include_router(health_router)
     app.include_router(text_to_sql_router)
     app.include_router(slow_sql_router)
+    app.include_router(schema_registry_router)
     return app
 
 

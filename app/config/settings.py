@@ -6,6 +6,8 @@ import re
 from functools import lru_cache
 from urllib.parse import urlsplit
 
+from typing import Literal
+
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
@@ -44,6 +46,8 @@ class Settings(BaseSettings):
     deepseek_api_key: SecretStr | None = None
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
+    text_to_sql_catalog_mode: Literal["fixed_ecommerce", "live_public"] = "fixed_ecommerce"
+    schema_registry_auto_activate: bool = True
 
     @field_validator("postgres_user", "postgres_db")
     @classmethod

@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 from app.agents.text_to_sql.workflow import ServiceBundle
 from app.config.settings import get_settings
-from app.db.catalog import load_foreign_keys, load_table_documents
+from app.db.catalog_loader import load_catalog_for_runtime
 from app.db.engine import get_sandbox_engine
 from app.graph.expand import TokenCounter
 from app.llm.gateway import ChatModel, DeepSeekGateway
@@ -67,13 +67,12 @@ def build_services(
 
     async def select_seeds(question: str) -> Sequence[SchemaSeed]:
         async with get_sandbox_engine().connect() as conn:
-            documents = await load_table_documents(conn)
+            documents, _, _ = await load_catalog_for_runtime(conn, settings)
             return await search_dynamic_schema_seeds(conn, question, embedder, documents)
 
     async def load_catalog() -> tuple[Sequence[TableDocument], Sequence[SchemaEdge]]:
         async with get_sandbox_engine().connect() as conn:
-            documents = await load_table_documents(conn)
-            edges = await load_foreign_keys(conn)
+            documents, edges, _ = await load_catalog_for_runtime(conn, settings)
         return documents, edges
 
     async def execute(sql: str, *, max_rows: int) -> ExecutionSuccess | ExecutionError:
