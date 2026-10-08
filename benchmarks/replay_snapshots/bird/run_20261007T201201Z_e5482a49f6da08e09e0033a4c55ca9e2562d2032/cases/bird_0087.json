@@ -1,0 +1,128 @@
+{
+  "case_id": "bird_0087",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT AdmEmail1, AdmEmail2\nFROM schools\nWHERE County = 'San Bernardino'\n  AND City = 'San Bernardino'\n  AND DOC = '54'\n  AND SOC = '62'\n  AND strftime('%Y', OpenDate) BETWEEN '2009' AND '2010';",
+    "sql_hash": "sha256:1c599628fb81e71eab5574dd6bcdeb9e825901a40fe0d14975786fabede5df1c",
+    "referenced_tables": [
+      "schools"
+    ],
+    "projections": [
+      "AdmEmail1",
+      "AdmEmail2"
+    ],
+    "joins": [],
+    "predicates": [
+      "WHERE County = 'San Bernardino' AND City = 'San Bernardino' AND DOC = '54' AND SOC = '62' AND TO_CHAR(CAST(OpenDate AS TIMESTAMP), 'YYYY') BETWEEN '2009' AND '2010'"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "AdmEmail1",
+          "AdmEmail2"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      ""
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:2166165f8341d62a68cc246d4e05ef192d68e43295e42def92ad7019dc3839c4;2:no_progress:sha256:2166165f8341d62a68cc246d4e05ef192d68e43295e42def92ad7019dc3839c4"
+    ]
+  ]
+}

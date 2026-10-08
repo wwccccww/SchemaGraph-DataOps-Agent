@@ -1,0 +1,249 @@
+{
+  "case_id": "bird_0106",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "client",
+    "card",
+    "district",
+    "disp",
+    "trans",
+    "account",
+    "loan",
+    "order"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH card_client AS (SELECT c.client_id, ca.card_id, ca.type AS card_type, c.gender, c.birth_date, c.district_id FROM card AS ca JOIN disp AS d ON ca.disp_id = d.disp_id JOIN client AS c ON d.client_id = c.client_id WHERE ca.issued = '1996-10-21'), client_accounts AS (SELECT cc.client_id, cc.card_id, cc.card_type, cc.gender, cc.birth_date, cc.district_id, a.account_id FROM card_client AS cc JOIN disp AS d2 ON d2.client_id = cc.client_id JOIN account AS a ON a.account_id = d2.account_id), trans_stats AS (SELECT ca.client_id, ca.card_id, ca.card_type, ca.gender, ca.birth_date, ca.district_id, t.trans_id, t.amount, t.type, t.date, t.balance, RANK() OVER (PARTITION BY ca.client_id ORDER BY t.amount DESC) AS amount_rank FROM client_accounts AS ca JOIN trans AS t ON t.account_id = ca.account_id) SELECT ts.client_id AS client_id, ts.card_id AS card_id, ts.card_type AS card_type, ts.gender AS gender, CAST(STRFTIME('%Y', '2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', ts.birth_date) AS INTEGER) AS client_age, di.A2 AS district_name, di.A3 AS region, ts.trans_id AS trans_id, ts.amount AS largest_transaction_amount, ts.type AS transaction_type, ts.date AS transaction_date, ts.balance AS balance_after_transaction, CASE WHEN ts.amount >= 10000 THEN 'High Value' WHEN ts.amount >= 5000 THEN 'Medium Value' ELSE 'Low Value' END AS transaction_category, CASE WHEN NOT l.loan_id IS NULL THEN 'Has Loan' ELSE 'No Loan' END AS loan_status, l.amount AS loan_amount, o.order_id AS order_id, o.bank_to AS bank_to FROM trans_stats AS ts JOIN district AS di ON di.district_id = ts.district_id LEFT JOIN client_accounts AS ca2 ON ca2.client_id = ts.client_id LEFT JOIN loan AS l ON l.account_id = ca2.account_id LEFT JOIN \"order\" AS o ON o.account_id = ca2.account_id WHERE ts.amount_rank = 1 LIMIT 1",
+    "sql_hash": "sha256:0706ba56282e5fc250b7923656b52833269a0ebbba45225c8f7cef52ff27b296",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "order",
+      "trans"
+    ],
+    "projections": [
+      "client_id",
+      "card_id",
+      "card_type",
+      "gender",
+      "client_age",
+      "district_name",
+      "region",
+      "trans_id",
+      "largest_transaction_amount",
+      "transaction_type",
+      "transaction_date",
+      "balance_after_transaction",
+      "transaction_category",
+      "loan_status",
+      "loan_amount",
+      "order_id",
+      "bank_to"
+    ],
+    "joins": [
+      "JOIN district ON di.district_id = ts.district_id",
+      "LEFT JOIN client_accounts ON ca2.client_id = ts.client_id",
+      "LEFT JOIN loan ON l.account_id = ca2.account_id",
+      "LEFT JOIN order ON o.account_id = ca2.account_id",
+      "JOIN disp ON ca.disp_id = d.disp_id",
+      "JOIN client ON d.client_id = c.client_id",
+      "JOIN disp ON d2.client_id = cc.client_id",
+      "JOIN account ON a.account_id = d2.account_id",
+      "JOIN trans ON t.account_id = ca.account_id"
+    ],
+    "predicates": [
+      "WHERE ts.amount_rank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "client_id",
+          "card_id",
+          "card_type",
+          "gender",
+          "client_age",
+          "district_name",
+          "region",
+          "trans_id",
+          "largest_transaction_amount",
+          "transaction_type",
+          "transaction_date",
+          "balance_after_transaction",
+          "transaction_category",
+          "loan_status",
+          "loan_amount",
+          "order_id",
+          "bank_to"
+        ],
+        "joins": [
+          "JOIN district ON di.district_id = ts.district_id",
+          "LEFT JOIN client_accounts ON ca2.client_id = ts.client_id",
+          "LEFT JOIN loan ON l.account_id = ca2.account_id",
+          "LEFT JOIN order ON o.account_id = ca2.account_id",
+          "JOIN disp ON ca.disp_id = d.disp_id",
+          "JOIN client ON d.client_id = c.client_id",
+          "JOIN disp ON d2.client_id = cc.client_id",
+          "JOIN account ON a.account_id = d2.account_id",
+          "JOIN trans ON t.account_id = ca.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "card_client",
+        "projections": [
+          "client_id",
+          "card_id",
+          "card_type",
+          "gender",
+          "birth_date",
+          "district_id"
+        ],
+        "joins": [
+          "JOIN disp ON ca.disp_id = d.disp_id",
+          "JOIN client ON d.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "client_accounts",
+        "projections": [
+          "client_id",
+          "card_id",
+          "card_type",
+          "gender",
+          "birth_date",
+          "district_id",
+          "account_id"
+        ],
+        "joins": [
+          "JOIN disp ON d2.client_id = cc.client_id",
+          "JOIN account ON a.account_id = d2.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "trans_stats",
+        "projections": [
+          "client_id",
+          "card_id",
+          "card_type",
+          "gender",
+          "birth_date",
+          "district_id",
+          "trans_id",
+          "amount",
+          "type",
+          "date",
+          "balance",
+          "amount_rank"
+        ],
+        "joins": [
+          "JOIN trans ON t.account_id = ca.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "trans_stats"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=9"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

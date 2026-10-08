@@ -256,6 +256,18 @@ def build_summary(
     }
 
 
+def validate_p2_repair_traces(records: Sequence[CaseResult]) -> None:
+    """§11.5 P2：写入报告前校验 self_healing 多轮均含 repair_trace。"""
+
+    for record in records:
+        _assert_p2_repair_trace(
+            variant=record.variant,
+            attempts=record.attempts,
+            trace=record.repair_trace,
+            case_id=record.case_id,
+        )
+
+
 def write_ablation_report(
     root: Path,
     *,
@@ -266,6 +278,7 @@ def write_ablation_report(
 ) -> Path:
     """写入 run_<utc>_<commit>。目录已存在时拒绝，避免覆盖历史报告。"""
 
+    validate_p2_repair_traces(records)
     _check_stamp(stamp)
     _check_commit(commit)
     root.mkdir(parents=True, exist_ok=True)
@@ -321,6 +334,13 @@ async def evaluate_case(
     error = None if response.error is None else response.error.category
     anchor = case.anchor_date.isoformat()
     trace = _trace_tuples(inspection.repair_trace)
+    attempts = response.attempts or 0
+    _assert_p2_repair_trace(
+        variant=variant,
+        attempts=attempts,
+        trace=trace,
+        case_id=case.id,
+    )
     primary, symptoms = classify_badcase(
         question=case.question,
         gold_sql=case.gold_sql,
@@ -330,12 +350,13 @@ async def evaluate_case(
         ex=ex,
         anchor_date=anchor,
         repair_trace=trace,
+        dialect=case.dialect,
     )
     return CaseResult(
         case_id=case.id,
         variant=variant,
         passed=ex == 1,
-        attempts=response.attempts or 0,
+        attempts=attempts,
         seed_tables=seeds,
         expanded_tables=expanded,
         junction_recall=recall,
@@ -455,6 +476,23 @@ async def _execution_accuracy(
         numeric_tolerance=case.numeric_tolerance,
     )
     return 1 if matched else 0
+
+
+def _assert_p2_repair_trace(
+    *,
+    variant: str,
+    attempts: int,
+    trace: tuple[tuple[str, str, str, str], ...],
+    case_id: str,
+) -> None:
+    """§11.5 P2：自建 self_healing 多轮必须持久化 repair_trace。"""
+
+    if variant != "self_healing" or attempts <= 1:
+        return
+    if trace:
+        return
+    msg = f"case {case_id}: self_healing attempts={attempts} but repair_trace is empty (§11.5 P2)"
+    raise RuntimeError(msg)
 
 
 def _trace_tuples(

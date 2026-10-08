@@ -1,0 +1,220 @@
+{
+  "case_id": "bird_0079",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 3,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH virtual_schools AS (SELECT s.CDSCode, s.County, s.School, s.Charter AS charter_flag, f.\"Enrollment (K-12)\" AS enrollment, f.\"Free Meal Count (K-12)\" AS free_meal, (COALESCE(ss.AvgScrRead, 0) + COALESCE(ss.AvgScrMath, 0) + COALESCE(ss.AvgScrWrite, 0)) AS sat_total FROM schools AS s LEFT JOIN frpm AS f ON f.CDSCode = s.CDSCode LEFT JOIN satscores AS ss ON ss.cds = s.CDSCode AND ss.rtype = 'S' WHERE s.Virtual = 'F' AND s.County IN ('San Diego', 'Santa Barbara')), county_stats AS (SELECT County, COUNT(*) AS amount, SUM(CASE WHEN charter_flag = 1 THEN 1 ELSE 0 END) AS CharterSchools, SUM(CASE WHEN charter_flag = 0 THEN 1 ELSE 0 END) AS RegularSchools, AVG(enrollment) AS AverageEnrollment, MAX(enrollment) AS HighestEnrollment, MIN(enrollment) AS LowestEnrollment, AVG(CASE WHEN enrollment > 0 THEN free_meal * 1.0 / enrollment * 100 END) AS AvgFreeReducedMealPercentage, AVG(CASE WHEN sat_total > 0 THEN sat_total END) AS AverageSATScore FROM virtual_schools GROUP BY County), ranked AS (SELECT *, RANK() OVER (ORDER BY amount DESC) AS CountyRank FROM county_stats), largest AS (SELECT County, School AS LargestVirtualSchool, ROW_NUMBER() OVER (PARTITION BY County ORDER BY enrollment DESC) AS rn FROM virtual_schools) SELECT r.County AS County, r.amount AS amount, r.CharterSchools AS CharterSchools, r.RegularSchools AS RegularSchools, r.AverageEnrollment AS AverageEnrollment, r.HighestEnrollment AS HighestEnrollment, r.LowestEnrollment AS LowestEnrollment, ROUND(r.AvgFreeReducedMealPercentage, 2) || '%' AS AvgFreeReducedMealPercentage, r.AverageSATScore AS AverageSATScore, l.LargestVirtualSchool AS LargestVirtualSchool FROM ranked AS r JOIN largest AS l ON l.County = r.County AND l.rn = 1 WHERE r.CountyRank = 1",
+    "sql_hash": "sha256:ebab28338f4dfdec44467b04f55247bfa6cadee75d584a801003a74f23e6783c",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "County",
+      "amount",
+      "CharterSchools",
+      "RegularSchools",
+      "AverageEnrollment",
+      "HighestEnrollment",
+      "LowestEnrollment",
+      "AvgFreeReducedMealPercentage",
+      "AverageSATScore",
+      "LargestVirtualSchool"
+    ],
+    "joins": [
+      "JOIN largest ON l.County = r.County AND l.rn = 1",
+      "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+    ],
+    "predicates": [
+      "WHERE r.CountyRank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "County",
+          "amount",
+          "CharterSchools",
+          "RegularSchools",
+          "AverageEnrollment",
+          "HighestEnrollment",
+          "LowestEnrollment",
+          "AvgFreeReducedMealPercentage",
+          "AverageSATScore",
+          "LargestVirtualSchool"
+        ],
+        "joins": [
+          "JOIN largest ON l.County = r.County AND l.rn = 1",
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "virtual_schools",
+        "projections": [
+          "CDSCode",
+          "County",
+          "School",
+          "charter_flag",
+          "enrollment",
+          "free_meal",
+          "sat_total"
+        ],
+        "joins": [
+          "LEFT JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "county_stats",
+        "projections": [
+          "County",
+          "amount",
+          "CharterSchools",
+          "RegularSchools",
+          "AverageEnrollment",
+          "HighestEnrollment",
+          "LowestEnrollment",
+          "AvgFreeReducedMealPercentage",
+          "AverageSATScore"
+        ],
+        "joins": [],
+        "group_by": [
+          "County"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg",
+          "max",
+          "min"
+        ]
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "*",
+          "CountyRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "largest",
+        "projections": [
+          "County",
+          "LargestVirtualSchool",
+          "rn"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CountyStats:County"
+    ],
+    [
+      "predicted_group_by",
+      "county_stats:County"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "county_stats,ranked"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:c163fd8782d2d79bc8a76e4c6044dbb35fc735881770d2fb8e94aceac5438416;2:projection_mismatch:sha256:3e820826c67db8f8e44ae1f47ba0a46f692139f6034741e513da01819098654d;3:accepted:"
+    ]
+  ]
+}

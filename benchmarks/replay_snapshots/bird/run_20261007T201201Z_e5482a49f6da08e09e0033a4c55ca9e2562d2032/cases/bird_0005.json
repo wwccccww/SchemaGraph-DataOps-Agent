@@ -1,0 +1,205 @@
+{
+  "case_id": "bird_0005",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH VirtualSchools AS (\n    SELECT \n        s.CDSCode,\n        s.School,\n        s.Virtual,\n        s.Charter,\n        s.City,\n        CASE \n            WHEN s.Virtual = 'F' THEN 'Fully Virtual'\n            WHEN s.Virtual = 'P' THEN 'Partially Virtual'\n            WHEN s.Virtual = 'N' THEN 'Not Virtual'\n            ELSE 'Unknown'\n        END AS VirtualStatus\n    FROM schools s\n    WHERE s.Virtual = 'F'\n),\nSATPerformance AS (\n    SELECT \n        sat.cds,\n        sat.sname,\n        sat.AvgScrMath,\n        sat.AvgScrRead,\n        sat.AvgScrWrite,\n        (sat.AvgScrMath + sat.AvgScrRead + sat.AvgScrWrite) AS TotalScore,\n        RANK() OVER (ORDER BY sat.AvgScrMath DESC) AS MathRank,\n        RANK() OVER (ORDER BY (sat.AvgScrMath + sat.AvgScrRead + sat.AvgScrWrite) DESC) AS TotalScoreRank\n    FROM satscores sat\n    WHERE sat.AvgScrMath > 400\n),\nSchoolEnrollmentData AS (\n    SELECT \n        f.CDSCode,\n        f.`School Name`,\n        f.`Enrollment (K-12)`,\n        f.`FRPM Count (K-12)`,\n        f.`Percent (%) Eligible FRPM (K-12)`,\n        CASE \n            WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High Poverty'\n            WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium Poverty'\n            WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.25 THEN 'Low Poverty'\n            ELSE 'Very Low Poverty'\n        END AS PovertyLevel\n    FROM frpm f\n)\nSELECT \n    vs.School AS SchoolName,\n    vs.City,\n    vs.VirtualStatus,\n    CASE WHEN vs.Charter = 1 THEN 'Charter School' ELSE 'Regular School' END AS SchoolType,\n    sp.AvgScrMath AS MathScore,\n    sp.AvgScrRead AS ReadingScore,\n    sp.AvgScrWrite AS WritingScore,\n    sp.TotalScore,\n    sp.MathRank,\n    sp.TotalScoreRank,\n    sed.`Enrollment (K-12)` AS Enrollment,\n    sed.PovertyLevel,\n    ROUND(sed.`Percent (%) Eligible FRPM (K-12)` * 100, 1) || '%' AS FRPMPercentage\nFROM VirtualSchools vs\nJOIN SATPerformance sp ON vs.CDSCode = sp.cds\nLEFT JOIN SchoolEnrollmentData sed ON vs.CDSCode = sed.CDSCode\nORDER BY sp.TotalScore DESC, sed.`Enrollment (K-12)` DESC;",
+    "sql_hash": "sha256:d1d8c8276265dcd7075b1b84bde897752f6d1f69093c555433c983fd43f49b34",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "City",
+      "VirtualStatus",
+      "SchoolType",
+      "MathScore",
+      "ReadingScore",
+      "WritingScore",
+      "TotalScore",
+      "MathRank",
+      "TotalScoreRank",
+      "Enrollment",
+      "PovertyLevel",
+      "FRPMPercentage"
+    ],
+    "joins": [
+      "JOIN SATPerformance ON vs.CDSCode = sp.cds",
+      "LEFT JOIN SchoolEnrollmentData ON vs.CDSCode = sed.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sp.TotalScore DESC",
+      "sed.\"Enrollment (K-12)\" DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "City",
+          "VirtualStatus",
+          "SchoolType",
+          "MathScore",
+          "ReadingScore",
+          "WritingScore",
+          "TotalScore",
+          "MathRank",
+          "TotalScoreRank",
+          "Enrollment",
+          "PovertyLevel",
+          "FRPMPercentage"
+        ],
+        "joins": [
+          "JOIN SATPerformance ON vs.CDSCode = sp.cds",
+          "LEFT JOIN SchoolEnrollmentData ON vs.CDSCode = sed.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "VirtualSchools",
+        "projections": [
+          "CDSCode",
+          "School",
+          "Virtual",
+          "Charter",
+          "City",
+          "VirtualStatus"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SATPerformance",
+        "projections": [
+          "cds",
+          "sname",
+          "AvgScrMath",
+          "AvgScrRead",
+          "AvgScrWrite",
+          "TotalScore",
+          "MathRank",
+          "TotalScoreRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "SchoolEnrollmentData",
+        "projections": [
+          "CDSCode",
+          "School Name",
+          "Enrollment (K-12)",
+          "FRPM Count (K-12)",
+          "Percent (%) Eligible FRPM (K-12)",
+          "PovertyLevel"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "SATPerformance"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      ""
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

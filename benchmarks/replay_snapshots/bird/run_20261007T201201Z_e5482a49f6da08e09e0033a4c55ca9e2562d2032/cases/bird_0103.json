@@ -1,0 +1,240 @@
+{
+  "case_id": "bird_0103",
+  "database_id": "financial",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "loan",
+    "card",
+    "district",
+    "client",
+    "account",
+    "disp",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH ClientCardInfo AS (SELECT c.client_id, c.gender, c.birth_date, c.district_id, cd.type AS card_type, cd.issued, CAST(STRFTIME('%Y', cd.issued) AS INTEGER) - CAST(STRFTIME('%Y', c.birth_date) AS INTEGER) AS age_at_card_issue FROM client AS c JOIN disp AS d ON d.client_id = c.client_id JOIN card AS cd ON cd.disp_id = d.disp_id WHERE cd.issued = '1994-03-03'), ClientAccountInfo AS (SELECT cci.client_id, COUNT(DISTINCT a.account_id) AS account_count, COUNT(l.loan_id) AS loan_count, SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS active_loans, AVG(l.amount) AS avg_loan_amount FROM ClientCardInfo AS cci LEFT JOIN disp AS d ON d.client_id = cci.client_id LEFT JOIN account AS a ON a.account_id = d.account_id LEFT JOIN loan AS l ON l.account_id = a.account_id GROUP BY cci.client_id), ClientDistrictInfo AS (SELECT cci.client_id, dt.A2 AS district_name, dt.A3 AS region, dt.A11 AS avg_salary FROM ClientCardInfo AS cci JOIN district AS dt ON dt.district_id = cci.district_id) SELECT cci.client_id, cci.gender, cci.birth_date, cci.card_type, cci.age_at_card_issue, cai.account_count, cai.loan_count, cai.active_loans, cai.avg_loan_amount, cdi.district_name, cdi.region, cdi.avg_salary, CASE WHEN cai.loan_count > 0 AND cci.age_at_card_issue < 30 THEN 'Young borrower' WHEN cai.loan_count > 0 AND cci.age_at_card_issue >= 30 THEN 'Mature borrower' ELSE 'Non-borrower' END AS borrower_category, RANK() OVER (PARTITION BY cci.gender ORDER BY cci.age_at_card_issue ASC) AS age_rank_by_gender FROM ClientCardInfo AS cci JOIN ClientAccountInfo AS cai ON cai.client_id = cci.client_id JOIN ClientDistrictInfo AS cdi ON cdi.client_id = cci.client_id ORDER BY cci.gender, age_rank_by_gender",
+    "sql_hash": "sha256:2100d5fb06ae7d08e2b5281b76ecb42e8e85111638a9b63526d4be77d31bb361",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan"
+    ],
+    "projections": [
+      "client_id",
+      "gender",
+      "birth_date",
+      "card_type",
+      "age_at_card_issue",
+      "account_count",
+      "loan_count",
+      "active_loans",
+      "avg_loan_amount",
+      "district_name",
+      "region",
+      "avg_salary",
+      "borrower_category",
+      "age_rank_by_gender"
+    ],
+    "joins": [
+      "JOIN ClientAccountInfo ON cai.client_id = cci.client_id",
+      "JOIN ClientDistrictInfo ON cdi.client_id = cci.client_id",
+      "JOIN disp ON d.client_id = c.client_id",
+      "JOIN card ON cd.disp_id = d.disp_id",
+      "LEFT JOIN disp ON d.client_id = cci.client_id",
+      "LEFT JOIN account ON a.account_id = d.account_id",
+      "LEFT JOIN loan ON l.account_id = a.account_id",
+      "JOIN district ON dt.district_id = cci.district_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "cci.gender ASC",
+      "age_rank_by_gender ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "card_type",
+          "age_at_card_issue",
+          "account_count",
+          "loan_count",
+          "active_loans",
+          "avg_loan_amount",
+          "district_name",
+          "region",
+          "avg_salary",
+          "borrower_category",
+          "age_rank_by_gender"
+        ],
+        "joins": [
+          "JOIN ClientAccountInfo ON cai.client_id = cci.client_id",
+          "JOIN ClientDistrictInfo ON cdi.client_id = cci.client_id",
+          "JOIN disp ON d.client_id = c.client_id",
+          "JOIN card ON cd.disp_id = d.disp_id",
+          "LEFT JOIN disp ON d.client_id = cci.client_id",
+          "LEFT JOIN account ON a.account_id = d.account_id",
+          "LEFT JOIN loan ON l.account_id = a.account_id",
+          "JOIN district ON dt.district_id = cci.district_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "ClientCardInfo",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "district_id",
+          "card_type",
+          "issued",
+          "age_at_card_issue"
+        ],
+        "joins": [
+          "JOIN disp ON d.client_id = c.client_id",
+          "JOIN card ON cd.disp_id = d.disp_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ClientAccountInfo",
+        "projections": [
+          "client_id",
+          "account_count",
+          "loan_count",
+          "active_loans",
+          "avg_loan_amount"
+        ],
+        "joins": [
+          "LEFT JOIN disp ON d.client_id = cci.client_id",
+          "LEFT JOIN account ON a.account_id = d.account_id",
+          "LEFT JOIN loan ON l.account_id = a.account_id"
+        ],
+        "group_by": [
+          "cci.client_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg"
+        ]
+      },
+      {
+        "name": "ClientDistrictInfo",
+        "projections": [
+          "client_id",
+          "district_name",
+          "region",
+          "avg_salary"
+        ],
+        "joins": [
+          "JOIN district ON dt.district_id = cci.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "ClientAccountInfo:c.client_id"
+    ],
+    [
+      "predicted_group_by",
+      "ClientAccountInfo:cci.client_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=7;predicted=8"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:b0bdb945bc96fe48aaa31b1c76da54a37a60264d3b0c4e6a5c7eb426c2029a27;2:accepted:"
+    ]
+  ]
+}

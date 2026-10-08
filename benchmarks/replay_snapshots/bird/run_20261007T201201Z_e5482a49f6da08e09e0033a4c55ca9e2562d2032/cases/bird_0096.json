@@ -1,0 +1,250 @@
+{
+  "case_id": "bird_0096",
+  "database_id": "financial",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "account",
+    "client",
+    "disp",
+    "loan",
+    "order",
+    "trans",
+    "card",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH CustomerWeeklyStatements AS (SELECT T2.client_id, T1.account_id, T1.district_id, T1.date AS account_open_date, COUNT(DISTINCT T3.card_id) AS num_cards FROM account AS T1 INNER JOIN disp AS T2 ON T1.account_id = T2.account_id LEFT JOIN card AS T3 ON T2.disp_id = T3.disp_id WHERE T2.type = 'OWNER' AND T1.frequency = 'POPLATEK TYDNE' GROUP BY T2.client_id, T1.account_id, T1.district_id, T1.date), ClientInfo AS (SELECT c.client_id, c.gender, c.birth_date, CASE WHEN STRFTIME('%Y', '2026-10-01') - STRFTIME('%Y', c.birth_date) - (STRFTIME('%m-%d', '2026-10-01') < STRFTIME('%m-%d', c.birth_date)) < 30 THEN 'Young' WHEN STRFTIME('%Y', '2026-10-01') - STRFTIME('%Y', c.birth_date) - (STRFTIME('%m-%d', '2026-10-01') < STRFTIME('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged' ELSE 'Senior' END AS age_group, d.A2 AS district_name, d.A3 AS region FROM client AS c JOIN district AS d ON c.district_id = d.district_id), LoanAndTransactionData AS (SELECT cws.client_id, COUNT(DISTINCT l.loan_id) AS num_loans, COALESCE(SUM(l.amount), 0) AS total_loan_amount, COALESCE(MAX(l.amount), 0) AS max_loan_amount, COUNT(DISTINCT t.trans_id) AS num_transactions, COALESCE(SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END), 0) AS total_income, COALESCE(SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END), 0) AS total_expense FROM CustomerWeeklyStatements AS cws LEFT JOIN loan AS l ON cws.account_id = l.account_id LEFT JOIN trans AS t ON cws.account_id = t.account_id GROUP BY cws.client_id) SELECT COUNT(DISTINCT cws.client_id) AS total_weekly_owners, ci.gender, ci.age_group, ci.region, ROUND(AVG(cws.num_cards), 2) AS avg_cards_per_customer, ROUND(AVG(ltd.num_loans), 2) AS avg_loans_per_customer, ROUND(AVG(ltd.total_loan_amount), 2) AS avg_loan_amount, ROUND(AVG(ltd.num_transactions), 2) AS avg_transactions, ROUND(AVG(ltd.total_income - ltd.total_expense), 2) AS avg_net_balance, COUNT(DISTINCT CASE WHEN ltd.num_loans > 0 THEN cws.client_id END) AS customers_with_loans, ROUND(COUNT(DISTINCT CASE WHEN ltd.num_loans > 0 THEN cws.client_id END) * 100.0 / COUNT(DISTINCT cws.client_id), 2) AS percent_with_loans FROM CustomerWeeklyStatements AS cws JOIN ClientInfo AS ci ON cws.client_id = ci.client_id JOIN LoanAndTransactionData AS ltd ON cws.client_id = ltd.client_id GROUP BY ci.gender, ci.age_group, ci.region ORDER BY total_weekly_owners DESC",
+    "sql_hash": "sha256:217d5d2439535231304fa1b15ed9058cf9567ada0bd623089e8f28c240cc8690",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "total_weekly_owners",
+      "gender",
+      "age_group",
+      "region",
+      "avg_cards_per_customer",
+      "avg_loans_per_customer",
+      "avg_loan_amount",
+      "avg_transactions",
+      "avg_net_balance",
+      "customers_with_loans",
+      "percent_with_loans"
+    ],
+    "joins": [
+      "JOIN ClientInfo ON cws.client_id = ci.client_id",
+      "JOIN LoanAndTransactionData ON cws.client_id = ltd.client_id",
+      "INNER disp ON T1.account_id = T2.account_id",
+      "LEFT JOIN card ON T2.disp_id = T3.disp_id",
+      "JOIN district ON c.district_id = d.district_id",
+      "LEFT JOIN loan ON cws.account_id = l.account_id",
+      "LEFT JOIN trans ON cws.account_id = t.account_id"
+    ],
+    "predicates": [],
+    "group_by": [
+      "ci.gender",
+      "ci.age_group",
+      "ci.region"
+    ],
+    "aggregations": [
+      "count",
+      "avg"
+    ],
+    "order_by": [
+      "total_weekly_owners DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "total_weekly_owners",
+          "gender",
+          "age_group",
+          "region",
+          "avg_cards_per_customer",
+          "avg_loans_per_customer",
+          "avg_loan_amount",
+          "avg_transactions",
+          "avg_net_balance",
+          "customers_with_loans",
+          "percent_with_loans"
+        ],
+        "joins": [
+          "JOIN ClientInfo ON cws.client_id = ci.client_id",
+          "JOIN LoanAndTransactionData ON cws.client_id = ltd.client_id",
+          "INNER disp ON T1.account_id = T2.account_id",
+          "LEFT JOIN card ON T2.disp_id = T3.disp_id",
+          "JOIN district ON c.district_id = d.district_id",
+          "LEFT JOIN loan ON cws.account_id = l.account_id",
+          "LEFT JOIN trans ON cws.account_id = t.account_id"
+        ],
+        "group_by": [
+          "ci.gender",
+          "ci.age_group",
+          "ci.region"
+        ],
+        "aggregations": [
+          "count",
+          "avg"
+        ]
+      },
+      {
+        "name": "CustomerWeeklyStatements",
+        "projections": [
+          "client_id",
+          "account_id",
+          "district_id",
+          "account_open_date",
+          "num_cards"
+        ],
+        "joins": [
+          "INNER disp ON T1.account_id = T2.account_id",
+          "LEFT JOIN card ON T2.disp_id = T3.disp_id"
+        ],
+        "group_by": [
+          "T2.client_id",
+          "T1.account_id",
+          "T1.district_id",
+          "T1.date"
+        ],
+        "aggregations": [
+          "count"
+        ]
+      },
+      {
+        "name": "ClientInfo",
+        "projections": [
+          "client_id",
+          "gender",
+          "birth_date",
+          "age_group",
+          "district_name",
+          "region"
+        ],
+        "joins": [
+          "JOIN district ON c.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "LoanAndTransactionData",
+        "projections": [
+          "client_id",
+          "num_loans",
+          "total_loan_amount",
+          "max_loan_amount",
+          "num_transactions",
+          "total_income",
+          "total_expense"
+        ],
+        "joins": [
+          "LEFT JOIN loan ON cws.account_id = l.account_id",
+          "LEFT JOIN trans ON cws.account_id = t.account_id"
+        ],
+        "group_by": [
+          "cws.client_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:ci.gender、ci.age_group、ci.region | CustomerWeeklyStatements:T2.client_id、T1.account_id、T1.district_id、T1.date | LoanAndTransactionData:cws.client_id"
+    ],
+    [
+      "predicted_group_by",
+      "outer:ci.gender、ci.age_group、ci.region | CustomerWeeklyStatements:T2.client_id、T1.account_id、T1.district_id、T1.date | LoanAndTransactionData:cws.client_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      ""
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

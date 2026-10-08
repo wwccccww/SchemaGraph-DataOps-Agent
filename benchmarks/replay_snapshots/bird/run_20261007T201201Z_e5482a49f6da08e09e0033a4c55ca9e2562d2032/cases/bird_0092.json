@@ -1,0 +1,270 @@
+{
+  "case_id": "bird_0092",
+  "database_id": "financial",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "loan",
+    "account",
+    "card",
+    "client",
+    "disp",
+    "district",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH female_owner_accounts AS (\n  SELECT\n    c.client_id,\n    c.birth_date,\n    a.account_id,\n    a.district_id\n  FROM client c\n  JOIN disp d ON d.client_id = c.client_id AND d.type = 'OWNER'\n  JOIN account a ON a.account_id = d.account_id\n  WHERE c.gender = 'F'\n),\ndistrict_stats AS (\n  SELECT\n    a.district_id,\n    COUNT(DISTINCT c.client_id) AS female_clients,\n    AVG(dt.A11) AS avg_salary,\n    AVG(2026 - CAST(STRFTIME('%Y', c.birth_date) AS INTEGER)) AS avg_age\n  FROM female_owner_accounts c\n  JOIN account a ON a.account_id = c.account_id\n  JOIN district dt ON dt.district_id = a.district_id\n  GROUP BY a.district_id\n),\naccount_activity AS (\n  SELECT\n    a.district_id,\n    COUNT(DISTINCT a.account_id) AS total_accounts,\n    COUNT(l.loan_id) AS total_loans,\n    AVG(l.amount) AS avg_loan_amount,\n    SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) AS active_loans,\n    SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) AS completed_loans,\n    SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) AS defaulted_loans\n  FROM account a\n  JOIN disp d ON d.account_id = a.account_id AND d.type = 'OWNER'\n  JOIN client c ON c.client_id = d.client_id AND c.gender = 'F'\n  LEFT JOIN loan l ON l.account_id = a.account_id\n  GROUP BY a.district_id\n),\nqualified AS (\n  SELECT\n    ds.district_id,\n    ds.female_clients,\n    ds.avg_salary,\n    ds.avg_age,\n    aa.total_accounts,\n    aa.total_loans,\n    aa.avg_loan_amount,\n    aa.active_loans,\n    aa.completed_loans,\n    aa.defaulted_loans,\n    dt.A3 AS region,\n    RANK() OVER (PARTITION BY dt.A3 ORDER BY ds.avg_salary DESC) AS salary_rank_in_region\n  FROM district_stats ds\n  JOIN account_activity aa ON aa.district_id = ds.district_id\n  JOIN district dt ON dt.district_id = ds.district_id\n  WHERE ds.avg_salary BETWEEN 6000 AND 10000\n    AND ds.female_clients >= 5\n    AND aa.total_loans > 0\n)\nSELECT\n  COUNT(DISTINCT q.district_id) AS district_count,\n  SUM(q.female_clients) AS total_female_clients,\n  AVG(q.avg_salary) AS average_female_salary,\n  ROUND(AVG(q.avg_age), 1) AS average_female_age,\n  SUM(q.total_accounts) AS total_female_accounts,\n  SUM(q.total_loans) AS total_female_loans,\n  AVG(q.avg_loan_amount) AS average_female_loan_amount,\n  SUM(q.active_loans) AS active_female_loans,\n  SUM(q.completed_loans) AS completed_female_loans,\n  SUM(q.defaulted_loans) AS defaulted_female_loans,\n  GROUP_CONCAT(DISTINCT q.region) AS regions_represented\nFROM qualified q\nWHERE q.salary_rank_in_region <= 3;",
+    "sql_hash": "sha256:d47f82ea5b52c51464f9768d482a6eb4b47543ec7c8344339a78d11490de909b",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan"
+    ],
+    "projections": [
+      "district_count",
+      "total_female_clients",
+      "average_female_salary",
+      "average_female_age",
+      "total_female_accounts",
+      "total_female_loans",
+      "average_female_loan_amount",
+      "active_female_loans",
+      "completed_female_loans",
+      "defaulted_female_loans",
+      "regions_represented"
+    ],
+    "joins": [
+      "JOIN disp ON d.client_id = c.client_id AND d.type = 'OWNER'",
+      "JOIN account ON a.account_id = d.account_id",
+      "JOIN account ON a.account_id = c.account_id",
+      "JOIN district ON dt.district_id = a.district_id",
+      "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+      "JOIN client ON c.client_id = d.client_id AND c.gender = 'F'",
+      "LEFT JOIN loan ON l.account_id = a.account_id",
+      "JOIN account_activity ON aa.district_id = ds.district_id",
+      "JOIN district ON dt.district_id = ds.district_id"
+    ],
+    "predicates": [
+      "WHERE q.salary_rank_in_region <= 3"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "sum",
+      "avg",
+      "group_concat"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "district_count",
+          "total_female_clients",
+          "average_female_salary",
+          "average_female_age",
+          "total_female_accounts",
+          "total_female_loans",
+          "average_female_loan_amount",
+          "active_female_loans",
+          "completed_female_loans",
+          "defaulted_female_loans",
+          "regions_represented"
+        ],
+        "joins": [
+          "JOIN disp ON d.client_id = c.client_id AND d.type = 'OWNER'",
+          "JOIN account ON a.account_id = d.account_id",
+          "JOIN account ON a.account_id = c.account_id",
+          "JOIN district ON dt.district_id = a.district_id",
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON c.client_id = d.client_id AND c.gender = 'F'",
+          "LEFT JOIN loan ON l.account_id = a.account_id",
+          "JOIN account_activity ON aa.district_id = ds.district_id",
+          "JOIN district ON dt.district_id = ds.district_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "sum",
+          "avg",
+          "group_concat"
+        ]
+      },
+      {
+        "name": "female_owner_accounts",
+        "projections": [
+          "client_id",
+          "birth_date",
+          "account_id",
+          "district_id"
+        ],
+        "joins": [
+          "JOIN disp ON d.client_id = c.client_id AND d.type = 'OWNER'",
+          "JOIN account ON a.account_id = d.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "district_stats",
+        "projections": [
+          "district_id",
+          "female_clients",
+          "avg_salary",
+          "avg_age"
+        ],
+        "joins": [
+          "JOIN account ON a.account_id = c.account_id",
+          "JOIN district ON dt.district_id = a.district_id"
+        ],
+        "group_by": [
+          "a.district_id"
+        ],
+        "aggregations": [
+          "count",
+          "avg"
+        ]
+      },
+      {
+        "name": "account_activity",
+        "projections": [
+          "district_id",
+          "total_accounts",
+          "total_loans",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "defaulted_loans"
+        ],
+        "joins": [
+          "JOIN disp ON d.account_id = a.account_id AND d.type = 'OWNER'",
+          "JOIN client ON c.client_id = d.client_id AND c.gender = 'F'",
+          "LEFT JOIN loan ON l.account_id = a.account_id"
+        ],
+        "group_by": [
+          "a.district_id"
+        ],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "qualified",
+        "projections": [
+          "district_id",
+          "female_clients",
+          "avg_salary",
+          "avg_age",
+          "total_accounts",
+          "total_loans",
+          "avg_loan_amount",
+          "active_loans",
+          "completed_loans",
+          "defaulted_loans",
+          "region",
+          "salary_rank_in_region"
+        ],
+        "joins": [
+          "JOIN account_activity ON aa.district_id = ds.district_id",
+          "JOIN district ON dt.district_id = ds.district_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "DistrictStats:d.district_id、d.A2、d.A3、d.A11 | AccountActivity:a.district_id"
+    ],
+    [
+      "predicted_group_by",
+      "district_stats:a.district_id | account_activity:a.district_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=9"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:2c718315931358661242ed038cebc3da61d92348ed7078da50fe3ee4604c0bf9;2:no_progress:sha256:2c718315931358661242ed038cebc3da61d92348ed7078da50fe3ee4604c0bf9"
+    ]
+  ]
+}

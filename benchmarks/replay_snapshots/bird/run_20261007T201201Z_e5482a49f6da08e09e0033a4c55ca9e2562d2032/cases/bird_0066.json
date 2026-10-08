@@ -1,0 +1,212 @@
+{
+  "case_id": "bird_0066",
+  "database_id": "california_schools",
+  "primary_class": "sql_error",
+  "ex": 0,
+  "error_category": "no_progress",
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 4,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH DirectlyFundedSchools AS (\n  SELECT\n    s.School AS School,\n    s.OpenDate AS OpenDate,\n    STRFTIME('%Y', s.OpenDate) AS OpenYear,\n    f.\"Enrollment (K-12)\" AS Enrollment,\n    f.\"FRPM Count (K-12)\" AS FRPMCount,\n    f.\"Percent (%) Eligible FRPM (K-12)\" * 100 AS FRPMPercent,\n    CASE\n      WHEN f.\"Educational Option Type\" = 'Traditional' THEN 'Traditional'\n      ELSE 'Non-Traditional'\n    END AS SchoolType,\n    ss.AvgScrRead AS AvgScrRead,\n    ss.AvgScrMath AS AvgScrMath,\n    ss.AvgScrWrite AS AvgScrWrite,\n    CASE\n      WHEN ss.AvgScrRead IS NULL OR ss.AvgScrMath IS NULL OR ss.AvgScrWrite IS NULL THEN NULL\n      ELSE ss.AvgScrRead + ss.AvgScrMath + ss.AvgScrWrite\n    END AS TotalSATScore,\n    s.County AS County\n  FROM schools s\n  JOIN frpm f ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores ss ON ss.cds = s.CDSCode AND ss.rtype = 'S'\n  WHERE s.FundingType = 'Directly funded'\n    AND s.County = 'Stanislaus'\n    AND STRFTIME('%Y', s.OpenDate) BETWEEN '2000' AND '2005'\n    AND f.\"Enrollment (K-12)\" > 0\n),\nCountyStats AS (\n  SELECT\n    County,\n    COUNT(*) AS CountyTotalSchools,\n    AVG(Enrollment) AS CountyAvgEnrollment,\n    AVG(FRPMPercent) AS CountyAvgFRPMPercent\n  FROM DirectlyFundedSchools\n  GROUP BY County\n)\nSELECT\n  d.School AS School,\n  d.OpenDate AS OpenDate,\n  d.OpenYear AS OpenYear,\n  d.Enrollment AS Enrollment,\n  d.FRPMCount AS FRPMCount,\n  d.FRPMPercent AS FRPMPercent,\n  d.SchoolType AS SchoolType,\n  d.AvgScrRead AS AvgScrRead,\n  d.AvgScrMath AS AvgScrMath,\n  d.AvgScrWrite AS AvgScrWrite,\n  d.TotalSATScore AS TotalSATScore,\n  c.CountyTotalSchools AS CountyTotalSchools,\n  c.CountyAvgEnrollment AS CountyAvgEnrollment,\n  c.CountyAvgFRPMPercent AS CountyAvgFRPMPercent,\n  CASE\n    WHEN d.FRPMPercent > c.CountyAvgFRPMPercent THEN 'Above County Average'\n    WHEN d.FRPMPercent < c.CountyAvgFRPMPercent THEN 'Below County Average'\n    ELSE 'At County Average'\n  END AS FRPMStatus,\n  RANK() OVER (ORDER BY d.FRPMPercent DESC) AS FRPMRank,\n  RANK() OVER (ORDER BY d.TotalSATScore DESC) AS SATScoreRank\nFROM DirectlyFundedSchools d\nJOIN CountyStats c ON c.County = d.County\nORDER BY d.FRPMPercent DESC;",
+    "sql_hash": "sha256:af66648472d764c2f8730fec1e829e5f2a1add0f101444344f0eaa7f040b8d18",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "OpenDate",
+      "OpenYear",
+      "Enrollment",
+      "FRPMCount",
+      "FRPMPercent",
+      "SchoolType",
+      "AvgScrRead",
+      "AvgScrMath",
+      "AvgScrWrite",
+      "TotalSATScore",
+      "CountyTotalSchools",
+      "CountyAvgEnrollment",
+      "CountyAvgFRPMPercent",
+      "FRPMStatus",
+      "FRPMRank",
+      "SATScoreRank"
+    ],
+    "joins": [
+      "JOIN CountyStats ON c.County = d.County",
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "d.FRPMPercent DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "OpenDate",
+          "OpenYear",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercent",
+          "SchoolType",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "TotalSATScore",
+          "CountyTotalSchools",
+          "CountyAvgEnrollment",
+          "CountyAvgFRPMPercent",
+          "FRPMStatus",
+          "FRPMRank",
+          "SATScoreRank"
+        ],
+        "joins": [
+          "JOIN CountyStats ON c.County = d.County",
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "DirectlyFundedSchools",
+        "projections": [
+          "School",
+          "OpenDate",
+          "OpenYear",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercent",
+          "SchoolType",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "TotalSATScore",
+          "County"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON ss.cds = s.CDSCode AND ss.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "CountyStats",
+        "projections": [
+          "County",
+          "CountyTotalSchools",
+          "CountyAvgEnrollment",
+          "CountyAvgFRPMPercent"
+        ],
+        "joins": [],
+        "group_by": [
+          "County"
+        ],
+        "aggregations": [
+          "count",
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "circuit_breaker",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "CountyStats:County"
+    ],
+    [
+      "predicted_group_by",
+      "CountyStats:County"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:4add9b85dbbf256f0cb1eef511c0117dfa5e3550c55a5ffea06af06c443213c1;2:projection_mismatch:sha256:333670dac2764195a7790aeb9ee25bc5dbadf978b871db696af7de91e882a03e;3:projection_mismatch:sha256:4907fd701882615fa12770dca521a50d2b4a6a45a95e0240aa2636b4248a5629;4:no_progress:sha256:4907fd701882615fa12770dca521a50d2b4a6a45a95e0240aa2636b4248a5629"
+    ]
+  ]
+}

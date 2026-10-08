@@ -1,0 +1,201 @@
+{
+  "case_id": "bird_0000",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH frpm_calc AS (SELECT frpm.CDSCode, frpm.\"County Name\" AS County, frpm.\"School Name\" AS \"School Name\", frpm.\"Free Meal Count (K-12)\" AS FreeMealCount, frpm.\"Enrollment (K-12)\" AS TotalEnrollment, frpm.\"Free Meal Count (K-12)\" * 1.0 / frpm.\"Enrollment (K-12)\" AS FreeRate FROM frpm WHERE frpm.\"County Name\" = 'Alameda' AND frpm.\"Enrollment (K-12)\" > 0), ranked AS (SELECT frpm_calc.CDSCode, frpm_calc.County, frpm_calc.\"School Name\", frpm_calc.FreeMealCount, frpm_calc.TotalEnrollment, frpm_calc.FreeRate, RANK() OVER (PARTITION BY frpm_calc.County ORDER BY frpm_calc.FreeRate DESC) AS CountyRank FROM frpm_calc), county_avg AS (SELECT frpm_calc.County, AVG(frpm_calc.FreeRate) AS CountyAverageFreeRate FROM frpm_calc GROUP BY frpm_calc.County) SELECT ranked.County AS County, ranked.\"School Name\" AS \"School Name\", ranked.FreeRate AS HighestFreeRate, ranked.FreeMealCount AS FreeMealCount, ranked.TotalEnrollment AS TotalEnrollment, CASE schools.Charter WHEN 1 THEN 'Yes' WHEN 0 THEN 'No' ELSE 'Unknown' END AS IsCharterSchool, schools.GSserved AS GradesServed, CASE WHEN satscores.AvgScrRead IS NULL OR satscores.AvgScrMath IS NULL OR satscores.AvgScrWrite IS NULL THEN 'No SAT Data' WHEN (satscores.AvgScrRead + satscores.AvgScrMath + satscores.AvgScrWrite) < 1200 THEN 'Below Average' WHEN (satscores.AvgScrRead + satscores.AvgScrMath + satscores.AvgScrWrite) <= 1500 THEN 'Average' ELSE 'Above Average' END AS SATPerformance, county_avg.CountyAverageFreeRate AS CountyAverageFreeRate, ranked.FreeRate - county_avg.CountyAverageFreeRate AS DeviationFromCountyAverage FROM ranked JOIN schools ON schools.CDSCode = ranked.CDSCode LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S' JOIN county_avg ON county_avg.County = ranked.County WHERE ranked.CountyRank = 1 ORDER BY ranked.FreeRate DESC LIMIT 1",
+    "sql_hash": "sha256:a613227a20b3fb07359c64c1077d379af4e88224fb1aacfb2794c573938882cf",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "County",
+      "School Name",
+      "HighestFreeRate",
+      "FreeMealCount",
+      "TotalEnrollment",
+      "IsCharterSchool",
+      "GradesServed",
+      "SATPerformance",
+      "CountyAverageFreeRate",
+      "DeviationFromCountyAverage"
+    ],
+    "joins": [
+      "JOIN schools ON schools.CDSCode = ranked.CDSCode",
+      "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'",
+      "JOIN county_avg ON county_avg.County = ranked.County"
+    ],
+    "predicates": [
+      "WHERE ranked.CountyRank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "ranked.FreeRate DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "County",
+          "School Name",
+          "HighestFreeRate",
+          "FreeMealCount",
+          "TotalEnrollment",
+          "IsCharterSchool",
+          "GradesServed",
+          "SATPerformance",
+          "CountyAverageFreeRate",
+          "DeviationFromCountyAverage"
+        ],
+        "joins": [
+          "JOIN schools ON schools.CDSCode = ranked.CDSCode",
+          "LEFT JOIN satscores ON satscores.cds = schools.CDSCode AND satscores.rtype = 'S'",
+          "JOIN county_avg ON county_avg.County = ranked.County"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "frpm_calc",
+        "projections": [
+          "CDSCode",
+          "County",
+          "School Name",
+          "FreeMealCount",
+          "TotalEnrollment",
+          "FreeRate"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ranked",
+        "projections": [
+          "CDSCode",
+          "County",
+          "School Name",
+          "FreeMealCount",
+          "TotalEnrollment",
+          "FreeRate",
+          "CountyRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "county_avg",
+        "projections": [
+          "County",
+          "CountyAverageFreeRate"
+        ],
+        "joins": [],
+        "group_by": [
+          "frpm_calc.County"
+        ],
+        "aggregations": [
+          "avg"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      "county_avg:frpm_calc.County"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "ranked,county_avg"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=3"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:601a1bb5600b574e7700c1ac5b8cafcec21b4a8ce52c025e1ed0067b6ea8b5b1;2:accepted:"
+    ]
+  ]
+}

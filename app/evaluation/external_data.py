@@ -12,7 +12,10 @@ import json
 import logging
 import os
 import re
+import ssl
 import subprocess
+import time
+import urllib.error
 import urllib.request
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -26,16 +29,26 @@ from app.evaluation.bird import (
     CASES_PATH,
     CHECKSUMS_PATH,
     DATABASE_DRIVE_ID,
+    DATABASE_MIRROR_URL,
+    DATABASE_MIRROR_ZIP_SHA256,
     DATABASE_ZIP_SHA256,
     DATASET_COMMIT,
     EXCLUSIONS_PATH,
     QUESTIONS_SHA256,
+    adapt_bird_wall_clock,
     build_bird_cases,
     dump_bird_cases,
     load_bird_questions,
     load_database_checksums,
     materialize_bird_case,
 )
+from app.evaluation.external_gold import (
+    build_fingerprint_document,
+    merge_execution_into_attestation,
+    trace_digest_hex_from_stream,
+    write_attestation,
+)
+from app.evaluation.external_release import evaluate_external_release, release_ready
 from app.evaluation.external_report import (
     ExternalSource,
     GoldTrace,
@@ -222,14 +235,20 @@ async def execute_tpcds_gold(
         database=database,
     )
     traces: list[GoldTrace] = []
+    transaction = connection.transaction(readonly=True)
+    await transaction.start()
     try:
-        await connection.execute(f"SET statement_timeout = {int(timeout_seconds * 1000)}")
+        await connection.execute(
+            "SELECT set_config('statement_timeout', $1, true)",
+            str(int(timeout_seconds * 1000)),
+        )
         for case in cases:
             if case.source != "tpcds-derived":
                 raise ValueError("tpcds gold execution only accepts tpcds-derived cases")
             LOGGER.info("executing %s", case.id)
             traces.append(await _one_tpcds(connection, case))
     finally:
+        await transaction.rollback()
         await connection.close()
     return traces
 
@@ -251,7 +270,7 @@ def select_bird_cases_with_adapter(
     )
     for row in ordered:
         question_id = int(str(row["question_id"]))
-        gold_sql = str(row["SQL"])
+        gold_sql = adapt_bird_wall_clock(str(row["SQL"]))
         if check_sqlite_read_only(gold_sql) is None:
             exclusions.append(question_id)
             continue
@@ -306,9 +325,11 @@ def execute_bird_gold(
                     GoldTrace(case.id, "error", None, None, "column names diverged from the case")
                 )
                 continue
-            traces.append(
-                GoldTrace(case.id, "ok", len(result.rows), digest_rows(result.rows), None)
+            count, digest = trace_digest_hex_from_stream(
+                result.rows,
+                order_sensitive=case.order_sensitive,
             )
+            traces.append(GoldTrace(case.id, "ok", count, digest, None))
             continue
         traces.append(GoldTrace(case.id, "error", None, None, result.category))
     return traces
@@ -323,7 +344,19 @@ def fetch_bird_questions(dest: Path) -> None:
 def fetch_bird_databases(dest: Path) -> None:
     """下载固定的开发库压缩包并核对摘要。压缩包不进入 Git。"""
 
-    _download(DATABASE_URL, dest, DATABASE_ZIP_SHA256)
+    last_error: RuntimeError | None = None
+    for url, expected in (
+        (DATABASE_URL, DATABASE_ZIP_SHA256),
+        (DATABASE_MIRROR_URL, DATABASE_MIRROR_ZIP_SHA256),
+    ):
+        try:
+            _download(url, dest, expected)
+            break
+        except RuntimeError as exc:
+            last_error = exc
+            dest.unlink(missing_ok=True)
+    else:
+        raise last_error or RuntimeError("BIRD database download failed")
     if dest.read_bytes()[:2] != b"PK":
         raise RuntimeError("BIRD database download was not a zip file")
 
@@ -356,6 +389,27 @@ def snapshot_from_counts(counts: Mapping[str, int]) -> str:
 
     lines = [f"{name}:{counts[name]}" for name in sorted(counts)]
     return hashlib.sha256("\n".join(lines).encode()).hexdigest()
+
+
+def tpcds_postgres_catalog_reachable(*, timeout_seconds: float = 3.0) -> bool:
+    """Env 已设且能连上 TPC-DS catalog 库（replay/verify 前置）。"""
+    try:
+        kwargs = postgres_connection_kwargs()
+    except RuntimeError:
+        return False
+
+    async def probe() -> None:
+        conn = await asyncpg.connect(timeout=timeout_seconds, **kwargs)
+        try:
+            await conn.execute("SELECT 1")
+        finally:
+            await conn.close()
+
+    try:
+        asyncio.run(probe())
+    except Exception:
+        return False
+    return True
 
 
 def postgres_connection_kwargs() -> PostgresTarget:
@@ -399,6 +453,13 @@ def main(argv: list[str] | None = None) -> None:
     verify_tpcds = subcommands.add_parser("verify-tpcds")
     verify_tpcds.add_argument("--timeout", type=float, default=180)
     verify_tpcds.add_argument("--report-root", type=Path, default=Path("reports/tpcds-derived"))
+    freeze = subcommands.add_parser("freeze-external-gold")
+    freeze.add_argument(
+        "--source",
+        choices=("bird", "tpcds-derived"),
+        required=True,
+    )
+    subcommands.add_parser("check-external-release")
     questions = subcommands.add_parser("fetch-bird-questions")
     questions.add_argument("--dest", type=Path, required=True)
     databases = subcommands.add_parser("fetch-bird-databases")
@@ -421,6 +482,10 @@ def main(argv: list[str] | None = None) -> None:
         _verify_bird(args.database_root, args.timeout, args.report_root)
     elif args.command == "verify-tpcds":
         asyncio.run(_verify_tpcds(args.timeout, args.report_root))
+    elif args.command == "freeze-external-gold":
+        _freeze_external_gold(args.source)
+    elif args.command == "check-external-release":
+        _check_external_release()
     elif args.command == "fetch-bird-questions":
         fetch_bird_questions(args.dest)
     elif args.command == "fetch-bird-databases":
@@ -455,13 +520,24 @@ def _verify_bird(database_root: Path, timeout_seconds: float, report_root: Path)
     failed = [trace.case_id for trace in traces if trace.status != "ok"]
     if failed:
         raise RuntimeError(f"bird gold execution failed: {failed}")
+    checksums = load_database_checksums()
+    snapshot = hashlib.sha256(
+        json.dumps(checksums, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    _persist_gold_attestation(
+        cases,
+        traces,
+        source="bird",
+        benchmark_version=BIRD_SOURCE_VERSION,
+        database_snapshot=snapshot,
+    )
     _write_report(
         report_root,
         source="bird",
         version=BIRD_SOURCE_VERSION,
         cases=cases,
         traces=traces,
-        snapshot=QUESTIONS_SHA256,
+        snapshot=snapshot,
         environment={"executor": "sqlite-readonly-adapter", "cpu_limit": 2, "memory_limit_gb": 2},
     )
 
@@ -495,13 +571,21 @@ async def _verify_tpcds(timeout_seconds: float, report_root: Path) -> None:
                 counts[name] = value
     finally:
         await connection.close()
+    snapshot = snapshot_from_counts(counts)
+    _persist_gold_attestation(
+        cases,
+        traces,
+        source="tpcds-derived",
+        benchmark_version=TPCDS_SOURCE_VERSION,
+        database_snapshot=snapshot,
+    )
     _write_report(
         report_root,
         source="tpcds-derived",
         version=TPCDS_SOURCE_VERSION,
         cases=cases,
         traces=traces,
-        snapshot=snapshot_from_counts(counts),
+        snapshot=snapshot,
         environment={
             "postgres": "16",
             "scale_factor": 1,
@@ -510,6 +594,53 @@ async def _verify_tpcds(timeout_seconds: float, report_root: Path) -> None:
             "official_tpcds_result": False,
         },
     )
+
+
+def _check_external_release() -> None:
+    findings = evaluate_external_release()
+    for item in findings:
+        LOGGER.log(
+            logging.ERROR if item.level == "error" else logging.WARNING,
+            "%s",
+            item.message,
+        )
+    if not release_ready():
+        raise SystemExit(1)
+    LOGGER.info("external release checks passed")
+
+
+def _freeze_external_gold(source: ExternalSource) -> None:
+    """只写入 Gold SQL 指纹，不要求数据库。CI 与 PR 靠这一层拦截意外改动。"""
+
+    cases = build_bird_cases() if source == "bird" else build_tpcds_cases()
+    version = BIRD_SOURCE_VERSION if source == "bird" else TPCDS_SOURCE_VERSION
+    document = build_fingerprint_document(cases, source=source, benchmark_version=version)
+    path = write_attestation(document, source)
+    LOGGER.info("wrote fingerprint attestation to %s", path)
+
+
+def _persist_gold_attestation(
+    cases: Sequence[BenchmarkCase],
+    traces: Sequence[GoldTrace],
+    *,
+    source: ExternalSource,
+    benchmark_version: str,
+    database_snapshot: str,
+) -> None:
+    executions = {
+        trace.case_id: (trace.row_count or 0, trace.digest or "")
+        for trace in traces
+        if trace.status == "ok"
+    }
+    document = merge_execution_into_attestation(
+        cases,
+        source=source,
+        benchmark_version=benchmark_version,
+        database_snapshot=database_snapshot,
+        executions=executions,
+    )
+    path = write_attestation(document, source)
+    LOGGER.info("updated gold attestation at %s", path)
 
 
 def _write_report(
@@ -553,29 +684,55 @@ async def _one_tpcds(connection: asyncpg.Connection, case: BenchmarkCase) -> Gol
         actual = [attribute.name for attribute in prepared.get_attributes()]
         if actual != case.expected_columns:
             return GoldTrace(case.id, "error", None, None, "column names diverged from the case")
-        rows = await prepared.fetch()
+        rows: list[tuple[object, ...]] = []
+        async for record in prepared.cursor():
+            rows.append(tuple(record))
+        count, digest = trace_digest_hex_from_stream(rows, order_sensitive=case.order_sensitive)
     except asyncpg.PostgresError as exc:
         return GoldTrace(case.id, "error", None, None, exc.sqlstate or "database_error")
-    materialized = [tuple(row) for row in rows]
-    return GoldTrace(case.id, "ok", len(materialized), digest_rows(materialized), None)
+    if count == 0:
+        return GoldTrace(case.id, "error", None, None, "empty_result")
+    return GoldTrace(case.id, "ok", count, digest, None)
 
 
 def _sqlite_path(database_root: Path, database_id: str) -> Path:
     return database_root / database_id / f"{database_id}.sqlite"
 
 
-def _download(url: str, dest: Path, expected: str) -> None:
+def _download(url: str, dest: Path, expected: str, *, retries: int = 4) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url, timeout=120) as response, dest.open("wb") as handle:
-        while True:
-            chunk = response.read(1024 * 1024)
-            if not chunk:
+    last_exc: BaseException | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            dest.unlink(missing_ok=True)
+            with urllib.request.urlopen(url, timeout=120) as response, dest.open("wb") as handle:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+            digest = sha256_file(dest)
+            if digest != expected:
+                preview = dest.read_bytes()[:64].lstrip().lower()
+                dest.unlink(missing_ok=True)
+                if preview.startswith(b"<!doctype html") or preview.startswith(b"<html"):
+                    raise RuntimeError(
+                        "download returned HTML instead of the pinned archive "
+                        "(upstream quota or auth page)"
+                    )
+                raise RuntimeError("downloaded file did not match the pinned digest")
+            return
+        except RuntimeError:
+            raise
+        except (urllib.error.URLError, ssl.SSLError, TimeoutError, OSError) as exc:
+            last_exc = exc
+            dest.unlink(missing_ok=True)
+            if attempt >= retries:
                 break
-            handle.write(chunk)
-    digest = sha256_file(dest)
-    if digest != expected:
-        dest.unlink(missing_ok=True)
-        raise RuntimeError("downloaded file did not match the pinned digest")
+            time.sleep(min(2**attempt, 16))
+    raise RuntimeError(
+        f"download failed after {retries} attempts for {url}: {last_exc}"
+    ) from last_exc
 
 
 def _json_default(value: object) -> str:

@@ -1,0 +1,200 @@
+{
+  "case_id": "bird_0020",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 4,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolInfo AS (SELECT s.CDSCode, s.School, s.District, s.Charter, f.\"Enrollment (K-12)\" AS Enrollment, f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" AS FreeMealRate FROM schools AS s JOIN frpm AS f ON f.CDSCode = s.CDSCode WHERE s.County = 'Amador' AND s.StatusType = 'Active' AND f.\"Low Grade\" = '9' AND f.\"High Grade\" = '12' AND f.\"Enrollment (K-12)\" > 0), SATData AS (SELECT si.CDSCode, sa.NumTstTakr, sa.NumGE1500, (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) AS TotalScore, CASE WHEN sa.NumTstTakr IS NULL THEN 'No SAT Data' WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) < 1200 THEN 'Below Average' WHEN (sa.AvgScrRead + sa.AvgScrMath + sa.AvgScrWrite) <= 1500 THEN 'Average' ELSE 'Above Average' END AS SATPerformanceLevel FROM SchoolInfo AS si LEFT JOIN satscores AS sa ON sa.cds = si.CDSCode AND sa.rtype = 'S'), EnrollmentRanked AS (SELECT si.School, si.Enrollment, ROW_NUMBER() OVER (ORDER BY si.Enrollment DESC) AS EnrollmentRank FROM SchoolInfo AS si) SELECT (SELECT COUNT(*) FROM SchoolInfo) AS TotalSchools, (SELECT ROUND(AVG(Enrollment), 2) FROM SchoolInfo) AS AvgEnrollment, (SELECT COUNT(*) FROM SchoolInfo WHERE Charter = 1) AS CharterSchools, (SELECT COUNT(*) FROM SchoolInfo WHERE Charter = 0) AS NonCharterSchools, (SELECT ROUND(AVG(FreeMealRate) * 100, 2) FROM SchoolInfo) AS AvgFRPMPercentage, (SELECT COUNT(DISTINCT District) FROM SchoolInfo) AS DistrictCount, (SELECT ROUND(AVG(TotalScore), 2) FROM SATData WHERE NOT TotalScore IS NULL) AS AvgSATScore, (SELECT ROUND(MAX(NumGE1500 * 100.0 / NumTstTakr), 2) FROM SATData WHERE NumTstTakr > 0) AS MaxPercentAbove1500, (SELECT School FROM EnrollmentRanked WHERE EnrollmentRank = 1) AS LargestSchool, (SELECT COUNT(*) FROM SchoolInfo WHERE FreeMealRate > 0.75) AS HighPovertySchools",
+    "sql_hash": "sha256:57a3ea71eae95d707b9fb0caf43b73b97f7ea13aaf8a214b38f592c42c3fe7c2",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "TotalSchools",
+      "AvgEnrollment",
+      "CharterSchools",
+      "NonCharterSchools",
+      "AvgFRPMPercentage",
+      "DistrictCount",
+      "AvgSATScore",
+      "MaxPercentAbove1500",
+      "LargestSchool",
+      "HighPovertySchools"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sa.cds = si.CDSCode AND sa.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "max"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "TotalSchools",
+          "AvgEnrollment",
+          "CharterSchools",
+          "NonCharterSchools",
+          "AvgFRPMPercentage",
+          "DistrictCount",
+          "AvgSATScore",
+          "MaxPercentAbove1500",
+          "LargestSchool",
+          "HighPovertySchools"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = si.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "max"
+        ]
+      },
+      {
+        "name": "SchoolInfo",
+        "projections": [
+          "CDSCode",
+          "School",
+          "District",
+          "Charter",
+          "Enrollment",
+          "FreeMealRate"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = s.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SATData",
+        "projections": [
+          "CDSCode",
+          "NumTstTakr",
+          "NumGE1500",
+          "TotalScore",
+          "SATPerformanceLevel"
+        ],
+        "joins": [
+          "LEFT JOIN satscores ON sa.cds = si.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "EnrollmentRanked",
+        "projections": [
+          "School",
+          "Enrollment",
+          "EnrollmentRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:51b815f898f8951e69c142f1e3b7f4de8426852e90e66873c6f7049ae9e36359;2:projection_mismatch:sha256:03ee002b014b5c67e0b02fb326030ecdf1bbde960c2414991771b9109f0d4807;3:projection_mismatch:sha256:51b815f898f8951e69c142f1e3b7f4de8426852e90e66873c6f7049ae9e36359;4:accepted:"
+    ]
+  ]
+}

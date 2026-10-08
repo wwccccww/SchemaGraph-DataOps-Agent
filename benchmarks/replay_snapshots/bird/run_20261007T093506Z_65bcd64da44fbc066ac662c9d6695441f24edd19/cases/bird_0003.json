@@ -1,0 +1,187 @@
+{
+  "case_id": "bird_0003",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: FRPMPercentage 用 frpm `Percent (%) Eligible FRPM (K-12)` 小数列，不要用 Free Meal Count/Enrollment×100",
+  "attempts": 5,
+  "seed_tables": [
+    "frpm",
+    "schools",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH base AS (\n  SELECT\n    s.School AS SchoolName,\n    s.County AS County,\n    s.City AS City,\n    s.MailStreet AS UnabbreviatedMailingAddress,\n    s.Website AS Website,\n    f.\"Enrollment (K-12)\" AS Enrollment,\n    f.\"FRPM Count (K-12)\" AS FRPMCount,\n    ROUND(f.\"Free Meal Count (K-12)\" * 1.0 / f.\"Enrollment (K-12)\" * 100, 2) AS FRPMPercentage,\n    (COALESCE(sat.AvgScrRead,0) + COALESCE(sat.AvgScrMath,0) + COALESCE(sat.AvgScrWrite,0)) AS TotalSATScore,\n    sat.NumTstTakr,\n    sat.NumGE1500,\n    s.OpenDate AS OpenDate,\n    s.StatusType AS SchoolStatus,\n    RANK() OVER (ORDER BY f.\"FRPM Count (K-12)\" DESC) AS frpm_rank\n  FROM frpm f\n  JOIN schools s ON f.CDSCode = s.CDSCode\n  LEFT JOIN satscores sat ON sat.cds = s.CDSCode AND sat.rtype = 'S'\n  WHERE s.Charter = 0\n    AND f.\"Enrollment (K-12)\" > 100\n)\nSELECT\n  SchoolName,\n  County,\n  City,\n  UnabbreviatedMailingAddress,\n  Website,\n  Enrollment,\n  FRPMCount,\n  FRPMPercentage,\n  TotalSATScore,\n  CASE\n    WHEN NumTstTakr IS NULL THEN 'No SAT Data'\n    WHEN TotalSATScore >= 1500 THEN 'High'\n    WHEN TotalSATScore >= 1200 THEN 'Medium'\n    ELSE 'Low'\n  END AS PerformanceCategory,\n  CASE WHEN NumTstTakr > 0 THEN ROUND(NumGE1500 * 100.0 / NumTstTakr, 2) END AS PercentHighScorers,\n  CASE\n    WHEN NumTstTakr IS NULL THEN 'No SAT Data'\n    WHEN (FRPMCount * 1.0 / Enrollment) > 0.7 AND (NumGE1500 * 100.0 / NumTstTakr) > 20 THEN 'High-performing despite high FRPM'\n    WHEN (FRPMCount * 1.0 / Enrollment) > 0.7 AND (NumGE1500 * 100.0 / NumTstTakr) < 10 THEN 'Low-performing despite high FRPM'\n    WHEN (FRPMCount * 1.0 / Enrollment) < 0.3 AND (NumGE1500 * 100.0 / NumTstTakr) > 20 THEN 'High-performing despite low FRPM'\n    WHEN (FRPMCount * 1.0 / Enrollment) < 0.3 AND (NumGE1500 * 100.0 / NumTstTakr) < 10 THEN 'Low-performing despite low FRPM'\n    ELSE 'Expected performance'\n  END AS PerformanceClassification,\n  OpenDate,\n  SchoolStatus\nFROM base\nWHERE frpm_rank = 1;",
+    "sql_hash": "sha256:893ffd74275bbd01335f440f8de0189996a505cd16fc32ad1c994e6461806720",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "SchoolName",
+      "County",
+      "City",
+      "UnabbreviatedMailingAddress",
+      "Website",
+      "Enrollment",
+      "FRPMCount",
+      "FRPMPercentage",
+      "TotalSATScore",
+      "PerformanceCategory",
+      "PercentHighScorers",
+      "PerformanceClassification",
+      "OpenDate",
+      "SchoolStatus"
+    ],
+    "joins": [
+      "JOIN schools ON f.CDSCode = s.CDSCode",
+      "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+    ],
+    "predicates": [
+      "WHERE frpm_rank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "UnabbreviatedMailingAddress",
+          "Website",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercentage",
+          "TotalSATScore",
+          "PerformanceCategory",
+          "PercentHighScorers",
+          "PerformanceClassification",
+          "OpenDate",
+          "SchoolStatus"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "base",
+        "projections": [
+          "SchoolName",
+          "County",
+          "City",
+          "UnabbreviatedMailingAddress",
+          "Website",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercentage",
+          "TotalSATScore",
+          "NumTstTakr",
+          "NumGE1500",
+          "OpenDate",
+          "SchoolStatus",
+          "frpm_rank"
+        ],
+        "joins": [
+          "JOIN schools ON f.CDSCode = s.CDSCode",
+          "LEFT JOIN satscores ON sat.cds = s.CDSCode AND sat.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "base"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:ab8f69f9f924357072d62949c521f1d2a1440943ded48a7ba51d8ec4f2606dac;2:projection_mismatch:sha256:257c017cc4b8d9cc6ce406f8b136ca1628006da7502ba486ffb046b85fa02bf6;3:projection_mismatch:sha256:65e70ddf050e9b3ed769f59c57c8cc685c54e1c38458c8789047d9225a1b4393;4:projection_mismatch:sha256:257c017cc4b8d9cc6ce406f8b136ca1628006da7502ba486ffb046b85fa02bf6;5:projection_mismatch:sha256:65e70ddf050e9b3ed769f59c57c8cc685c54e1c38458c8789047d9225a1b4393"
+    ]
+  ]
+}

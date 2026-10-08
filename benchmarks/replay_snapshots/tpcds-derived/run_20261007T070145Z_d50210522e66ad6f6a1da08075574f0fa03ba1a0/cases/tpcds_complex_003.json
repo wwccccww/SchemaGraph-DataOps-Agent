@@ -1,0 +1,212 @@
+{
+  "case_id": "tpcds_complex_003",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "store_returns",
+    "store_sales",
+    "item",
+    "store",
+    "date_dim",
+    "reason"
+  ],
+  "expanded_tables": [
+    "customer",
+    "time_dim",
+    "promotion",
+    "call_center",
+    "catalog_page",
+    "inventory"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH sales_2001 AS (SELECT ss.ss_store_sk AS store_sk, ss.ss_item_sk AS item_sk FROM store_sales AS ss JOIN date_dim AS d ON ss.ss_sold_date_sk = d.d_date_sk WHERE d.d_year = 2001 GROUP BY ss.ss_store_sk, ss.ss_item_sk), returns_2001 AS (SELECT sr.sr_store_sk AS store_sk, sr.sr_item_sk AS item_sk, sr.sr_reason_sk AS reason_sk, sr.sr_return_amt AS return_amt, sr.sr_returned_date_sk AS returned_date_sk FROM store_returns AS sr JOIN date_dim AS d ON sr.sr_returned_date_sk = d.d_date_sk WHERE d.d_year = 2001) SELECT r.r_reason_desc AS return_reason, i.i_category AS item_category, s.s_state AS store_state, d.d_year AS return_year, SUM(rt.return_amt) AS return_amount FROM returns_2001 AS rt JOIN sales_2001 AS sa ON rt.store_sk = sa.store_sk AND rt.item_sk = sa.item_sk JOIN reason AS r ON rt.reason_sk = r.r_reason_sk JOIN item AS i ON rt.item_sk = i.i_item_sk JOIN store AS s ON rt.store_sk = s.s_store_sk JOIN date_dim AS d ON rt.returned_date_sk = d.d_date_sk GROUP BY r.r_reason_desc, i.i_category, s.s_state, d.d_year ORDER BY return_reason, item_category, store_state, return_year",
+    "sql_hash": "sha256:2beea97dd86177f7c6555361cd036f2c19d1e9ab9d0dbbccfe625c4484d639f3",
+    "referenced_tables": [
+      "date_dim",
+      "item",
+      "reason",
+      "store",
+      "store_returns",
+      "store_sales"
+    ],
+    "projections": [
+      "return_reason",
+      "item_category",
+      "store_state",
+      "return_year",
+      "return_amount"
+    ],
+    "joins": [
+      "JOIN sales_2001 ON rt.store_sk = sa.store_sk AND rt.item_sk = sa.item_sk",
+      "JOIN reason ON rt.reason_sk = r.r_reason_sk",
+      "JOIN item ON rt.item_sk = i.i_item_sk",
+      "JOIN store ON rt.store_sk = s.s_store_sk",
+      "JOIN date_dim ON rt.returned_date_sk = d.d_date_sk",
+      "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+      "JOIN date_dim ON sr.sr_returned_date_sk = d.d_date_sk"
+    ],
+    "predicates": [],
+    "group_by": [
+      "r.r_reason_desc",
+      "i.i_category",
+      "s.s_state",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "return_reason ASC",
+      "item_category ASC",
+      "store_state ASC",
+      "return_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "return_reason",
+          "item_category",
+          "store_state",
+          "return_year",
+          "return_amount"
+        ],
+        "joins": [
+          "JOIN sales_2001 ON rt.store_sk = sa.store_sk AND rt.item_sk = sa.item_sk",
+          "JOIN reason ON rt.reason_sk = r.r_reason_sk",
+          "JOIN item ON rt.item_sk = i.i_item_sk",
+          "JOIN store ON rt.store_sk = s.s_store_sk",
+          "JOIN date_dim ON rt.returned_date_sk = d.d_date_sk",
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk",
+          "JOIN date_dim ON sr.sr_returned_date_sk = d.d_date_sk"
+        ],
+        "group_by": [
+          "r.r_reason_desc",
+          "i.i_category",
+          "s.s_state",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      },
+      {
+        "name": "sales_2001",
+        "projections": [
+          "store_sk",
+          "item_sk"
+        ],
+        "joins": [
+          "JOIN date_dim ON ss.ss_sold_date_sk = d.d_date_sk"
+        ],
+        "group_by": [
+          "ss.ss_store_sk",
+          "ss.ss_item_sk"
+        ],
+        "aggregations": []
+      },
+      {
+        "name": "returns_2001",
+        "projections": [
+          "store_sk",
+          "item_sk",
+          "reason_sk",
+          "return_amt",
+          "returned_date_sk"
+        ],
+        "joins": [
+          "JOIN date_dim ON sr.sr_returned_date_sk = d.d_date_sk"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:reason.r_reason_desc、item.i_category、store.s_state、returned.return_year | sold:store_sales.ss_item_sk、store_sales.ss_store_sk、date_dim.d_year | returned:store_returns.sr_item_sk、store_returns.sr_store_sk、store_returns.sr_reason_sk、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:r.r_reason_desc、i.i_category、s.s_state、d.d_year | sales_2001:ss.ss_store_sk、ss.ss_item_sk"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=6;predicted=7"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:join_not_on_graph:sha256:0892d129eb573f527dd969a50519c807d0ad7a34e198a0250cd658ed6222b13d;2:accepted:"
+    ]
+  ]
+}

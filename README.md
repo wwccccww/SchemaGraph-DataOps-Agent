@@ -120,11 +120,40 @@ Text-to-SQL 与慢 SQL 是两条入口分流的工作流，只共享底层模型
 
 ```bash
 uv run python -m app.evaluation.ablation
+uv run python -m app.evaluation.external_data freeze-external-gold --source tpcds-derived
+uv run python -m app.evaluation.external_data freeze-external-gold --source bird
+./scripts/fetch_bird_dev_databases.sh   # 下载 MINIDEV dev_databases（见 benchmarks/bird_complex/SOURCE.md）
 uv run python -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
 uv run python -m app.evaluation.external_data verify-tpcds
+uv run python -m app.evaluation.external_data check-external-release
+./scripts/p1_release_gate.sh          # Oracle + P0/P1 单测（无 LLM）
+./scripts/p0_post_billing_acceptance.sh --gates-only  # 402 期间：仅 P1 门禁（需 BIRD_DATABASE_ROOT + POSTGRES_*）
+./scripts/p0_post_billing_acceptance.sh # 计费恢复后：preflight + 门禁 + 2× 全量 + acceptance gate
+./scripts/wait_for_billing_and_run_p0.sh # 402 解除后轮询 preflight，就绪则跑上一条全量路径
+./scripts/replay_bird_baseline.sh     # 模型实测基线复分（vendored `benchmarks/replay_snapshots/` 或 reports）
+./scripts/replay_bird_patch_autofix.sh  # PATCH autofix 复分（v12 **17→50**；非新 LLM）
+./scripts/replay_e5482a4_baseline.sh   # e5482a4 vendored measured **24/50** raw
+./scripts/replay_e5482a4_patch_autofix.sh  # e5482a4 **24→50** PATCH（非新 LLM）
+./scripts/print_external_p0_status.sh   # 402：release、preflight、v12 + e5482a4 replay、frozen 摘要
+./scripts/run_external_p0_full_eval_twice.sh # P0：2× TPC-DS + 2× BIRD（80 例，需 BIRD_DATABASE_ROOT）
+python3 -m app.evaluation.llm_preflight       # P0 全量前探测（402→exit 2）
+./scripts/run_tpcds_p0_full_eval_twice.sh # P0：2× 全量 TPC-DS（--full）
+./scripts/run_bird_p0_full_eval_twice.sh  # P0：2× 全量 BIRD（--full）
+./scripts/replay_tpcds_baseline.sh
 ```
 
-后两条命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
+Gateway **402** 时仍可跑 Oracle verify 与 `--replay-run` 基线；全量模型 `--full` 需有效 `DEEPSEEK_API_KEY`。vendored **e5482a4** raw **24/50** 的 **26** 题差分由单测 `test_e5482a4_vendored_run_raw_ex0_inventory` 钉住（见 runbook Step-3）。运维与验收路径见 [`docs/external_gold_p0_runbook.md`](docs/external_gold_p0_runbook.md) 与 [`docs/benchmark.md`](docs/benchmark.md) 外部 P0/P1 清单。
+
+外部 **模型**评测（需 `DEEPSEEK_API_KEY`；BIRD 还需 `--database-root` 指向 `dev_databases`，TPC-DS 需本机 `tpcds` 库）：
+
+```bash
+uv run python -m app.evaluation.external_model --source tpcds-derived --limit 5
+uv run python -m app.evaluation.external_model --source bird --database-root /path/to/dev_databases --full
+```
+
+全量 `--full` 要求对应 `gold_attestation.json` 为 `gold_matched`。默认 `self_healing` 与 4 轮修复。详见 `docs/benchmark.md` §2.6。
+
+后两条 verify 命令只执行 Gold SQL 并写下独立报告，不会调用 DeepSeek。来源、许可证和重新生成步骤写在 `benchmarks/tpcds_derived/SOURCE.md` 与 `benchmarks/bird_complex/SOURCE.md`。
 
 配置 `DEEPSEEK_API_KEY` 后可以提问或诊断：
 

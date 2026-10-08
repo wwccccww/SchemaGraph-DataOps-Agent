@@ -1,0 +1,196 @@
+{
+  "case_id": "bird_0006",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "schools",
+    "satscores",
+    "frpm"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH SchoolMetrics AS (\n    SELECT \n        s.CDSCode,\n        s.School,\n        s.Magnet,\n        s.SOCType AS SchoolType,\n        s.EdOpsName AS EducationalOption,\n        sat.NumTstTakr,\n        sat.AvgScrRead,\n        sat.AvgScrMath,\n        sat.AvgScrWrite,\n        sat.NumGE1500,\n        CAST(sat.NumGE1500 AS FLOAT) / NULLIF(sat.NumTstTakr, 0) * 100 AS PercentHighScorers,\n        (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS TotalAvgScore,\n        f.`Enrollment (K-12)` AS Enrollment,\n        f.`FRPM Count (K-12)` AS FRPMCount,\n        f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent,\n        RANK() OVER(ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS ScoreRank,\n        DENSE_RANK() OVER(PARTITION BY s.County ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS CountyRank\n    FROM satscores sat\n    INNER JOIN schools s ON sat.cds = s.CDSCode\n    LEFT JOIN frpm f ON s.CDSCode = f.CDSCode\n    WHERE sat.NumTstTakr > 500\n)\n\nSELECT \n    sm.School,\n    sm.SchoolType,\n    sm.EducationalOption,\n    sm.NumTstTakr AS TestTakers,\n    sm.TotalAvgScore,\n    sm.AvgScrRead AS ReadingScore,\n    sm.AvgScrMath AS MathScore,\n    sm.AvgScrWrite AS WritingScore,\n    sm.PercentHighScorers,\n    sm.Enrollment,\n    sm.FRPMPercent AS FreeReducedMealPercentage,\n    sm.ScoreRank AS StateRank,\n    sm.CountyRank,\n    CASE \n        WHEN sm.FRPMPercent > 0.75 THEN 'High Poverty'\n        WHEN sm.FRPMPercent > 0.50 THEN 'Moderate Poverty'\n        WHEN sm.FRPMPercent > 0.25 THEN 'Low Poverty'\n        ELSE 'Very Low Poverty'\n    END AS PovertyLevel,\n    CASE \n        WHEN sm.TotalAvgScore > 1800 THEN 'Excellent'\n        WHEN sm.TotalAvgScore > 1500 THEN 'Good'\n        WHEN sm.TotalAvgScore > 1200 THEN 'Average'\n        ELSE 'Below Average'\n    END AS PerformanceCategory\nFROM SchoolMetrics sm\nWHERE sm.Magnet = 1\nORDER BY sm.TotalAvgScore DESC, sm.PercentHighScorers DESC",
+    "sql_hash": "sha256:9ff1806f6407f79350649e98241348dd9bdef83cd2c060df0f336e9dae10f742",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "School",
+      "SchoolType",
+      "EducationalOption",
+      "TestTakers",
+      "TotalAvgScore",
+      "ReadingScore",
+      "MathScore",
+      "WritingScore",
+      "PercentHighScorers",
+      "Enrollment",
+      "FreeReducedMealPercentage",
+      "StateRank",
+      "CountyRank",
+      "PovertyLevel",
+      "PerformanceCategory"
+    ],
+    "joins": [
+      "INNER schools ON sat.cds = s.CDSCode",
+      "LEFT JOIN frpm ON s.CDSCode = f.CDSCode"
+    ],
+    "predicates": [
+      "WHERE sm.Magnet = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sm.TotalAvgScore DESC",
+      "sm.PercentHighScorers DESC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "School",
+          "SchoolType",
+          "EducationalOption",
+          "TestTakers",
+          "TotalAvgScore",
+          "ReadingScore",
+          "MathScore",
+          "WritingScore",
+          "PercentHighScorers",
+          "Enrollment",
+          "FreeReducedMealPercentage",
+          "StateRank",
+          "CountyRank",
+          "PovertyLevel",
+          "PerformanceCategory"
+        ],
+        "joins": [
+          "INNER schools ON sat.cds = s.CDSCode",
+          "LEFT JOIN frpm ON s.CDSCode = f.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SchoolMetrics",
+        "projections": [
+          "CDSCode",
+          "School",
+          "Magnet",
+          "SchoolType",
+          "EducationalOption",
+          "NumTstTakr",
+          "AvgScrRead",
+          "AvgScrMath",
+          "AvgScrWrite",
+          "NumGE1500",
+          "PercentHighScorers",
+          "TotalAvgScore",
+          "Enrollment",
+          "FRPMCount",
+          "FRPMPercent",
+          "ScoreRank",
+          "CountyRank"
+        ],
+        "joins": [
+          "INNER schools ON sat.cds = s.CDSCode",
+          "LEFT JOIN frpm ON s.CDSCode = f.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank",
+          "dense_rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      "SchoolMetrics"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      ""
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

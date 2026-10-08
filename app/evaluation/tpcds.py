@@ -14,6 +14,7 @@ import yaml
 
 from app.evaluation.case_yaml import dump_benchmark_cases, projection_names
 from app.evaluation.custom_cases import referenced_tables
+from app.evaluation.tpcds_contracts import contract_for as tpcds_contract_for
 from app.schemas.benchmark import BenchmarkCase
 
 CASES_PATH = Path(__file__).resolve().parents[2] / "benchmarks" / "tpcds_derived" / "cases.yaml"
@@ -89,7 +90,8 @@ def _make(index: int, spec: tuple[str, str, tuple[str, ...]]) -> BenchmarkCase:
         raise RuntimeError(f"tpcds query {index} uses {len(tables)} tables: {tables}")
     if not set(tables) <= BUSINESS_TABLES:
         raise RuntimeError(f"tpcds query {index} references {tables}")
-    return BenchmarkCase(
+    expected_columns = projection_names(sql, dialect="postgres")
+    case = BenchmarkCase(
         id=f"tpcds_complex_{index:03d}",
         source="tpcds-derived",
         source_version=TPCDS_SOURCE_VERSION,
@@ -102,10 +104,13 @@ def _make(index: int, spec: tuple[str, str, tuple[str, ...]]) -> BenchmarkCase:
         required_junctions=[],
         order_sensitive=False,
         numeric_tolerance=None,
-        expected_columns=projection_names(sql, dialect="postgres"),
+        expected_columns=expected_columns,
         anchor_date=ANCHOR,
         tags=["tpcds-derived", *tags],
+        semantic_contract=None,
+        oracle=None,
     )
+    return case.model_copy(update={"semantic_contract": tpcds_contract_for(case)})
 
 
 _QUERY_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (

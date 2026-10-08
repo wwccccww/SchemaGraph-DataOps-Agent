@@ -1,0 +1,214 @@
+{
+  "case_id": "bird_0104",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "loan",
+    "account",
+    "client",
+    "card",
+    "trans",
+    "disp",
+    "order",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH TransactionDetails AS (SELECT t.trans_id, t.account_id, t.date AS transaction_date, t.amount, t.balance, a.date AS account_opening_date, a.district_id, d.A2 AS district_name, d.A3 AS region FROM trans AS t JOIN account AS a ON t.account_id = a.account_id JOIN district AS d ON a.district_id = d.district_id WHERE t.amount = 840 AND t.date = '1998-10-14'), AccountOwners AS (SELECT td.trans_id, c.client_id, c.gender, c.birth_date FROM TransactionDetails AS td LEFT JOIN disp AS dp ON dp.account_id = td.account_id AND dp.type = 'OWNER' LEFT JOIN client AS c ON dp.client_id = c.client_id) SELECT td.account_id AS account_id, td.account_opening_date AS account_opening_date, td.transaction_date AS transaction_date, CAST((CAST(STRFTIME('%Y', td.transaction_date) AS INTEGER) - CAST(STRFTIME('%Y', td.account_opening_date) AS INTEGER)) * 365 + (CAST(STRFTIME('%m', td.transaction_date) AS INTEGER) - CAST(STRFTIME('%m', td.account_opening_date) AS INTEGER)) * 30 + (CAST(STRFTIME('%d', td.transaction_date) AS INTEGER) - CAST(STRFTIME('%d', td.account_opening_date) AS INTEGER)) AS INTEGER) AS days_account_open_before_transaction, td.amount AS amount, td.balance AS balance, td.district_name AS district_name, td.region AS region, ao.client_id AS client_id, CASE ao.gender WHEN 'M' THEN 'Male' WHEN 'F' THEN 'Female' ELSE 'Unknown' END AS gender_full, CAST(STRFTIME('%Y', td.transaction_date) AS INTEGER) - CAST(STRFTIME('%Y', ao.birth_date) AS INTEGER) - CASE WHEN (STRFTIME('%m-%d', td.transaction_date) < STRFTIME('%m-%d', ao.birth_date)) THEN 1 ELSE 0 END AS age_at_transaction, (SELECT COUNT(*) FROM trans AS t2 WHERE t2.account_id = td.account_id AND t2.date <= td.transaction_date) AS total_transactions_to_date, (SELECT COUNT(*) FROM card AS cd JOIN disp AS dp2 ON cd.disp_id = dp2.disp_id WHERE dp2.account_id = td.account_id) AS cards_issued, CASE WHEN EXISTS(SELECT 1 FROM loan AS l WHERE l.account_id = td.account_id AND l.date <= td.transaction_date) THEN 'Yes' ELSE 'No' END AS has_loan_before_transaction FROM TransactionDetails AS td LEFT JOIN AccountOwners AS ao ON td.trans_id = ao.trans_id",
+    "sql_hash": "sha256:bfa09b9a767d3201615ad997c8fbd79d82e3f832f6f69e8150b7dc40d353392b",
+    "referenced_tables": [
+      "account",
+      "card",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "account_opening_date",
+      "transaction_date",
+      "days_account_open_before_transaction",
+      "amount",
+      "balance",
+      "district_name",
+      "region",
+      "client_id",
+      "gender_full",
+      "age_at_transaction",
+      "total_transactions_to_date",
+      "cards_issued",
+      "has_loan_before_transaction"
+    ],
+    "joins": [
+      "LEFT JOIN AccountOwners ON td.trans_id = ao.trans_id",
+      "JOIN disp ON cd.disp_id = dp2.disp_id",
+      "JOIN account ON t.account_id = a.account_id",
+      "JOIN district ON a.district_id = d.district_id",
+      "LEFT JOIN disp ON dp.account_id = td.account_id AND dp.type = 'OWNER'",
+      "LEFT JOIN client ON dp.client_id = c.client_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "account_opening_date",
+          "transaction_date",
+          "days_account_open_before_transaction",
+          "amount",
+          "balance",
+          "district_name",
+          "region",
+          "client_id",
+          "gender_full",
+          "age_at_transaction",
+          "total_transactions_to_date",
+          "cards_issued",
+          "has_loan_before_transaction"
+        ],
+        "joins": [
+          "LEFT JOIN AccountOwners ON td.trans_id = ao.trans_id",
+          "JOIN disp ON cd.disp_id = dp2.disp_id",
+          "JOIN account ON t.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id",
+          "LEFT JOIN disp ON dp.account_id = td.account_id AND dp.type = 'OWNER'",
+          "LEFT JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count"
+        ]
+      },
+      {
+        "name": "TransactionDetails",
+        "projections": [
+          "trans_id",
+          "account_id",
+          "transaction_date",
+          "amount",
+          "balance",
+          "account_opening_date",
+          "district_id",
+          "district_name",
+          "region"
+        ],
+        "joins": [
+          "JOIN account ON t.account_id = a.account_id",
+          "JOIN district ON a.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountOwners",
+        "projections": [
+          "trans_id",
+          "client_id",
+          "gender",
+          "birth_date"
+        ],
+        "joins": [
+          "LEFT JOIN disp ON dp.account_id = td.account_id AND dp.type = 'OWNER'",
+          "LEFT JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=6"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

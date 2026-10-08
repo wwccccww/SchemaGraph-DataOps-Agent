@@ -1,0 +1,143 @@
+{
+  "case_id": "bird_0116",
+  "database_id": "financial",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 2,
+  "seed_tables": [
+    "loan",
+    "trans",
+    "account",
+    "client",
+    "disp",
+    "order",
+    "card",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT CAST((SUM(IIF(T3.date = '1998-12-27', T3.balance, 0)) - SUM(IIF(T3.date = '1993-03-22', T3.balance, 0))) AS REAL) * 100 / SUM(IIF(T3.date = '1993-03-22', T3.balance, 0)) AS \"increase_rate\"\nFROM loan AS T1\nJOIN account AS T2 ON T1.account_id = T2.account_id\nJOIN trans AS T3 ON T3.account_id = T2.account_id\nWHERE T1.loan_id = (SELECT MIN(loan_id) FROM loan WHERE date = '1993-07-05')",
+    "sql_hash": "sha256:8b92fef3b8ffbdd68523c433548d35a28debf0036d36dd80340bfb4d1d3bfdfe",
+    "referenced_tables": [
+      "account",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "increase_rate"
+    ],
+    "joins": [
+      "JOIN account ON T1.account_id = T2.account_id",
+      "JOIN trans ON T3.account_id = T2.account_id"
+    ],
+    "predicates": [
+      "WHERE T1.loan_id = (SELECT MIN(loan_id) FROM loan WHERE date = '1993-07-05')"
+    ],
+    "group_by": [],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "increase_rate"
+        ],
+        "joins": [
+          "JOIN account ON T1.account_id = T2.account_id",
+          "JOIN trans ON T3.account_id = T2.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      "CAST((SUM(CASE WHEN T3.date = '1998-12-27' THEN T3.balance ELSE 0 END) - SUM(CASE WHEN T3.date = '1993-03-22' THEN T3.balance ELSE 0 END)) AS REAL) * 100 / NULLIF(SUM(CASE WHEN T3.date = '1993-03-22' THEN T3.balance ELSE 0 END), 0)"
+    ],
+    [
+      "extra_projections",
+      "increase_rate"
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:4d1e51d52c9e5130b6e28867df406ddc9d2f060a34842b88ac048a14325e6947;2:no_progress:sha256:4d1e51d52c9e5130b6e28867df406ddc9d2f060a34842b88ac048a14325e6947"
+    ]
+  ]
+}

@@ -8,9 +8,12 @@ from pathlib import Path
 
 import pytest
 from app.agents.text_to_sql.workflow import TextToSqlInspection
+from app.evaluation.bird import load_bird_cases
 from app.evaluation.external_model import (
     ecommerce_rule_hits,
     evaluate_predictions,
+    inspection_from_replay,
+    load_replay_cases,
     render_model_diagnosis,
     score_prediction,
     select_sample,
@@ -19,6 +22,7 @@ from app.evaluation.external_model import (
 from app.evaluation.external_report import (
     ModelCaseTrace,
     build_external_model_summary,
+    validate_external_p2_repair_traces,
     write_external_model_report,
     write_external_report,
 )
@@ -27,6 +31,38 @@ from app.sandbox.errors import ExecutionError
 from app.sandbox.execute import ExecutionSuccess
 from app.schemas.benchmark import BenchmarkCase
 from app.schemas.text_to_sql import ApiError, SchemaContextView, TextToSqlResponse
+
+
+def test_inspection_from_replay_extracts_sql() -> None:
+    inspection = inspection_from_replay(
+        {"prediction": {"sql": "SELECT 1 AS n"}, "attempts": 2, "error_category": None}
+    )
+    assert inspection.generated_sql == "SELECT 1 AS n"
+    assert inspection.response.attempts == 2
+
+
+def test_inspection_from_replay_restores_repair_trace_from_symptoms() -> None:
+    payload = {
+        "prediction": {"sql": "SELECT 1"},
+        "attempts": 3,
+        "symptoms": [
+            ["repair_trace", "1:not_read_only:sha256:abc;2:accepted:"],
+        ],
+    }
+    inspection = inspection_from_replay(payload)
+    assert len(inspection.repair_trace) == 2
+    assert inspection.repair_trace[-1]["category"] == "accepted"
+
+
+def test_load_replay_cases_from_saved_peak_run() -> None:
+    from tests.unit.bird_replay_fixtures import BIRD_PEAK_RUN
+
+    run = BIRD_PEAK_RUN
+    if not run.is_dir():
+        pytest.skip("saved bird run missing")
+    pairs = load_replay_cases(run, load_bird_cases())
+    assert len(pairs) == 50
+    assert sum(1 for _case, payload in pairs if payload.get("ex") == 1) == 17
 
 
 def test_sample_limits_each_database_without_taking_the_whole_file() -> None:
@@ -87,6 +123,83 @@ async def test_scoring_executes_gold_only_after_the_prediction() -> None:
     assert trace.leaked_tables == ()
 
 
+async def test_scoring_rejects_multattempt_inspection_without_repair_trace() -> None:
+    case = _case("bird_0001", "california_schools")
+
+    async def execute(sql: str) -> ExecutionSuccess:
+        return ExecutionSuccess(
+            columns=(("total", "integer"),),
+            rows=((1,),),
+            row_count=1,
+            truncated=False,
+            execution_time_ms=1,
+        )
+
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req",
+            status="failed",
+            sql=None,
+            attempts=2,
+            error=ApiError(category="no_progress", message="熔断", retryable=False),
+        ),
+        generated_sql="SELECT 1 AS total",
+        repair_trace=(),
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        await score_prediction(
+            case,
+            inspection,
+            execute=execute,
+            catalog_tables=("schools",),
+        )
+
+
+async def test_scoring_matches_ex_when_sql_runs_despite_failed_workflow_status() -> None:
+    case = _case("bird_0001", "california_schools")
+
+    async def execute(sql: str) -> ExecutionSuccess:
+        return ExecutionSuccess(
+            columns=(("total", "integer"),),
+            rows=((1,),),
+            row_count=1,
+            truncated=False,
+            execution_time_ms=1,
+        )
+
+    inspection = TextToSqlInspection(
+        response=TextToSqlResponse(
+            request_id="req",
+            status="failed",
+            sql="SELECT 1 AS total",
+            columns=[],
+            rows=[],
+            attempts=2,
+            error=ApiError(category="no_progress", message="熔断", retryable=False),
+            schema_context=SchemaContextView(
+                seed_tables=["schools"],
+                expanded_tables=[],
+                token_count=8,
+                truncated=False,
+            ),
+        ),
+        generated_sql="SELECT 1 AS total",
+        prompt="generic",
+        repair_trace=(
+            {"attempt": "1", "category": "not_read_only", "symptom": "", "sql_hash": ""},
+            {"attempt": "2", "category": "accepted", "symptom": "", "sql_hash": ""},
+        ),
+    )
+    trace = await score_prediction(
+        case,
+        inspection,
+        execute=execute,
+        catalog_tables=("schools",),
+    )
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
 async def test_scoring_flags_a_seed_from_another_database_without_executing() -> None:
     case = _case("bird_0001", "california_schools")
     calls: list[str] = []
@@ -136,8 +249,17 @@ async def test_result_mismatch_is_not_called_a_sql_error() -> None:
 async def test_failed_generation_does_not_execute_gold() -> None:
     case = _case("bird_0001", "california_schools")
 
-    async def execute(sql: str) -> ExecutionSuccess:
-        raise AssertionError(sql)
+    async def execute(sql: str) -> ExecutionSuccess | ExecutionError:
+        if sql == case.gold_sql:
+            raise AssertionError("gold must not execute when prediction fails")
+        return ExecutionError(
+            category="syntax_error",
+            sqlstate=None,
+            exception_type="ParseError",
+            normalized_message="bad sql",
+            retryable=True,
+            error_hash="syntax",
+        )
 
     inspection = TextToSqlInspection(
         response=TextToSqlResponse(
@@ -251,6 +373,60 @@ def test_diagnosis_truncates_a_very_long_prediction() -> None:
 
     assert "-- truncated" in text
     assert "A" * 3000 not in text
+
+
+def test_model_report_rejects_multattempt_trace_without_repair_symptom(tmp_path: Path) -> None:
+    trace = ModelCaseTrace(
+        case_id="bird_0006",
+        database_id="california_schools",
+        primary_class="sql_error",
+        ex=0,
+        error_category="no_progress",
+        attempts=3,
+        seed_tables=("schools",),
+        expanded_tables=(),
+        leaked_tables=(),
+        ecommerce_rule_hits=(),
+        prediction=describe_sql("SELECT 1", dialect="sqlite").as_json(),
+        symptoms=(),
+    )
+    summary = build_external_model_summary(
+        [trace],
+        source="bird",
+        benchmark_version="bird-test",
+        git_commit="abc1234",
+        database_snapshot="snapshot",
+        started_at="2026-10-05T00:00:00Z",
+        model="deepseek-chat",
+        prompt_version="text-to-sql-generic-v1",
+        environment={},
+    )
+    with pytest.raises(RuntimeError, match=r"symptoms\.repair_trace is empty"):
+        write_external_model_report(
+            tmp_path,
+            stamp="20261005T000300Z",
+            commit="abc1234",
+            summary=summary,
+            traces=[trace],
+        )
+
+
+def test_validate_external_p2_repair_traces_accepts_symptom_string() -> None:
+    trace = ModelCaseTrace(
+        case_id="bird_0006",
+        database_id="california_schools",
+        primary_class="sql_error",
+        ex=0,
+        error_category="no_progress",
+        attempts=2,
+        seed_tables=("schools",),
+        expanded_tables=(),
+        leaked_tables=(),
+        ecommerce_rule_hits=(),
+        prediction={},
+        symptoms=(("repair_trace", "1:not_read_only:sha256:abc"),),
+    )
+    validate_external_p2_repair_traces([trace])
 
 
 def test_model_report_rejects_an_empty_model_and_custom_targets(tmp_path: Path) -> None:

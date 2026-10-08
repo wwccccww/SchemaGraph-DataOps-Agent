@@ -1,0 +1,201 @@
+{
+  "case_id": "bird_0031",
+  "database_id": "california_schools",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": "修复没有改变症状，已标记 no_progress 并熔断",
+  "attempts": 3,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH EnrollmentRanked AS (\n  SELECT\n    f.CDSCode,\n    f.\"School Name\" AS \"School Name\",\n    f.\"District Name\" AS \"District Name\",\n    f.\"County Name\" AS \"County Name\",\n    f.\"Enrollment (K-12)\" AS TotalEnrollment,\n    f.\"Free Meal Count (K-12)\" AS FreeMealCount,\n    f.\"Charter School (Y/N)\" AS CharterFlag,\n    ROW_NUMBER() OVER (ORDER BY f.\"Enrollment (K-12)\" DESC) AS EnrollmentRank\n  FROM frpm AS f\n  WHERE f.\"Enrollment (K-12)\" IS NOT NULL\n),\nSchoolDetails AS (\n  SELECT\n    er.EnrollmentRank,\n    er.CDSCode,\n    er.\"School Name\",\n    er.\"District Name\",\n    er.\"County Name\",\n    er.TotalEnrollment,\n    er.FreeMealCount,\n    er.CharterFlag,\n    s.City,\n    s.Website,\n    s.GSoffered\n  FROM EnrollmentRanked AS er\n  JOIN schools AS s ON s.CDSCode = er.CDSCode\n  WHERE er.EnrollmentRank IN (10, 11)\n)\nSELECT\n  sd.EnrollmentRank,\n  sd.\"School Name\",\n  sd.\"District Name\",\n  sd.\"County Name\",\n  sd.TotalEnrollment,\n  sd.FreeMealCount,\n  ROUND(sd.FreeMealCount * 1.0 / sd.TotalEnrollment * 100, 2) || '%' AS EligibleFreeRate,\n  sd.City,\n  CASE WHEN sd.CharterFlag = 1 THEN 'Charter School' ELSE 'Regular School' END AS SchoolType,\n  sd.GSoffered AS GradeSpan,\n  sd.Website,\n  ss.NumTstTakr AS SATTestTakers,\n  ss.AvgScrRead AS AvgReadingScore,\n  ss.AvgScrMath AS AvgMathScore,\n  ss.AvgScrWrite AS AvgWritingScore,\n  COALESCE(ROUND(ss.NumGE1500 * 1.0 / ss.NumTstTakr * 100, 2), 0) || '%' AS PercentAbove1500SAT\nFROM SchoolDetails AS sd\nLEFT JOIN satscores AS ss ON ss.cds = sd.CDSCode AND ss.rtype = 'S'\nORDER BY sd.EnrollmentRank;",
+    "sql_hash": "sha256:bbe8e67af7476f58d31aa4ebf77aa62fb0f3bed8f9abd0d6c57ef8fa0e7a972f",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "EnrollmentRank",
+      "School Name",
+      "District Name",
+      "County Name",
+      "TotalEnrollment",
+      "FreeMealCount",
+      "EligibleFreeRate",
+      "City",
+      "SchoolType",
+      "GradeSpan",
+      "Website",
+      "SATTestTakers",
+      "AvgReadingScore",
+      "AvgMathScore",
+      "AvgWritingScore",
+      "PercentAbove1500SAT"
+    ],
+    "joins": [
+      "LEFT JOIN satscores ON ss.cds = sd.CDSCode AND ss.rtype = 'S'",
+      "JOIN schools ON s.CDSCode = er.CDSCode"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "sd.EnrollmentRank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "EnrollmentRank",
+          "School Name",
+          "District Name",
+          "County Name",
+          "TotalEnrollment",
+          "FreeMealCount",
+          "EligibleFreeRate",
+          "City",
+          "SchoolType",
+          "GradeSpan",
+          "Website",
+          "SATTestTakers",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "PercentAbove1500SAT"
+        ],
+        "joins": [
+          "LEFT JOIN satscores ON ss.cds = sd.CDSCode AND ss.rtype = 'S'",
+          "JOIN schools ON s.CDSCode = er.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "EnrollmentRanked",
+        "projections": [
+          "CDSCode",
+          "School Name",
+          "District Name",
+          "County Name",
+          "TotalEnrollment",
+          "FreeMealCount",
+          "CharterFlag",
+          "EnrollmentRank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "SchoolDetails",
+        "projections": [
+          "EnrollmentRank",
+          "CDSCode",
+          "School Name",
+          "District Name",
+          "County Name",
+          "TotalEnrollment",
+          "FreeMealCount",
+          "CharterFlag",
+          "City",
+          "Website",
+          "GSoffered"
+        ],
+        "joins": [
+          "JOIN schools ON s.CDSCode = er.CDSCode"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:2391dbf25547663d3bfda801b5ba9ae5fd1c18d05ba3b223de6918517750b6c6;2:projection_mismatch:sha256:672a150c5d881801e3b4c63c4c43a3acaa5cc67765119751b1730502230657ba;3:no_progress:sha256:672a150c5d881801e3b4c63c4c43a3acaa5cc67765119751b1730502230657ba"
+    ]
+  ]
+}

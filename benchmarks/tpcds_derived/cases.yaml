@@ -47,6 +47,27 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,customer_address,date_dim,item,store,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_002
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -96,6 +117,29 @@ cases:
       - "subquery"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "education_status"
+        - "credit_rating"
+        - "sales_year"
+        - "net_profit"
+      group_keys:
+        - "education_status"
+        - "credit_rating"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "promotion_channel=dmail"
+        - "promotion_via_item_sk_subquery=true"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,promotion,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_003
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -161,6 +205,31 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "return_reason"
+        - "item_category"
+        - "store_state"
+        - "return_year"
+        - "return_amount"
+      group_keys:
+        - "return_reason"
+        - "item_category"
+        - "store_state"
+        - "return_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_facts=store_returns,store_sales"
+        - "returns_vs_sales=separate_cte"
+        - "core_tables=date_dim,item,reason,store,store_returns,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_004
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -204,6 +273,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "call_center_name"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "call_center_name"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_page,catalog_sales,date_dim,item,ship_mode"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_005
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -250,6 +342,32 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "warehouse_state"
+        - "return_reason"
+        - "item_category"
+        - "call_center_state"
+        - "return_year"
+        - "return_amount"
+      group_keys:
+        - "warehouse_state"
+        - "return_reason"
+        - "item_category"
+        - "call_center_state"
+        - "return_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_fact=catalog_returns"
+        - "core_tables=call_center,catalog_returns,date_dim,item,reason,warehouse"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_006
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -292,6 +410,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "web_name"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "web_name"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=web_sales"
+        - "core_tables=date_dim,item,ship_mode,web_page,web_sales,web_site"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_007
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -334,6 +475,30 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "page_type"
+        - "return_reason"
+        - "item_category"
+        - "return_year"
+        - "return_amount"
+      group_keys:
+        - "page_type"
+        - "return_reason"
+        - "item_category"
+        - "return_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_fact=web_returns"
+        - "core_tables=customer,date_dim,item,reason,web_page,web_returns"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_008
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -392,6 +557,28 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "sales_channel"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "sales_channel"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_facts=catalog_sales,store_sales,web_sales"
+        - "multi_channel_union=true"
+        - "core_tables=catalog_sales,date_dim,item,store_sales,web_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_009
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -437,6 +624,28 @@ cases:
       - "subquery"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "warehouse_state"
+        - "item_category"
+        - "inventory_year"
+        - "quantity_on_hand"
+      group_keys:
+        - "warehouse_state"
+        - "item_category"
+        - "inventory_year"
+      filters:
+        - "calendar_year=2001"
+        - "inventory_sold_items=subquery"
+        - "primary_fact=store_sales"
+        - "core_tables=date_dim,inventory,item,store_sales,warehouse"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_010
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -482,6 +691,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "income_lower"
+        - "buy_potential"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "income_lower"
+        - "buy_potential"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,household_demographics,income_band,item,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_011
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -524,6 +756,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "promo_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "promo_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,item,promotion,store,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_012
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -566,6 +821,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "shift_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "shift_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,item,store,store_sales,time_dim"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_013
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -615,6 +893,31 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "web_name"
+        - "bill_state"
+        - "ship_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "web_name"
+        - "bill_state"
+        - "ship_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=web_sales"
+        - "core_tables=customer,customer_address,date_dim,item,web_sales,web_site"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_014
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -666,6 +969,31 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "marital_status"
+        - "education_status"
+        - "income_lower"
+        - "item_category"
+        - "sales_year"
+        - "net_profit"
+      group_keys:
+        - "marital_status"
+        - "education_status"
+        - "income_lower"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=catalog_sales"
+        - "core_tables=catalog_sales,customer,customer_demographics,date_dim,household_demographics,income_band,item"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_015
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -718,6 +1046,28 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "customer_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "customer_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_facts=store_sales,web_sales"
+        - "cross_channel_buyers=customer_and_item"
+        - "core_tables=customer,customer_address,date_dim,item,store_sales,web_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_016
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -771,6 +1121,29 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "return_reason"
+        - "item_category"
+        - "return_year"
+        - "return_amount"
+      group_keys:
+        - "return_reason"
+        - "item_category"
+        - "return_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_facts=catalog_returns,store_returns"
+        - "multi_returns_union=true"
+        - "core_tables=catalog_returns,date_dim,item,reason,store_returns"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_017
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -816,6 +1189,31 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "warehouse_state"
+        - "promo_name"
+        - "carrier"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "warehouse_state"
+        - "promo_name"
+        - "carrier"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=web_sales"
+        - "core_tables=date_dim,item,promotion,ship_mode,warehouse,web_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_018
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -862,6 +1260,31 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "department"
+        - "call_center_name"
+        - "promo_name"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "department"
+        - "call_center_name"
+        - "promo_name"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_page,catalog_sales,date_dim,item,promotion"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_019
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -909,6 +1332,32 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "birth_year"
+        - "customer_state"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "birth_year"
+        - "customer_state"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "birth_year_not_null=true"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,customer_address,date_dim,item,store,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_020
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -950,6 +1399,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "shift_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "quantity_sold"
+      group_keys:
+        - "shift_name"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=date_dim,item,store,store_sales,time_dim"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_021
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -995,6 +1467,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "education_status"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+        - "net_profit"
+      group_keys:
+        - "education_status"
+        - "ship_type"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=catalog_sales"
+        - "core_tables=catalog_sales,customer,customer_demographics,date_dim,item,ship_mode"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_022
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1054,6 +1549,27 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "item_category"
+        - "sales_year"
+        - "store_sales_amount"
+        - "web_sales_amount"
+      group_keys:
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_facts=store_sales,web_sales"
+        - "channel_pivot_compare=true"
+        - "core_tables=date_dim,item,store,store_sales,web_sales,web_site"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_023
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1113,6 +1629,29 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "warehouse_state"
+        - "item_category"
+        - "inventory_year"
+        - "quantity_on_hand"
+        - "quantity_sold"
+      group_keys:
+        - "warehouse_state"
+        - "item_category"
+        - "inventory_year"
+      filters:
+        - "calendar_year=2001"
+        - "inventory_sold_qty=join_sold_cte"
+        - "primary_fact=store_sales"
+        - "core_tables=date_dim,inventory,item,store_sales,warehouse"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_024
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1178,6 +1717,29 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "carrier"
+        - "item_category"
+        - "sales_year"
+        - "catalog_sales_amount"
+        - "web_sales_amount"
+      group_keys:
+        - "carrier"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_facts=catalog_sales,web_sales"
+        - "channel_pivot_compare=true"
+        - "core_tables=catalog_sales,date_dim,item,ship_mode,warehouse,web_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_025
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1222,6 +1784,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "promo_purpose"
+        - "gender"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "promo_purpose"
+        - "gender"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,promotion,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_026
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1266,6 +1851,29 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "call_center_state"
+        - "customer_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "call_center_state"
+        - "customer_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=catalog_sales"
+        - "core_tables=call_center,catalog_sales,customer,customer_address,date_dim,item"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_027
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1314,6 +1922,31 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "page_type"
+        - "gender"
+        - "web_name"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "page_type"
+        - "gender"
+        - "web_name"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=web_sales"
+        - "core_tables=customer,customer_demographics,date_dim,item,web_page,web_sales,web_site"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_028
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1366,6 +1999,32 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "buy_potential"
+        - "dependent_count"
+        - "income_lower"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "buy_potential"
+        - "income_lower"
+        - "store_state"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "primary_fact=store_sales"
+        - "core_tables=customer,date_dim,household_demographics,income_band,item,store,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_029
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1414,6 +2073,32 @@ cases:
       - "tpcds-derived"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "return_reason"
+        - "customer_state"
+        - "store_state"
+        - "item_category"
+        - "return_year"
+        - "return_amount"
+      group_keys:
+        - "return_reason"
+        - "customer_state"
+        - "store_state"
+        - "item_category"
+        - "return_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_fact=store_returns"
+        - "core_tables=customer,customer_address,date_dim,item,reason,store,store_returns"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null
   - id: tpcds_complex_030
     source: tpcds-derived
     source_version: tpcds-v2.10.0+5a3a81796992b725c2a8b216767e142609966752
@@ -1494,3 +2179,34 @@ cases:
       - "cte"
       - "join"
       - "aggregation"
+    semantic_contract:
+      projections:
+        - "store_state"
+        - "customer_state"
+        - "gender"
+        - "income_lower"
+        - "promo_name"
+        - "item_category"
+        - "sales_year"
+        - "sales_amount"
+      group_keys:
+        - "store_state"
+        - "customer_state"
+        - "gender"
+        - "income_lower"
+        - "promo_name"
+        - "item_category"
+        - "sales_year"
+      filters:
+        - "calendar_year=2001"
+        - "returns_present=true"
+        - "primary_facts=store_returns,store_sales"
+        - "return_linked_sales=item_store_year"
+        - "core_tables=customer,customer_address,customer_demographics,date_dim,household_demographics,income_band,item,promotion,reason,store,store_returns,store_sales"
+        - "audit_tables_strict=true"
+      category_scope: exact
+      time_window:
+        start: "2001-01-01"
+        end: "2002-01-01"
+        anchor_date: "2026-10-01"
+      dedup_key: null

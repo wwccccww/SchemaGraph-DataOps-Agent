@@ -61,14 +61,42 @@ def _emit_case(case: BenchmarkCase) -> list[str]:
     lines.extend(_emit_list("expected_columns", payload["expected_columns"]))
     lines.append(f"    anchor_date: {json.dumps(payload['anchor_date'])}")
     lines.extend(_emit_list("tags", payload["tags"]))
+    contract = payload.get("semantic_contract")
+    if contract is not None:
+        lines.extend(_emit_contract(contract))
     return lines
 
 
-def _emit_list(key: str, values: object) -> list[str]:
+def _emit_contract(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        raise TypeError("semantic_contract")
+    lines = ["    semantic_contract:"]
+    lines.extend(_emit_list("projections", payload["projections"], indent=6))
+    lines.extend(_emit_list("group_keys", payload["group_keys"], indent=6))
+    lines.extend(_emit_list("filters", payload["filters"], indent=6))
+    lines.append(f"      category_scope: {payload['category_scope']}")
+    window = payload["time_window"]
+    if window is None:
+        lines.append("      time_window: null")
+    else:
+        if not isinstance(window, dict):
+            raise TypeError("time_window")
+        lines.append("      time_window:")
+        lines.append(f"        start: {json.dumps(window['start'])}")
+        lines.append(f"        end: {json.dumps(window['end'])}")
+        lines.append(f"        anchor_date: {json.dumps(window['anchor_date'])}")
+    dedup = payload["dedup_key"]
+    lines.append("      dedup_key: null" if dedup is None else f"      dedup_key: {dedup}")
+    return lines
+
+
+def _emit_list(key: str, values: object, indent: int = 4) -> list[str]:
     if not isinstance(values, list):
         raise TypeError(key)
+    pad = " " * indent
+    child = " " * (indent + 2)
     if not values:
-        return [f"    {key}: []"]
-    lines = [f"    {key}:"]
-    lines.extend(f"      - {json.dumps(item, ensure_ascii=False)}" for item in values)
+        return [f"{pad}{key}: []"]
+    lines = [f"{pad}{key}:"]
+    lines.extend(f"{child}- {json.dumps(item, ensure_ascii=False)}" for item in values)
     return lines

@@ -1,0 +1,238 @@
+{
+  "case_id": "bird_0111",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "loan",
+    "account",
+    "client",
+    "disp",
+    "trans",
+    "order",
+    "card",
+    "district"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH AccountsInLitomerice1996 AS (SELECT a.account_id, a.date AS open_date FROM account AS a JOIN district AS d ON a.district_id = d.district_id WHERE d.A2 = 'Litomerice' AND STRFTIME('%Y', a.date) = '1996'), ClientInfo AS (SELECT ai.account_id, c.client_id, c.gender, c.birth_date FROM AccountsInLitomerice1996 AS ai JOIN disp AS dp ON ai.account_id = dp.account_id JOIN client AS c ON dp.client_id = c.client_id), AccountActivity AS (SELECT ai.account_id, COUNT(t.trans_id) AS txn_count, SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS deposits FROM AccountsInLitomerice1996 AS ai LEFT JOIN trans AS t ON ai.account_id = t.account_id AND STRFTIME('%Y', t.date) = '1996' GROUP BY ai.account_id), LoanStatus AS (SELECT ai.account_id, l.loan_id, l.amount FROM AccountsInLitomerice1996 AS ai LEFT JOIN loan AS l ON ai.account_id = l.account_id) SELECT (SELECT COUNT(*) FROM AccountsInLitomerice1996) AS total_accounts, (SELECT COUNT(*) FROM (SELECT account_id FROM ClientInfo GROUP BY account_id HAVING COUNT(DISTINCT client_id) > 1)) AS accounts_with_multiple_clients, (SELECT AVG(1996 - CAST(STRFTIME('%Y', birth_date) AS INTEGER)) FROM ClientInfo) AS average_client_age, (SELECT COUNT(*) FROM ClientInfo WHERE gender = 'M') AS total_male_clients, (SELECT COUNT(*) FROM ClientInfo WHERE gender = 'F') AS total_female_clients, (SELECT SUM(txn_count) FROM AccountActivity) AS total_transactions_in_1996, (SELECT SUM(deposits) FROM AccountActivity) AS total_deposits_in_1996, (SELECT COUNT(loan_id) FROM LoanStatus) AS total_loans, (SELECT AVG(amount) FROM LoanStatus WHERE NOT loan_id IS NULL) AS avg_loan_amount, (SELECT COUNT(DISTINCT account_id) FROM LoanStatus WHERE NOT loan_id IS NULL) AS accounts_with_loans, (SELECT AVG(CASE WHEN CAST(STRFTIME('%m', open_date) AS INTEGER) BETWEEN 1 AND 3 THEN 100.0 ELSE 0 END) FROM AccountsInLitomerice1996) AS percent_opened_q1, (SELECT AVG(CASE WHEN CAST(STRFTIME('%m', open_date) AS INTEGER) BETWEEN 4 AND 6 THEN 100.0 ELSE 0 END) FROM AccountsInLitomerice1996) AS percent_opened_q2, (SELECT AVG(CASE WHEN CAST(STRFTIME('%m', open_date) AS INTEGER) BETWEEN 7 AND 9 THEN 100.0 ELSE 0 END) FROM AccountsInLitomerice1996) AS percent_opened_q3, (SELECT AVG(CASE WHEN CAST(STRFTIME('%m', open_date) AS INTEGER) BETWEEN 10 AND 12 THEN 100.0 ELSE 0 END) FROM AccountsInLitomerice1996) AS percent_opened_q4",
+    "sql_hash": "sha256:fe44dab742c8a54795846376036116c634d97231c64f8234ba8755e8bee17066",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "total_accounts",
+      "accounts_with_multiple_clients",
+      "average_client_age",
+      "total_male_clients",
+      "total_female_clients",
+      "total_transactions_in_1996",
+      "total_deposits_in_1996",
+      "total_loans",
+      "avg_loan_amount",
+      "accounts_with_loans",
+      "percent_opened_q1",
+      "percent_opened_q2",
+      "percent_opened_q3",
+      "percent_opened_q4"
+    ],
+    "joins": [
+      "JOIN district ON a.district_id = d.district_id",
+      "JOIN disp ON ai.account_id = dp.account_id",
+      "JOIN client ON dp.client_id = c.client_id",
+      "LEFT JOIN trans ON ai.account_id = t.account_id AND TO_CHAR(CAST(t.date AS TIMESTAMP), 'YYYY') = '1996'",
+      "LEFT JOIN loan ON ai.account_id = l.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "count",
+      "avg",
+      "sum"
+    ],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "total_accounts",
+          "accounts_with_multiple_clients",
+          "average_client_age",
+          "total_male_clients",
+          "total_female_clients",
+          "total_transactions_in_1996",
+          "total_deposits_in_1996",
+          "total_loans",
+          "avg_loan_amount",
+          "accounts_with_loans",
+          "percent_opened_q1",
+          "percent_opened_q2",
+          "percent_opened_q3",
+          "percent_opened_q4"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN disp ON ai.account_id = dp.account_id",
+          "JOIN client ON dp.client_id = c.client_id",
+          "LEFT JOIN trans ON ai.account_id = t.account_id AND TO_CHAR(CAST(t.date AS TIMESTAMP), 'YYYY') = '1996'",
+          "LEFT JOIN loan ON ai.account_id = l.account_id"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "count",
+          "avg",
+          "sum"
+        ]
+      },
+      {
+        "name": "AccountsInLitomerice1996",
+        "projections": [
+          "account_id",
+          "open_date"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "ClientInfo",
+        "projections": [
+          "account_id",
+          "client_id",
+          "gender",
+          "birth_date"
+        ],
+        "joins": [
+          "JOIN disp ON ai.account_id = dp.account_id",
+          "JOIN client ON dp.client_id = c.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountActivity",
+        "projections": [
+          "account_id",
+          "txn_count",
+          "deposits"
+        ],
+        "joins": [
+          "LEFT JOIN trans ON ai.account_id = t.account_id AND TO_CHAR(CAST(t.date AS TIMESTAMP), 'YYYY') = '1996'"
+        ],
+        "group_by": [
+          "ai.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      },
+      {
+        "name": "LoanStatus",
+        "projections": [
+          "account_id",
+          "loan_id",
+          "amount"
+        ],
+        "joins": [
+          "LEFT JOIN loan ON ai.account_id = l.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "join_semantics",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "ClientInfo:d.account_id | AccountActivity:account_id | LoanStatus:account_id"
+    ],
+    [
+      "predicted_group_by",
+      "AccountActivity:ai.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:c9a2f314bb2342f210f9a699c45e6b266f217fda2129f5255ed017ddf2888f15;2:accepted:"
+    ]
+  ]
+}

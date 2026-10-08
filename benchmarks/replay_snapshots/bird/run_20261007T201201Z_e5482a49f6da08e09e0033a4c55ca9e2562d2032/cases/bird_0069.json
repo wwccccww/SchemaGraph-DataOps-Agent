@@ -1,0 +1,175 @@
+{
+  "case_id": "bird_0069",
+  "database_id": "california_schools",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": "projection_mismatch",
+  "normalized_message": "projection_mismatch: SOC 过滤放在 StateSpecialSchools CTE 外层：WHERE ss.SOC=<literal> OR ss.SOC LIKE <literal>；projection_mismatch: 问句点名的列 School Name 没有出现在投影或过滤中；projection_mismatch: 问句点名的列 District 没有出现在投影或过滤中",
+  "attempts": 5,
+  "seed_tables": [
+    "schools",
+    "frpm",
+    "satscores"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH StateSpecialSchools AS (\n  SELECT\n    s.CDSCode,\n    s.NCESDist,\n    s.School,\n    s.Charter,\n    s.ClosedDate,\n    s.OpenDate,\n    s.SOC\n  FROM schools s\n  WHERE s.DOCType = 'State Special Schools'\n    AND s.SOC LIKE '3%'\n)\nSELECT\n  ss.NCESDist AS \"NCESDist\",\n  ss.School AS \"School\",\n  CASE WHEN ss.Charter = 1 THEN 'Charter' ELSE 'Non-Charter' END AS \"SchoolType\",\n  CASE WHEN ss.ClosedDate IS NULL THEN 'Active' ELSE 'Closed' END AS \"CurrentStatus\",\n  date(ss.OpenDate) AS \"OpeningDate\",\n  f.\"Enrollment (K-12)\" AS \"Enrollment\",\n  CASE\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.75 THEN 'High'\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.50 THEN 'Medium'\n    WHEN f.\"Percent (%) Eligible FRPM (K-12)\" > 0.25 THEN 'Low'\n    ELSE 'Very Low'\n  END AS \"PovertyLevel\",\n  sa.AvgScrRead AS \"AvgReadingScore\",\n  sa.AvgScrMath AS \"AvgMathScore\",\n  sa.AvgScrWrite AS \"AvgWritingScore\",\n  ROUND((COALESCE(sa.AvgScrRead,0) + COALESCE(sa.AvgScrMath,0) + COALESCE(sa.AvgScrWrite,0)) / 3.0, 2) AS \"AvgTotalScore\",\n  RANK() OVER (ORDER BY f.\"Enrollment (K-12)\" DESC) AS \"EnrollmentRank\"\nFROM StateSpecialSchools ss\nJOIN frpm f ON f.CDSCode = ss.CDSCode\nLEFT JOIN satscores sa ON sa.cds = ss.CDSCode AND sa.rtype = 'S'\nORDER BY \"EnrollmentRank\" ASC;",
+    "sql_hash": "sha256:e333721ac1c58324643458257aec916aa5fd4feb406fa5158120a1e40521095c",
+    "referenced_tables": [
+      "frpm",
+      "satscores",
+      "schools"
+    ],
+    "projections": [
+      "NCESDist",
+      "School",
+      "SchoolType",
+      "CurrentStatus",
+      "OpeningDate",
+      "Enrollment",
+      "PovertyLevel",
+      "AvgReadingScore",
+      "AvgMathScore",
+      "AvgWritingScore",
+      "AvgTotalScore",
+      "EnrollmentRank"
+    ],
+    "joins": [
+      "JOIN frpm ON f.CDSCode = ss.CDSCode",
+      "LEFT JOIN satscores ON sa.cds = ss.CDSCode AND sa.rtype = 'S'"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [
+      "rank"
+    ],
+    "order_by": [
+      "\"EnrollmentRank\" ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "NCESDist",
+          "School",
+          "SchoolType",
+          "CurrentStatus",
+          "OpeningDate",
+          "Enrollment",
+          "PovertyLevel",
+          "AvgReadingScore",
+          "AvgMathScore",
+          "AvgWritingScore",
+          "AvgTotalScore",
+          "EnrollmentRank"
+        ],
+        "joins": [
+          "JOIN frpm ON f.CDSCode = ss.CDSCode",
+          "LEFT JOIN satscores ON sa.cds = ss.CDSCode AND sa.rtype = 'S'"
+        ],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      },
+      {
+        "name": "StateSpecialSchools",
+        "projections": [
+          "CDSCode",
+          "NCESDist",
+          "School",
+          "Charter",
+          "ClosedDate",
+          "OpenDate",
+          "SOC"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      ""
+    ],
+    [
+      "predicted_group_by",
+      ""
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=3;predicted=2"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:projection_mismatch:sha256:c677bb6a35b15689671d950a0309e088b0f99e4d48abe34b4c28415ba85ca1f1;2:projection_mismatch:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9;3:projection_mismatch:sha256:de0d72713ed9be460b0082290189348765926b46cf08568ea89b21bd4e9669de;4:projection_mismatch:sha256:bbc8626d588f46358128f0e0cb511d2f8bc14eeff732c27d6bc1557d802ef2d9;5:projection_mismatch:sha256:de0d72713ed9be460b0082290189348765926b46cf08568ea89b21bd4e9669de"
+    ]
+  ]
+}

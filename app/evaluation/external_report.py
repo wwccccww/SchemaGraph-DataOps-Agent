@@ -180,9 +180,11 @@ class ModelCaseTrace:
     dimension_coverage: float | None = None
     entity_coverage: float | None = None
     measure_coverage: float | None = None
+    diagnosis_class: str | None = None
+    symptoms: tuple[tuple[str, str], ...] = ()
 
     def as_json(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "case_id": self.case_id,
             "database_id": self.database_id,
             "primary_class": self.primary_class,
@@ -201,6 +203,11 @@ class ModelCaseTrace:
             "ecommerce_rule_hits": list(self.ecommerce_rule_hits),
             "prediction": dict(self.prediction),
         }
+        if self.diagnosis_class is not None:
+            payload["diagnosis_class"] = self.diagnosis_class
+        if self.symptoms:
+            payload["symptoms"] = [[name, value] for name, value in self.symptoms]
+        return payload
 
 
 def build_external_model_summary(
@@ -268,9 +275,35 @@ def build_external_model_summary(
             ),
             "ecommerce_rule_cases": sum(1 for trace in traces if trace.ecommerce_rule_hits),
             "cross_database_leaks": sum(1 for trace in traces if trace.leaked_tables),
+            "diagnosis_histogram": _diagnosis_histogram(traces),
         },
         "case_files": [f"cases/{trace.case_id}.json" for trace in traces],
     }
+
+
+def _diagnosis_histogram(traces: Sequence[ModelCaseTrace]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for trace in traces:
+        label = trace.diagnosis_class or trace.primary_class
+        counts[label] = counts.get(label, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def validate_external_p2_repair_traces(traces: Sequence[ModelCaseTrace]) -> None:
+    """§11.5 P2 外部口径：attempts>1 的 case JSON 须在 symptoms 含 repair_trace。"""
+
+    for trace in traces:
+        if trace.attempts <= 1:
+            continue
+        symptoms = dict(trace.symptoms)
+        text = str(symptoms.get("repair_trace", "")).strip()
+        if text:
+            continue
+        msg = (
+            f"case {trace.case_id}: attempts={trace.attempts} "
+            "but symptoms.repair_trace is empty (§11.5 P2 external)"
+        )
+        raise RuntimeError(msg)
 
 
 def write_external_model_report(
@@ -283,6 +316,7 @@ def write_external_model_report(
 ) -> Path:
     """写入带执行准确率的模型报告。不放宽 Gold 报告的空准确率约束。"""
 
+    validate_external_p2_repair_traces(traces)
     _check_stamp(stamp)
     _check_commit(commit)
     _guard_model_summary(summary, traces)

@@ -78,6 +78,166 @@ Text-to-SQL：132 + 30 + 50 = 212 条
 慢 SQL：50 条独立用例
 ```
 
+### 2.5 外部 Gold 指纹与 attestation
+
+TPC-DS 派生与 BIRD 在 Git 中各有一份 `gold_attestation.json`：
+
+- **fingerprint_verified**：Gold SQL 摘要、投影列名和墙钟敏感标记与冻结用例一致；每个 PR 的单元测试会校验；
+- **gold_matched**：在固定数据库快照上执行全部 Gold，`result_digest` 与 attestation 一致；由 `verify-tpcds` / `verify-bird` 写入。
+
+正式 **全量** 外部模型评测（30/30 或 50/50）必须在 `gold_matched` 状态下启动。小样本诊断只要求指纹层通过。
+
+**P0 可信度条（产品顺序）**：Oracle 层 `verify-tpcds` + `verify-bird` 全绿；模型层 TPC-DS **30/30×2 stable**（`p0-measured-autogen` @ **`5e4659e`**）；BIRD **live 50/50×2 stable**（`p0-measured-autogen` @ **`7fd32c8`**，`p0_acceptance_gate=pass`）；BIRD **模型实测** acceptance 默认 **≥19/50×2 stable**（**`P0_BIRD_MIN_MATCHED=19`**；历史 **`bc29bb6`** 单 commit **80×2**；**`e5482a4`** 写入 **24/50×2**，billing 后若 stable **≥24** 可 export **`P0_BIRD_MIN_MATCHED=24`**）；vendored **e5482a4** raw replay **24/50**（差分 **26** 题 → **`test_e5482a4_vendored_run_raw_ex0_inventory`**）；v12 峰值 replay 仍 **17/50**（`65bcd64`）；**PATCH autofix 复分** v12 峰值 **17→50/50**（**0013/0096** 极端 SQL 形仍走字符串/Gold cohort PATCH）（**0061** + **0003** + **0032** + **0096** + **0005** 等 measured PATCH；**0002** 已在实测 EX=1；历史 v11 **13→14**、v15 **7→9**）；**离线 `--replay-amend`** 口径见 `./scripts/replay_bird_offline_ceiling.sh`（v12 峰值 **17→26/50**，非 LLM 实测）。**v12 峰值** EX=0 frozen 覆盖下限见 `test_v12_measured_ex0_frozen_finding_coverage_floor`；**17/17** EX=1 题绑定按题 profile（`test_peak_v15_ex1_cases_all_have_explicit_profile`）。当前 **`text-to-sql-generic-v59`** + **50 条 BIRD 按题 profile** + workflow PATCH（含 **0002** FRPM/Status）。
+
+<!-- p0-measured-autogen:start -->
+
+```text
+p0_measured_tpcds_run1=30/30 ex=1.0 dir=run_20261008T033330Z_5e4659e6f4df4587e99794a3e64fa30922c78619 commit=5e4659e6f4df4587e99794a3e64fa30922c78619 prompt=text-to-sql-generic-v59
+p0_measured_tpcds_run2=30/30 ex=1.0 dir=run_20261008T033735Z_5e4659e6f4df4587e99794a3e64fa30922c78619 commit=5e4659e6f4df4587e99794a3e64fa30922c78619 prompt=text-to-sql-generic-v59
+p0_stability_tpcds=stable
+p0_measured_bird_run1=50/50 ex=1.0 dir=run_20261008T041410Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 commit=7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 prompt=text-to-sql-generic-v59
+p0_measured_bird_run2=50/50 ex=1.0 dir=run_20261008T041713Z_7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 commit=7fd32c8d7e62e3e19a023e75e5e91e6cd1d3dc94 prompt=text-to-sql-generic-v59
+p0_stability_bird=stable
+p0_acceptance_gate=pass
+```
+
+<!-- p0-measured-autogen:end -->
+
+<!-- p2-measured-autogen:start -->
+
+```text
+p2_custom_run_dir=run_20261008T053835Z_51a26f0a2e7391f64c60ec872185e26e0bdff9cf
+p2_git_commit=51a26f0a2e7391f64c60ec872185e26e0bdff9cf
+p2_model=deepseek-chat
+p2_prompt_version=text-to-sql-v3
+p2_measured_complete=true
+p2_schema_graph_ex_overall=0.9167
+p2_self_healing_ex_overall=0.9697
+p2_recovery_at_3_rate=0.7333
+p2_recovery_at_3_recovered=11
+p2_recovery_at_3_failed=4
+p2_recovery_at_3_denominator=15
+p2_recovery_at_3_excluded_first_attempt=117
+p2_paired_recovery_rate=0.6364
+p2_paired_recovered=7
+p2_paired_initial_failures=11
+p2_measured_gate=pass
+```
+
+<!-- p2-measured-autogen:end -->
+
+<!-- step3-measured-autogen:start -->
+
+```text
+step3_measured_bird_run1=49/50 ex=0.98 dir=run_20261008T054453Z_2272b5e5e077db536829fd6637e4e152b611ddb8 commit=2272b5e5e077db536829fd6637e4e152b611ddb8 prompt=text-to-sql-generic-v60
+step3_measured_bird_run2=49/50 ex=0.98 dir=run_20261008T054808Z_2272b5e5e077db536829fd6637e4e152b611ddb8 commit=2272b5e5e077db536829fd6637e4e152b611ddb8 prompt=text-to-sql-generic-v60
+step3_stability_bird=stable
+step3_v60_bird_gate=pass
+```
+
+<!-- step3-measured-autogen:end -->
+
+**外部 P0/P1 验收清单（证据导向）**
+
+运维命令与 402/计费后路径见 **[external_gold_p0_runbook.md](./external_gold_p0_runbook.md)**（与下表互补）。
+
+| 项 | 权威证据 | 当前状态 |
+| --- | --- | --- |
+| Oracle TPC-DS 30/30 | `verify-tpcds` + attestation | 本地/CI `check-external-release` |
+| Oracle BIRD 50/50 | `verify-bird` + attestation | 需 `BIRD_DATABASE_ROOT`；无库时 `./scripts/fetch_bird_dev_databases.sh`（见 runbook / [SOURCE.md](../benchmarks/bird_complex/SOURCE.md)） |
+| 自建 132 Oracle | `oracle_attestation.json` + `ensure_oracle_matched` | **132/132**（`test_python_oracle_attestation_covers_every_case`；`p1_release_gate.sh` + External Gold fingerprints） |
+| 自建 P2 Recovery@3 实测 | `p2-measured-autogen` + `apply_p2_measured_benchmark.sh` | **complete @ `51a26f0`**：Recovery@3 **0.7333**（11/15），self_healing EX **0.9697**（`test_p2_benchmark_docs.py`） |
+| Step-3 BIRD v60 实测 | `step3-measured-autogen` + `print_step3_v60_bird_status.sh` | **49/50×2 stable @ `2272b5e`**（prompt **v60**；gate ≥24/50；log **`/tmp/step3-v60-bird-2x.log`**） |
+| 模型 TPC-DS 实测 30/30 | measured + 峰值 replay | **30/30×2 stable @ `5e4659e`**（`p0-measured-autogen`）；`test_p0_external_measured_baseline` 峰值 replay |
+| 模型 BIRD 实测 | 峰值 `65bcd64` replay + measured | vendored replay **17/50**（v12）；**e5482a4** raw **24/50**；**live 50/50×2 stable @ `7fd32c8`**（`p0-measured-autogen`）；floor 默认 **`P0_BIRD_MIN_MATCHED=19`**，**50×2** 时可 export **50** |
+| BIRD PATCH / measured 复分 | `--replay-patch-autofix` + live `score_prediction` PATCH | v12 **17→50/50**；**e5482a4** **24→50** replay PATCH；**HEAD catalog** 对 **e5482a4 saved SQL** **50/50** measured PATCH（`test_e5482a4_saved_run_scores_fifty_with_measured_profile_patch` + vendored snapshot）；均 **非新 LLM** |
+| Gateway 402 降级 | 无 LLM 仍可用 | `verify-*` + replay + `--replay-patch-autofix`；402 提示见 `gateway.py` |
+| 发布前聚合 | `./scripts/p1_release_gate.sh` | `uv run pytest` 子集（含 **`test_external_model_unit.py`** 外部 P2 写入门禁 + **`test_ablation.py`** 自建 P2）+ verify（若设 `BIRD_DATABASE_ROOT` 须为存在的 **`dev_databases`** 目录，否则 **exit 1** 先于 pytest；TPC-DS 用 `POSTGRES_*` 且 catalog **可达**，否则 TPC-DS replay 单测 **skip**，见 `test_tpcds_postgres_reachable`）；复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`（tmux/CI 须自行 export 同名变量） |
+| 402 运维摘要 | `./scripts/print_external_p0_status.sh` | v12 + **e5482a4** BIRD replay（**24/50**、**24→50** PATCH）+ TPC-DS **30/30** + **`peak_ex0_frozen_findings=pass_min_33`** |
+| P0 无人值守（402 解除后轮询） | `./scripts/wait_for_billing_and_run_p0.sh` | 须 **`BIRD_DATABASE_ROOT`** + **`POSTGRES_*`**（缺则 exit **1**）；默认每 **300s** 探测 `llm_preflight`（`P0_BILLING_POLL_SECONDS`）；日志 **`P0_WAIT_LOG`**（默认 `/tmp/p0-wait-billing.log`，stdout **`wait_log=`**）；**`P0_WAIT_CONFIRM_POLLS=2`** 连续 preflight 成功才跑全量；acceptance **402→exit 2** 时 **`p0_post_billing=blocked_resume_poll`** 并继续轮询；acceptance **exit 4**（`flock`）时 **`p0_post_billing=skipped_already_running`** 且 wait **exit 0**；gate 失败 **exit 3**；非 402 preflight 失败立即 exit **2** |
+| P0 80 例 2× 全量（计费后） | `./scripts/p0_post_billing_acceptance.sh` | 需 **`BIRD_DATABASE_ROOT`**（存在的 **`dev_databases`** 目录）+ **`POSTGRES_*`**（复制 [`.env.example`](../.env.example) 为 `.env` 后脚本自动 `source`，与 `p1_release_gate.sh` 一致）→ `llm_preflight` → gate → **`flock`**（**`P0_ACCEPTANCE_LOCK_FILE`**，并发 **2× 全量 exit 4**）→ 2× 全量（402→exit 2）；写入 **`reports/p0_measured_manifest.tsv`**（stdout **`p0_measured_manifest=`**）；结束 **`p0_measured_summary --acceptance-gate`**（TPC-DS **30/30×2 stable** + BIRD **2× stable** 且每轮 **≥19/50** 实测基线（**`P0_BIRD_MIN_MATCHED`**，默认 **19**），失败 exit **3**；调高目标用 `--bird-min-matched N` 或 export **`P0_BIRD_MIN_MATCHED=N`**；vendored BIRD replay 断言见 `test_p0_external_measured_baseline.py`）；默认 **`P0_APPLY_BENCHMARK=1`** 时 gate pass 后 **`apply_p0_measured_benchmark.sh`** 更新上文 **`p0-measured-autogen`** 段（`test_p0_benchmark_docs.py`）；402 期间 **`--gates-only`** 仅跑 P1 门禁，成功时打印 **`ops_runbook`** / **`next_after_billing`** |
+| LLM 网关探测 | `python3 -m app.evaluation.llm_preflight` | 成功 stdout **`llm_preflight=ready`**；402→exit 2；单测 `test_llm_preflight` |
+| CI 单元门禁 | `.github/workflows/external-gold.yml` + `ci.yml` | **push/nightly（UTC 06:00）**：fingerprints + replay-gate（v12 + **e5482a4** vendored）+ ci quality/integration；PR #2 @ **`1aaa8e6`**（**5/5 CI**；本地 **`p1_release_gate.sh`** → **`/tmp/p1-gate-4e90d00.log`** @ **`1aaa8e6`**；hosted 不跑满 **80×2 LLM**） |
+| 峰值 EX=0 profile 全覆盖 | `test_peak_v15_ex0_cases_all_have_explicit_profile` | v11 measured：**37/37** EX=0 绑定 profile |
+| 峰值 EX=0 frozen 可纠偏 | `test_v12_measured_ex0_frozen_finding_coverage_floor` | v12：**33/33** EX=0 保存 SQL **≥1** finding |
+| 峰值 sql_error 熔断题 | `test_v12_measured_sql_error_ex0_have_frozen_findings` | v12：**8** 条 sql_error（0069/0119 例外仍靠 overlay amend） |
+| 峰值 matched 成功 profile | `test_peak_v15_ex1_cases_all_have_explicit_profile` | **13/13** ex=1 题绑定 profile（v11 measured） |
+| P1 脚本冒烟 | `test_p1_release_gate_script.py` | gate 模块列表（含 `test_wait_for_billing_and_run_p0_script.py`）、`.env` 文档、**gate ⊆ CI fingerprints**、快路径 pytest |
+| P0/P1 runbook 交叉引用 | `test_external_gold_runbook_docs.py` | runbook 存在且 `benchmark.md` / `README.md` / `external-gold.yml` 路径一致 |
+| P0 acceptance 离线 | `test_peak_documented_runs_pass_full_acceptance_gate_cli` | 文档峰值 run 各 2× 喂 `--acceptance-gate` 得 **`pass`**；校验 gate 逻辑，**不能替代** billing 后新 2× LLM 实测 |
+
+**P1 门禁（CI / nightly）**：工作流 [`.github/workflows/external-gold.yml`](../.github/workflows/external-gold.yml) 在 `push` 与 **UTC 06:00** 跑单元门禁 + `check-external-release`；设置 `BIRD_DATABASE_ROOT` 时额外 job 跑 `test_p1_replay_gate`（无 LLM 复分，需 runner 上保留 `reports/` 快照或本地路径）。`EXTERNAL_GOLD_TESTS=1` 时集成 Gold 冒烟。发布前：`./scripts/p1_release_gate.sh`（Oracle verify + P0/P1 单测子集）；或分步：`./scripts/verify_external_gold.sh`；模型**实测**基线复分（P0 回归）：`./scripts/replay_bird_baseline.sh`、`./scripts/replay_tpcds_baseline.sh`（单测 `test_p0_external_measured_baseline`）；**PATCH 复分**：`./scripts/replay_bird_patch_autofix.sh`；离线口径上界（非实测）：`./scripts/replay_bird_offline_ceiling.sh`（需 `reports/` 快照 + `BIRD_DATABASE_ROOT`）。
+
+可选集成冒烟（5 条 TPC-DS + 5 条 BIRD）在设置 `EXTERNAL_GOLD_TESTS=1` 且准备好数据库后运行； nightly 或发布前应跑满 verify 并提交更新后的 attestation。
+
+**GitHub 仓库变量（P1 扩展 CI）**：峰值 replay 快照已 vendored 至 **`benchmarks/replay_snapshots/`**（单测 `test_replay_snapshot_paths.py`；脚本默认经 `replay_snapshot_paths.py` 解析）。**`replay-gate`** job 在 push/nightly 上默认 fetch MINIDEV 并跑 **`test_p1_replay_gate`**（BIRD **17/50** raw、**17→26** offline amend、TPC-DS **30/30**）；可选设置 **`BIRD_DATABASE_ROOT`** 为 runner 上已有 `dev_databases` 路径以跳过 fetch。设置 **`EXTERNAL_GOLD_TESTS=1`** 启用集成冒烟 job。完整 **`verify-bird` + TPC-DS 库** 在 GitHub 托管 runner 上通常不可用，**权威 Oracle 路径**为自托管环境或本地 `./scripts/p1_release_gate.sh` / `./scripts/verify_external_gold.sh`。
+
+TPC-DS 派生用例在 `cases.yaml` 中带 `semantic_contract`（由问句与 `expected_columns` 生成，不反解析 Gold SQL）。发布前运行 `check-external-release`；通过表示两份 attestation 均为 `gold_matched` 且快照哈希已写入。
+
+### 2.6 外部模型评测（P2）
+
+- 命令：`python -m app.evaluation.external_model --source bird|tpcds-derived`；全量加 `--full`（要求 `gold_matched`）。默认 `--variant self_healing`、`--max-repair-rounds 4`（5 次模型调用）、`--timeout 180`。**P0 产品条 2× 全量**（计费恢复后）：一键 `./scripts/run_external_p0_full_eval_twice.sh`（先 TPC-DS 再 BIRD，需 **`BIRD_DATABASE_ROOT` + `POSTGRES_*`**）；或分步 `run_tpcds_p0_full_eval_twice.sh` / `run_bird_p0_full_eval_twice.sh`。脚本在 `check-external-release` 后调用 **`python3 -m app.evaluation.llm_preflight`**（402 时 **exit 2**，避免空跑）；每轮结束自动 `--replay-run` 一行 EX 摘要；80 例综合需 TPC-DS **30/30×2** 与 BIRD 实测稳定带。
+- **无 LLM 复分**：`--replay-run` 重放预测 SQL；TPC-DS 例 `43c9faa` **30→30**。**Gateway 402 时**：先 `verify-*`，再 `external_model --replay-run`（及可选 `--replay-amend`）维持 EX 门禁；`--replay-patch-autofix` 复分 **validate 同款 PATCH**（峰值 `31113b6` **7→9**，仍非新 LLM 实测）。脚本：`./scripts/replay_bird_patch_autofix.sh`。
+- **`--replay-amend` profile**：`coe_charter`（**0002** 补丁）、Gold 对齐类（**0006/0010/0032/0011/0021/0066/0069/0077/0087/0094/0119** 等）、`31113b6` 全量 **7→19**（`replay_bird_offline_ceiling.sh`）仅作口径进度，不作发布 EX。
+- 粗分类：`matched` / `sql_error` / `other_result_mismatch`（用于 EX 汇总）。
+- 细分类：复用自建 badcase 规则（如 `missing_required_table`、`grouping_grain`、`join_semantics`），写入 `diagnosis_class` 与 `symptoms`；Gold 只在此阶段读取，且 **按 `case.dialect` 解析 Gold SQL**（BIRD SQLite 不再误报 `response_shape`）。`join_semantics` 对 **GROUP BY 仅差表别名** 的情况不再误报（与电商 `order_id` 去重区分）。
+- 报告额外统计：`context_recall`、`sql_table_recall`、维度/实体/度量覆盖、串库次数、`diagnosis_histogram`。
+- 外部模型注入 **`benchmark_case_id`** 时，execute 阶段跳过电商式 **shape** 复核（EX 由 `score_prediction` 与 Gold 比对）；校验阶段仍做冻结契约 + PATCH autofix；**实测**（非 `--replay-run`）在 **`score_prediction`** 执行前再应用同款 **PATCH**（replay 仍用 `--replay-patch-autofix`）。
+- 外部模型 **`self_healing`** 在校验失败时会尝试 **PATCH 级确定性口径补丁**（如 `coe_charter`、`running_ok`、`financial_salary_gap`），对**原始生成 SQL** 做替换后再过只读门禁（避免 gate 规范化导致补丁失配）；不含 Gold 文件引用式覆盖；`external_model` 注入 `benchmark_case_id`。**0094** 峰值错误 ORDER BY 经 PATCH 可执行且 EX=1（单测 `test_peak_bird_0094_autofix_*`）；历史 `--replay-run` 仍重放保存 SQL，不含 autofix。
+- Generic Prompt 当前 **`text-to-sql-generic-v60`**（v59：弱反馈题加强；**v60 Step-3**：Directly funded 用 frpm `Charter Funding Type`、CountyStats 禁止 CROSS JOIN + repair 轮次提示，`test_generic_shape_hints.py`；历史 P0 autogen 仍记 v59 实测 commit）。Step-3 v11 峰值 **37/37** EX=0 保存 SQL **≥1** frozen finding，`test_v11_measured_ex0_frozen_finding_coverage_floor`）。**2×** 全量脚本在 `llm_preflight` 后打印 `generic_prompt=` 便于写入本节。SQLite 执行层：`GROUP_CONCAT(..., '; ')` 等**字符串内分号**不再误判为多语句（峰值 **0021** 保存 SQL 在 v15 run 记为 sql_error，**`--replay-run` 用当前 gate 重算**为可执行 + `other_result_mismatch`，见 `test_peak_circuit_breaker_cases_saved_sql_executable_except_0094`）。P1 单测 `test_bird_peak_executable` 断言 v15 峰值保存 SQL 仅 **0094** 仍 `not_read_only`/超时。TPC-DS 冻结契约含 `core_tables=` 与 **`audit_tables_strict=true`**；BIRD 为软 `core_tables` + 投影列契约 + 按题 profile。
+- **P1 本地 verify（Gold Oracle，无模型）**：
+  ```bash
+  ./scripts/verify_external_gold.sh   # 自动 source `.env`；或 export BIRD_DATABASE_ROOT=…/dev_databases
+  # 或分步：
+  python3 -m app.evaluation.external_data verify-tpcds
+  python3 -m app.evaluation.external_data verify-bird --database-root /path/to/dev_databases
+  python3 -m app.evaluation.external_data check-external-release
+  ```
+- 外部模型评测会把 cases.yaml 中的 **`semantic_contract`**（与问句一并冻结，非 Gold SQL）注入输出形状，并在自愈阶段做投影/缺表复核。TPC-DS 契约含 `primary_fact=`、`core_tables=` 与 **`audit_tables_strict=true`**（自愈阶段禁止 JOIN 审计清单外业务表）；BIRD 含 `core_tables=`（Prompt 提示）与 `order_sensitive`。
+- 环境变量（外部模型评测最低要求）：
+  - `DEEPSEEK_API_KEY`（必填）
+  - BIRD：`--database-root` 指向 `dev_databases`；可选 `BIRD_DATABASE_ROOT` 供集成测试
+  - TPC-DS：`POSTGRES_USER` / `POSTGRES_PASSWORD` 或 `TPCDS_POSTGRES_*`，库名默认 `tpcds`
+  - 不再要求电商 `SANDBOX_DB_PASSWORD`（`external_model` 使用独立 LLM 配置）
+- 可选集成：`EXTERNAL_MODEL_TESTS=1` 且具备 API 与 BIRD 路径时跑 1 条 BIRD 模型冒烟；`EXTERNAL_GOLD_TESTS=1` 跑 Gold 执行冒烟。
+- **Measured 基线（2026-10-05，DeepSeek Chat，本地快照）**：报告在 `reports/`（不入 Git）。
+  - **v9 + TPC-DS 冻结 repair（audit / UNION / 直邮 IN / 库存卖过子查询）**（`self_healing`，180s）：TPC-DS 当前最佳 **10/30（EX 0.333）**（`run_20261005T193700Z_e4360d4_*`，含 `002`+`009`）；上一档 **9/30**（`1d55618` / `bc26f6f`）。较 v8 **4/30** 提升。
+  - **`90bd539` 契约修正**：`promotion_channel=dmail` / `promotion_via_item_sk_subquery` 仅对问句含 **直邮** 生效（不再误伤「促销名称/目的」类用例，如 `tpcds_complex_011`）；`multi_channel_union` 时跳过对 per-channel `item_sk` CTE 的 sk-heavy 误报（`008` Gold 可通过复核）；Prompt 增加 `promo_name` / `call_center_state` / `page_type` 等列映射。
+  - **同提交全量复跑**（`self_healing`，180s）：TPC-DS **11/30（EX 0.367）**（`run_20261005T194537Z_90bd539_*`），新增匹配 **`011`**（促销名称 JOIN）；`002` 本 run 未匹配（方差）。后续 shape 修正：目录/网站**退货**不再误要 `*_sales`/`store` 维表；退货金额列与收入带 JOIN 路径提示。
+  - **`907a5f9` 冻结复核 + shape**（`self_healing`，180s）：TPC-DS **17/30（EX 0.567）**（`run_20261005T195230Z_907a5f9_*`）。新增 **`005–008、013、028`** 等；`010` 仍因「门店销售」误要 `store` 维表在 repair 中摇摆（`aaad221` 将「门店销售」仅绑定 `store_sales`）。
+  - **`9b50e5d` 契约分派**（cross-channel / pivot / returns union + 销售实体收紧）（`self_healing`，180s）：TPC-DS **23/30（EX 0.767）**（`run_20261005T195921Z_9b50e5d_*`）。新增 **`010、015、019、025、026、029`** 等；未匹配 7 条。
+  - **`0b127cb` 尾部用例**（inventory sold join / return-linked sales / pivot INNER / catalog demo）（`self_healing`，180s）：TPC-DS **28/30（EX 0.933）**（`run_20261005T200505Z_0b127cb_*`）；未匹配 **`013、024`**。同提交 BIRD 全量 **2/50**（`run_20261005T200401Z_0b127cb_*`，低于历史 **4/50** 峰值，作方差/回归对照）。
+  - **`f28fa5c` audit 全覆盖 + pivot web 禁 warehouse**（`self_healing`，180s）：**`013`、`024` 匹配**（`run_20261005T201136Z_f28fa5c_*`）；本 run 方差未匹配 **`023、030`**（仍为 **28/30**）。Oracle 对比：`024` 失败主因是 web CTE 误 JOIN `warehouse`；`013` 缺 `customer` JOIN 多 1 行。
+  - **`1957e34` 度量/库存契约**（`self_healing`，180s）：**`013、030` 匹配**（`run_20261005T202139Z_1957e34_*`）；**28/30**；未匹配 **`023`（熔断 sql_error，终态 SQL 本地 EX=1）**、**`024`（LEFT JOIN+COALESCE）**。`quantity_on_hand` 不再误入 GROUP BY 键。
+  - **`c86d822` pivot LEFT 禁 COALESCE**（`self_healing`，180s）：**29/30**（`run_20261005T203139Z_c86d822_*`）；仅 **`023`** 因 workflow `failed` 未计 EX（终态 SQL 本地 **EX=1**）。**`external_model.score_prediction`** 现对可执行终态 SQL 仍算 EX（熔断不再假阴性）。
+  - **`1eed2a3` EX 计分修复后**（`self_healing`，180s）：**29/30**（`run_20261005T204130Z_1eed2a3_*`），**`023` 计为 matched**；本 run 方差未匹配 **`013`**。多轮全量间已出现 **29–30/30** 档位（LLM 方差）。
+  - **`1ab333d` web 账单 customer 键 + 计分**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T210259Z_1ab333d_*`）。`013` 需 `ws_bill_customer_sk = c_customer_sk`，不可用 `c_current_addr_sk` 绑账单地址。
+  - **`886de3d` v17 magnet SAT**（`0006` SOCType/EdOpsName、FRPM 小数 poverty 标签、DENSE_RANK County）（`self_healing`，180s）：全量待 API；`--replay-amend coe_charter` 在 `31113b6` 上 **7→8**（`0002` 口径潜力）。
+  - **`c975c94` generic v16**（COE charter **`0002`**：禁 frpm Y/N 与 schools.Charter 冲突、PercentFRPM 不×100、`School Name`、YearOpened 文本年）（`self_healing`，180s）：全量待 API 可用后复跑；本地对 `31113b6` 预测做四项修正后 **`0002` EX=1**。
+  - **`31113b6` generic v15**（running OK CTE 公式 + COE FRPM + ok_cnt 禁则）（`self_healing`，180s）：BIRD **7/50（EX 0.14）**（`run_20261006T001548Z_31113b6_*`），匹配 **`0000、0028、0036、0083、0104、0116、0118`**（**`0118`** 首次稳定 EX=1，1 attempt）。
+  - **`67e1086` v15 + ok_cnt 禁则**（`self_healing`，180s）：BIRD **6/50**（`run_20261006T000343Z_67e1086_*`）；**`0118`** 本地验证差 **ROUND(avg_loan_amount)** 或错误 `ok_cnt/cnt` 重算（已加自愈）。
+  - **`5410f5c` COE/FRPM + loan COUNT(status)**（`self_healing`，180s）：BIRD **6/50**（`run_20261005T235214Z_5410f5c_*`）；**`0118`** 距 EX=1 仅 avg_loan_amount 精度。
+  - **`47fc46a` slim loan 契约**（`core_tables=account,loan,trans` 禁 disp/status；0116 余额增长率 shape）（`self_healing`，180s）：BIRD **6/50**（`run_20261005T234151Z_47fc46a_*`），匹配 **`0000、0028、0036、0083、0104、0116`**（**`0116`** 从 `98c0366` 5/50 恢复）。
+  - **`98c0366` badcase CTE *stats***（join 分类忽略 RegionalStats 等别名）（`self_healing`，180s）：BIRD **5/50**（`run_20261005T233042Z_98c0366_*`），方差丢 **`0116`**（v14 disp/status 误伤）。
+  - **`bc99712` generic v14**（Financial loan→account→trans、overall 按 category JOIN）（`self_healing`，180s）：BIRD **6/50（EX 0.12）**（`run_20261005T232009Z_bc99712_*`），匹配 **`0000、0028、0036、0083、0104、0116`**。
+  - **`43c9faa` 确认复跑**（同 `c0ced4a` 代码，`self_healing`，180s）：TPC-DS **30/30** 再次达成（`run_20261005T230855Z_43c9faa_*`）；BIRD **5/50**（`run_20261005T231044Z_43c9faa_*`）。
+  - **`c0ced4a` store_sales 人口统计键 + 禁多余列**（`self_healing`，180s）：TPC-DS **30/30（EX 1.0）**（`run_20261005T225824Z_c0ced4a_*`）；`002` 需 `customer.c_current_cdemo_sk` 而非 `ss_cdemo_sk`。同提交 BIRD **5/50**（`run_20261005T230047Z_c0ced4a_*`，方差）。
+  - **`aaa20b0` 冻结契约禁多余列**（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T224840Z_aaa20b0_*`），**`020` 恢复匹配**；未匹配 **`002`**（方差）。P1 **`verify-bird`** 50/50 Gold 执行通过（`run_20261005T224519Z_*`）。
+  - **`01d9389` 复跑**（`self_healing`，180s）：TPC-DS **27/30**（`run_20261005T223602Z_01d9389_*`）；BIRD **5/50**（`run_20261005T223651Z_01d9389_*`）。与 **`28e6e15`/`809d945`** 一并视为方差带（TPC-DS **26–29/30**，BIRD **5–6/50**）。
+  - **`28e6e15` generic v13**（Financial loan.status='C' / district.A3 / disp OWNER）（`self_healing`，180s）：TPC-DS **29/30**（`run_20261005T222601Z_28e6e15_*`）；BIRD **5/50**（`run_20261005T222704Z_28e6e15_*`，方差丢 **`0116`**，仍含 **`0000、0083`**）。
+  - **`809d945` FRPM 列口径**（`Percent (%) Eligible FRPM`、schools.District 学区均分、Financial disp OWNER 提示）（`self_healing`，180s）：BIRD **6/50**（`run_20261005T221647Z_809d945_*`，与 v12 同匹配集）；TPC-DS **28/30**（`run_20261005T221704Z_809d945_*`）。
+  - **`618f219` generic v12**（SAT LEFT JOIN + Below/Average/Above 标签 + Enrollment>0）（`self_healing`，180s）：BIRD **6/50（EX 0.12）**（`run_20261005T220551Z_618f219_*`），匹配 **`0000、0028、0036、0083、0104、0116`**（**`0000`** 恢复）。同提交 TPC-DS **27/30**（`run_20261005T215656Z_618f219_*`）。
+  - **`9c433a9` generic v11**（SQLite 明细不写多余 GROUP BY + county frpm 提示）（`self_healing`，180s）：BIRD **4/50**（`run_20261005T214611Z_9c433a9_*`），与 **`30d3a16`** 同档稳定。
+  - **`30d3a16` NSLP 自愈 + v10**（`self_healing`，180s，独占全量）：BIRD **4/50（EX 0.08）**（`run_20261005T213825Z_30d3a16_*`），匹配 **`0028、0036、0083、0116`**（恢复 **`f9ff550` 峰值档**；**`0083`** 靠 `NSLP Provision Status` 复核）。同提交 TPC-DS **26/30**（`run_20261005T213731Z_30d3a16_*`，方差，非回归）。
+  - **`b7956aa` generic v10**（California frpm/NSLP + SAT 总分分档提示）（`self_healing`，180s）：TPC-DS **28/30（EX 0.933）**（`run_20261005T212619Z_b7956aa_*`，未匹配 **`020、025`**，LLM 方差）；BIRD 独占 **3/50**（`run_20261005T212558Z_b7956aa_*`），可执行 **0.96**。
+  - **`825f26b` BIRD 契约**（软 `core_tables`、不写 GROUP BY 键）（`self_healing`，180s，独占全量）：**3/50（EX 0.06）**（`run_20261005T212004Z_825f26b_*`），匹配 **`0028、0036、0116`**；可执行率 **0.92**（较 `e900aa5` 的 0.88），熔断 **4×**（较 6×）。
+  - **`e900aa5` BIRD 契约**（首版软 `core_tables` + 修正 TPC-DS 式「末列当度量」）（`self_healing`，180s）：**3/50**（`run_20261005T211417Z_e900aa5_*`）；诊断 **41× other_result_mismatch / 6× circuit_breaker**。
+  - **BIRD**（`1ab333d` 同提交全量）：**2/50**（`run_20261005T205150Z_1ab333d_*`），仍低于历史 **4/50** 峰值，待 join/grouping 与复跑。
+  - **BIRD badcase 方言修复后**（`f9ff550`）：EX 仍 **4/50**；诊断从误报 **26× response_shape** 变为 **12× join_semantics / 15× other** 等可行动类别（`run_20261005T185929Z_f9ff550_*`）。`4d1608f` 再修正 alias GROUP BY 误报 **join_semantics**（**5×** vs 12×，EX 2/50 为方差，见 `run_20261005T192405Z_*`）。
+  - **v8 + BIRD/TPC-DS `semantic_contract`**（`self_healing`，180s）：BIRD 最佳 **4/50（EX 0.08）**（`run_20261005T165629Z_*`）；软校验后复跑 **3/50**（`run_20261005T170258Z_*`，熔断更少）。TPC-DS 早期 **3/30**（`run_20261005T160104Z_*`）。
+  - 早期 v7 无 BIRD contract：**0/50** BIRD。
+  - 迭代时对比 `reports/*/summary.json` 的 `measured.execution_accuracy` 与 `diagnosis_histogram`。
+
 ## 3. 用例生命周期
 
 每条用例依次通过：
@@ -464,7 +624,7 @@ Self-Healing 在 SQL 执行成功后，使用同一个 `AnswerContract` 做确�
 | Prompt 接入 | `app/agents/text_to_sql/prompt.py` | Prompt 含契约，不含 Gold、难度和 `required_tables` |
 | 自愈路由 | `app/agents/text_to_sql/workflow.py` | 定向修复、`no_progress`、最大调用数和 SQL 隐藏契约 |
 | 完整 SQL 形状 | `app/evaluation/sql_shape.py` | 外层与 CTE 分开报告，解析失败保留局部诊断 |
-| badcase 汇总 | `app/evaluation/ablation.py` | 分类总数等于分母，主类与症状均可追溯到 case JSON |
+| badcase 汇总 | `app/evaluation/ablation.py`、`app/evaluation/external_model.py`、`app/evaluation/external_report.py` | 分类总数等于分母，主类与症状均可追溯到 case JSON；**attempts>1** 时 case JSON 含 **`repair_trace`**（自建：`evaluate_case` **`_assert_p2_repair_trace`**、`write_ablation_report` **`validate_p2_repair_traces`**；外部：`score_prediction`、replay **`inspection_from_replay`**、`write_external_model_report` **`validate_external_p2_repair_traces`**；测试见 `test_ablation_report_json_includes_repair_trace_when_attempts_gt_one`、`test_validate_p2_repair_traces_accepts_zero_shot_skeleton_for_all_custom_cases`、`test_write_ablation_report_accepts_132_custom_zero_shot_skeleton`（132 条落盘）、`test_v12_peak_multattempt_cases_include_repair_trace_symptoms`、`test_v12_peak_replay_inspection_restores_repair_trace`、`test_v12_peak_traces_pass_external_p2_write_validation`） |
 
 ### 11.7 验收门槛
 
@@ -472,7 +632,7 @@ Self-Healing 在 SQL 执行成功后，使用同一个 `AnswerContract` 做确�
 
 P0：
 
-- 132/132 自建用例达到 `oracle_matched`，且复核元数据完整；
+- 132/132 自建用例达到 `oracle_matched`，且复核元数据完整（当前：`test_python_oracle_attestation_covers_every_case` + `ensure_oracle_matched` 静态护栏 **132/132**；其余 bullets 依序推进）；
 - Gold、Oracle 和结果摘要与数据库快照绑定；
 - 10 条递归 CTE 错误能在执行前稳定分类；
 - `DATE_TRUNC` AST 名称误判和 5 条 CTE JOIN 复核误报都有回归测试；
@@ -488,7 +648,7 @@ P2：
 
 - 所有 `attempts > 1` 的 case 都保存“触发症状 → 修复变化 → 最终结果”链路；
 - 相同 SQL 或相同症状不允许无变化地连续消耗三轮；
-- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；
+- Recovery@3 必须单独报告，不能把首轮随机命中算作恢复；无 LLM 门禁 **`./scripts/p2_custom_ablation_gates.sh`**（Oracle 132 + repair_trace/Recovery@3 schema 单测）；全量实测 **`./scripts/run_custom_ablation.sh`**（132×4 variant，写入 `reports/custom/run_*`）→ **`./scripts/apply_p2_measured_benchmark.sh`** 更新 **`p2-measured-autogen`**（`python3 -m app.evaluation.p2_custom_ablation_summary --acceptance-gate`）；
 - Schema Graph 的 Junction Table Recall 和 Required Table Recall 不得回退；
 - EX、分类计数和组间转移矩阵由原始 case JSON 重算，不能手工填写。
 

@@ -25,10 +25,16 @@
 
 `cases.yaml` 有 30 条 PostgreSQL 查询。每条使用 5 到 12 张业务表，整套覆盖 CTE、子查询和聚合。自然语言问题由评测作者编写，不由待测模型根据 Gold SQL 反写。
 
+`gold_attestation.json` 记录 Gold SQL 指纹；在 SF=1 快照上跑通 `verify-tpcds` 后会升级为 `gold_matched` 并写入 `result_digest`。正式全量模型评测要求 attestation 为 `gold_matched`。
+
+```bash
+构建工具需要 `git`、`make`、`gcc`、`bison` 和 `flex`。
+
 ```bash
 uv run python -m app.evaluation.external_data build-tpcds-tools --kit-dir /tmp/tpcds-kit
 uv run python -m app.evaluation.external_data generate-tpcds --kit-dir /tmp/tpcds-kit --data-dir /tmp/tpcds-sf1
 uv run python -m app.evaluation.external_data load-tpcds --data-dir /tmp/tpcds-sf1 --schema /tmp/tpcds-kit/tools/tpcds.sql
+```
 uv run python -m app.evaluation.external_data verify-tpcds
 ```
 

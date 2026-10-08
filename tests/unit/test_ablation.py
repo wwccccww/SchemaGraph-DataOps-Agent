@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
 
+import pytest
 from app.agents.text_to_sql.workflow import (
     ZERO_SHOT_SCHEMA,
     ServiceBundle,
@@ -426,6 +427,7 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
     assert table_recall["denominator"] == 2
     recovery = measured["recovery_at_3"]
     assert isinstance(recovery, dict)
+    # §11.7 P2：Recovery@3 不把首轮即过的 case 算进分母
     assert recovery["excluded_first_attempt"] == 1
     assert recovery["recovered"] == 1
     assert recovery["failed"] == 1
@@ -441,6 +443,76 @@ def test_summary_keeps_targets_and_does_not_pad_a_partial_run() -> None:
     assert isinstance(summary_target, dict)
     summary_target["execution_accuracy"] = 1
     assert TARGETS["execution_accuracy"] == 0.83
+
+
+def test_ablation_report_json_includes_repair_trace_when_attempts_gt_one(tmp_path: Path) -> None:
+    """§11.5 P2：自建 attempts>1 的 case JSON 须持久化 repair_trace 结构化数组。"""
+    trace = (
+        ("1", "not_read_only", "sha256:s1", "sha256:q1"),
+        ("2", "accepted", "", "sha256:q2"),
+    )
+    records = [
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            passed=True,
+            ex=1,
+            repair_trace=trace,
+        )
+    ]
+    summary = build_summary(
+        records,
+        case_ids=["custom_basic_001"],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-04T15:12:00Z",
+        baseline_tokens=None,
+    )
+    run_dir = write_ablation_report(
+        tmp_path,
+        stamp="20261004T151200Z",
+        commit="abc1234",
+        summary=summary,
+        records=records,
+    )
+    payload = json.loads(
+        (run_dir / "cases" / "custom_basic_001__self_healing.json").read_text(encoding="utf-8")
+    )
+    assert payload["attempts"] == 2
+    assert len(payload["repair_trace"]) == 2
+    assert payload["repair_trace"][-1]["category"] == "accepted"
+
+
+def test_write_ablation_report_rejects_self_healing_without_repair_trace(tmp_path: Path) -> None:
+    records = [
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            passed=False,
+            ex=0,
+            repair_trace=(),
+        )
+    ]
+    summary = build_summary(
+        records,
+        case_ids=["custom_basic_001"],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-04T15:12:00Z",
+        baseline_tokens=None,
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        write_ablation_report(
+            tmp_path,
+            stamp="20261004T151200Z",
+            commit="abc1234",
+            summary=summary,
+            records=records,
+        )
 
 
 def test_report_directory_is_immutable(tmp_path: Path) -> None:
@@ -559,6 +631,119 @@ async def test_rejected_prediction_is_recorded_without_changing_the_response() -
     assert result.prediction.parse_error == "不是只读查询"
     assert result.primary_class == "sql_error"
     assert result.repair_trace[0][1] == "not_read_only"
+
+
+async def test_evaluate_case_self_healing_persists_repair_trace_when_attempts_gt_one() -> None:
+    """§11.5 P2：evaluate_case 自愈多轮须写入 CaseResult.repair_trace（非仅手填 fixture）。"""
+    case = _case().model_copy(update={"required_junctions": []})
+    result = await evaluate_case(
+        case,
+        _bundle(
+            ScriptedModel(["INSERT INTO t_user_level VALUES (1)"]),
+            RecordingExecutor(),
+            seeds=("t_user_level",),
+            documents=(_document("t_user_level", junction=False),),
+            edges=(),
+        ),
+        variant="self_healing",
+    )
+
+    assert result.attempts >= 2
+    assert len(result.repair_trace) >= 1
+    payload = result.as_json()
+    assert payload["attempts"] >= 2
+    assert len(payload["repair_trace"]) >= 1
+    assert dict(result.symptoms).get("repair_trace", "")
+    assert result.error_category == "no_progress"
+
+
+def test_validate_p2_repair_traces_accepts_zero_shot_skeleton_for_all_custom_cases() -> None:
+    """§11.5 P2：132 条自建用例 zero_shot/首轮 self_healing 须可通过 write 前校验。"""
+    from app.evaluation.ablation import validate_p2_repair_traces
+    from app.evaluation.custom_cases import load_custom_cases
+
+    cases = load_custom_cases()
+    assert len(cases) == 132
+    records = [
+        _result(
+            case.id,
+            "zero_shot",
+            passed=True,
+            ex=1,
+            difficulty=case.difficulty,
+        )
+        for case in cases
+    ]
+    validate_p2_repair_traces(records)
+    records.append(
+        _result(
+            "custom_basic_001",
+            "self_healing",
+            attempts=2,
+            repair_trace=(("1", "not_read_only", "sha256:s1", "sha256:q1"),),
+        )
+    )
+    validate_p2_repair_traces(records)
+
+
+def test_write_ablation_report_accepts_132_custom_zero_shot_skeleton(tmp_path: Path) -> None:
+    """§11.5 P2：132 条 zero_shot 骨架须能完整写入 ablation run（validate + 落盘）。"""
+    from app.evaluation.custom_cases import load_custom_cases
+
+    cases = load_custom_cases()
+    assert len(cases) == 132
+    records = [
+        _result(
+            case.id,
+            "zero_shot",
+            passed=True,
+            ex=1,
+            difficulty=case.difficulty,
+        )
+        for case in cases
+    ]
+    summary = build_summary(
+        records,
+        case_ids=[case.id for case in cases],
+        git_commit="abc1234",
+        database_snapshot="digest",
+        model="scripted",
+        started_at="2026-10-07T14:05:00Z",
+        baseline_tokens=None,
+    )
+    run_dir = write_ablation_report(
+        tmp_path,
+        stamp="20261007T140500Z",
+        commit="abc1234",
+        summary=summary,
+        records=records,
+    )
+    case_files = list((run_dir / "cases").glob("*.json"))
+    assert len(case_files) == 132
+
+
+def test_assert_p2_repair_trace_requires_trace_for_self_healing_multattempt() -> None:
+    from app.evaluation.ablation import _assert_p2_repair_trace
+
+    _assert_p2_repair_trace(
+        variant="zero_shot",
+        attempts=3,
+        trace=(),
+        case_id="custom_basic_001",
+    )
+    _assert_p2_repair_trace(
+        variant="self_healing",
+        attempts=1,
+        trace=(),
+        case_id="custom_basic_001",
+    )
+    with pytest.raises(RuntimeError, match="repair_trace is empty"):
+        _assert_p2_repair_trace(
+            variant="self_healing",
+            attempts=2,
+            trace=(),
+            case_id="custom_medium_001",
+        )
 
 
 def test_badcase_classes_sum_to_the_denominator_and_keep_symptoms() -> None:

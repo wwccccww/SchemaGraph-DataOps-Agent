@@ -1,0 +1,185 @@
+{
+  "case_id": "tpcds_complex_005",
+  "database_id": "tpcds",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "catalog_returns",
+    "catalog_sales",
+    "item",
+    "call_center",
+    "catalog_page",
+    "date_dim",
+    "reason",
+    "warehouse"
+  ],
+  "expanded_tables": [
+    "customer",
+    "ship_mode",
+    "time_dim",
+    "promotion"
+  ],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": 1.0,
+  "entity_coverage": 1.0,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "SELECT w.w_state AS warehouse_state, r.r_reason_desc AS return_reason, i.i_category AS item_category, cc.cc_state AS call_center_state, d.d_year AS return_year, SUM(cr.cr_return_amount) AS return_amount FROM catalog_returns AS cr JOIN date_dim AS d ON cr.cr_returned_date_sk = d.d_date_sk JOIN item AS i ON cr.cr_item_sk = i.i_item_sk JOIN reason AS r ON cr.cr_reason_sk = r.r_reason_sk JOIN warehouse AS w ON cr.cr_warehouse_sk = w.w_warehouse_sk JOIN call_center AS cc ON cr.cr_call_center_sk = cc.cc_call_center_sk WHERE d.d_year = 2001 GROUP BY w.w_state, r.r_reason_desc, i.i_category, cc.cc_state, d.d_year ORDER BY w.w_state, r.r_reason_desc, i.i_category, cc.cc_state, d.d_year",
+    "sql_hash": "sha256:93e1fbfa189284446538f817932323925f8c34008271394c839b43ba43ddc969",
+    "referenced_tables": [
+      "call_center",
+      "catalog_returns",
+      "date_dim",
+      "item",
+      "reason",
+      "warehouse"
+    ],
+    "projections": [
+      "warehouse_state",
+      "return_reason",
+      "item_category",
+      "call_center_state",
+      "return_year",
+      "return_amount"
+    ],
+    "joins": [
+      "JOIN date_dim ON cr.cr_returned_date_sk = d.d_date_sk",
+      "JOIN item ON cr.cr_item_sk = i.i_item_sk",
+      "JOIN reason ON cr.cr_reason_sk = r.r_reason_sk",
+      "JOIN warehouse ON cr.cr_warehouse_sk = w.w_warehouse_sk",
+      "JOIN call_center ON cr.cr_call_center_sk = cc.cc_call_center_sk"
+    ],
+    "predicates": [
+      "WHERE d.d_year = 2001"
+    ],
+    "group_by": [
+      "w.w_state",
+      "r.r_reason_desc",
+      "i.i_category",
+      "cc.cc_state",
+      "d.d_year"
+    ],
+    "aggregations": [
+      "sum"
+    ],
+    "order_by": [
+      "w.w_state ASC",
+      "r.r_reason_desc ASC",
+      "i.i_category ASC",
+      "cc.cc_state ASC",
+      "d.d_year ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "warehouse_state",
+          "return_reason",
+          "item_category",
+          "call_center_state",
+          "return_year",
+          "return_amount"
+        ],
+        "joins": [
+          "JOIN date_dim ON cr.cr_returned_date_sk = d.d_date_sk",
+          "JOIN item ON cr.cr_item_sk = i.i_item_sk",
+          "JOIN reason ON cr.cr_reason_sk = r.r_reason_sk",
+          "JOIN warehouse ON cr.cr_warehouse_sk = w.w_warehouse_sk",
+          "JOIN call_center ON cr.cr_call_center_sk = cc.cc_call_center_sk"
+        ],
+        "group_by": [
+          "w.w_state",
+          "r.r_reason_desc",
+          "i.i_category",
+          "cc.cc_state",
+          "d.d_year"
+        ],
+        "aggregations": [
+          "sum"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "outer:warehouse.w_state、reason.r_reason_desc、item.i_category、call_center.cc_state、date_dim.d_year"
+    ],
+    [
+      "predicted_group_by",
+      "outer:w.w_state、r.r_reason_desc、i.i_category、cc.cc_state、d.d_year"
+    ],
+    [
+      "aggregation_only_in_cte",
+      ""
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=5;predicted=5"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}

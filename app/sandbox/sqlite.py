@@ -62,11 +62,34 @@ def worker_environment() -> dict[str, str]:
     }
 
 
+def _has_trailing_statement_semicolon(sql: str) -> bool:
+    """Semicolon outside quotes with non-empty SQL after it ⇒ multi-statement."""
+
+    in_single = False
+    in_double = False
+    index = 0
+    length = len(sql)
+    while index < length:
+        char = sql[index]
+        if char == "'" and not in_double:
+            if in_single and index + 1 < length and sql[index + 1] == "'":
+                index += 2
+                continue
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        elif char == ";" and not in_single and not in_double:
+            if sql[index + 1 :].strip():
+                return True
+        index += 1
+    return False
+
+
 def check_sqlite_read_only(sql: str) -> str | None:
     """静态拒绝多语句和写入。通过时返回去掉末尾分号的 SQL。"""
 
     statement = sql.strip().rstrip(";").strip()
-    if statement == "" or ";" in statement:
+    if statement == "" or _has_trailing_statement_semicolon(statement):
         return None
     try:
         parsed = sqlglot.parse(statement, read="sqlite", error_level=sqlglot.ErrorLevel.RAISE)

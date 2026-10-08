@@ -1,0 +1,270 @@
+{
+  "case_id": "bird_0121",
+  "database_id": "financial",
+  "primary_class": "other_result_mismatch",
+  "ex": 0,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 2,
+  "seed_tables": [
+    "account",
+    "loan",
+    "trans",
+    "district",
+    "client",
+    "disp",
+    "order",
+    "card"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": null,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH AccountsInPrachatice AS (SELECT a.account_id, a.date AS opening_date, a.district_id FROM account AS a JOIN district AS d ON a.district_id = d.district_id WHERE d.A2 = 'Prachatice'), OwnerInfo AS (SELECT dp.account_id, c.gender, c.birth_date FROM disp AS dp JOIN client AS c ON c.client_id = dp.client_id WHERE dp.type = 'OWNER'), TransactionStats AS (SELECT t.account_id, COUNT(*) AS transaction_count, SUM(CASE WHEN t.type = 'PRIJEM' THEN t.amount ELSE 0 END) AS total_income, SUM(CASE WHEN t.type = 'VYDAJ' THEN t.amount ELSE 0 END) AS total_expense, MAX(t.balance) AS max_balance FROM trans AS t WHERE t.type IN ('PRIJEM', 'VYDAJ') GROUP BY t.account_id), LoanInfo AS (SELECT l.account_id, COUNT(*) AS loan_count, SUM(l.amount) AS total_loan_amount, CASE WHEN SUM(CASE WHEN l.status = 'A' THEN 1 ELSE 0 END) > 0 THEN 'Has Active Loan' WHEN SUM(CASE WHEN l.status = 'B' THEN 1 ELSE 0 END) > 0 THEN 'Has Completed Loan' WHEN SUM(CASE WHEN l.status = 'C' THEN 1 ELSE 0 END) > 0 THEN 'Has Defaulted Loan' WHEN SUM(CASE WHEN l.status = 'D' THEN 1 ELSE 0 END) > 0 THEN 'Has Loan' ELSE 'No Loans' END AS loan_status FROM loan AS l GROUP BY l.account_id), Profile AS (SELECT ap.account_id AS account_id, ap.opening_date AS opening_date, d.A2 AS district_name, d.A3 AS region, oi.gender AS gender, CAST(STRFTIME('%Y', '2026-10-01') AS INTEGER) - CAST(STRFTIME('%Y', oi.birth_date) AS INTEGER) AS client_age, COALESCE(ts.transaction_count, 0) AS transaction_count, COALESCE(ts.total_income, 0) AS total_income, COALESCE(ts.total_expense, 0) AS total_expense, COALESCE(ts.total_income, 0) - COALESCE(ts.total_expense, 0) AS net_balance, COALESCE(ts.max_balance, 0) AS max_balance, COALESCE(li.loan_count, 0) AS loan_count, COALESCE(li.total_loan_amount, 0) AS total_loan_amount, COALESCE(li.loan_status, 'No Loans') AS loan_status, CASE WHEN COALESCE(ts.transaction_count, 0) >= 50 THEN 'High Activity' WHEN COALESCE(ts.transaction_count, 0) >= 20 THEN 'Medium Activity' WHEN COALESCE(ts.transaction_count, 0) >= 5 THEN 'Low Activity' ELSE 'Inactive' END AS customer_category FROM AccountsInPrachatice AS ap JOIN district AS d ON ap.district_id = d.district_id JOIN OwnerInfo AS oi ON oi.account_id = ap.account_id LEFT JOIN TransactionStats AS ts ON ts.account_id = ap.account_id LEFT JOIN LoanInfo AS li ON li.account_id = ap.account_id) SELECT account_id, opening_date, district_name, region, gender, client_age, transaction_count, total_income, total_expense, net_balance, max_balance, loan_count, total_loan_amount, loan_status, customer_category, ROW_NUMBER() OVER (ORDER BY net_balance DESC) AS balance_rank FROM Profile ORDER BY balance_rank",
+    "sql_hash": "sha256:7f00a658a296dad96d1ae0f9e1a4abcc95645f638fd55953f7af6a8dd1bb37c6",
+    "referenced_tables": [
+      "account",
+      "client",
+      "disp",
+      "district",
+      "loan",
+      "trans"
+    ],
+    "projections": [
+      "account_id",
+      "opening_date",
+      "district_name",
+      "region",
+      "gender",
+      "client_age",
+      "transaction_count",
+      "total_income",
+      "total_expense",
+      "net_balance",
+      "max_balance",
+      "loan_count",
+      "total_loan_amount",
+      "loan_status",
+      "customer_category",
+      "balance_rank"
+    ],
+    "joins": [
+      "JOIN district ON a.district_id = d.district_id",
+      "JOIN client ON c.client_id = dp.client_id",
+      "JOIN district ON ap.district_id = d.district_id",
+      "JOIN OwnerInfo ON oi.account_id = ap.account_id",
+      "LEFT JOIN TransactionStats ON ts.account_id = ap.account_id",
+      "LEFT JOIN LoanInfo ON li.account_id = ap.account_id"
+    ],
+    "predicates": [],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [
+      "balance_rank ASC"
+    ],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "account_id",
+          "opening_date",
+          "district_name",
+          "region",
+          "gender",
+          "client_age",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "max_balance",
+          "loan_count",
+          "total_loan_amount",
+          "loan_status",
+          "customer_category",
+          "balance_rank"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id",
+          "JOIN client ON c.client_id = dp.client_id",
+          "JOIN district ON ap.district_id = d.district_id",
+          "JOIN OwnerInfo ON oi.account_id = ap.account_id",
+          "LEFT JOIN TransactionStats ON ts.account_id = ap.account_id",
+          "LEFT JOIN LoanInfo ON li.account_id = ap.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "AccountsInPrachatice",
+        "projections": [
+          "account_id",
+          "opening_date",
+          "district_id"
+        ],
+        "joins": [
+          "JOIN district ON a.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "OwnerInfo",
+        "projections": [
+          "account_id",
+          "gender",
+          "birth_date"
+        ],
+        "joins": [
+          "JOIN client ON c.client_id = dp.client_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "TransactionStats",
+        "projections": [
+          "account_id",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "max_balance"
+        ],
+        "joins": [],
+        "group_by": [
+          "t.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum",
+          "max"
+        ]
+      },
+      {
+        "name": "LoanInfo",
+        "projections": [
+          "account_id",
+          "loan_count",
+          "total_loan_amount",
+          "loan_status"
+        ],
+        "joins": [],
+        "group_by": [
+          "l.account_id"
+        ],
+        "aggregations": [
+          "count",
+          "sum"
+        ]
+      },
+      {
+        "name": "Profile",
+        "projections": [
+          "account_id",
+          "opening_date",
+          "district_name",
+          "region",
+          "gender",
+          "client_age",
+          "transaction_count",
+          "total_income",
+          "total_expense",
+          "net_balance",
+          "max_balance",
+          "loan_count",
+          "total_loan_amount",
+          "loan_status",
+          "customer_category"
+        ],
+        "joins": [
+          "JOIN district ON ap.district_id = d.district_id",
+          "JOIN OwnerInfo ON oi.account_id = ap.account_id",
+          "LEFT JOIN TransactionStats ON ts.account_id = ap.account_id",
+          "LEFT JOIN LoanInfo ON li.account_id = ap.account_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      }
+    ]
+  },
+  "diagnosis_class": "other_result_mismatch",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "TransactionStats:t.account_id | LoanInfo:l.account_id"
+    ],
+    [
+      "predicted_group_by",
+      "TransactionStats:t.account_id | LoanInfo:l.account_id"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "TransactionStats,LoanInfo"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=8;predicted=6"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      "1:undefined_column:sha256:d90fe8642067e578404a9040aa841c0a709d4bd78dbf6c65a00a0b5c7805d84a;2:accepted:"
+    ]
+  ]
+}

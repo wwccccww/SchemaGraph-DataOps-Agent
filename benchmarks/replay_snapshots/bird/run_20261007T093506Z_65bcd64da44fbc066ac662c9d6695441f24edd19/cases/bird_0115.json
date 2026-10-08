@@ -1,0 +1,188 @@
+{
+  "case_id": "bird_0115",
+  "database_id": "financial",
+  "primary_class": "matched",
+  "ex": 1,
+  "error_category": null,
+  "normalized_message": null,
+  "attempts": 1,
+  "seed_tables": [
+    "district",
+    "account",
+    "client",
+    "card",
+    "disp",
+    "loan",
+    "order",
+    "trans"
+  ],
+  "expanded_tables": [],
+  "context_recall": 1.0,
+  "sql_table_recall": 1.0,
+  "dimension_coverage": null,
+  "entity_coverage": null,
+  "measure_coverage": 1.0,
+  "leaked_tables": [],
+  "ecommerce_rule_hits": [],
+  "prediction": {
+    "sql": "WITH RegionStats AS (SELECT d.district_id, d.A2 AS district_name, d.A3 AS region, CAST(d.A4 AS INTEGER) AS inhabitants, COUNT(DISTINCT c.client_id) AS total_clients, COUNT(DISTINCT CASE WHEN c.gender = 'M' THEN c.client_id END) AS male_clients FROM district AS d JOIN client AS c ON c.district_id = d.district_id WHERE d.A3 = 'south Bohemia' GROUP BY d.district_id, d.A2, d.A3, CAST(d.A4 AS INTEGER)), Ranked AS (SELECT district_id, district_name, region, inhabitants, total_clients, male_clients, RANK() OVER (ORDER BY inhabitants DESC) AS population_rank FROM RegionStats) SELECT district_id, district_name, region, inhabitants, total_clients, male_clients, ROUND(male_clients * 100.0 / total_clients, 2) AS pct_male FROM Ranked WHERE population_rank = 1",
+    "sql_hash": "sha256:4c06c53ee2e6d5487e4916e91210a5a7a46617acdc2bb5b61957f3de05eb981d",
+    "referenced_tables": [
+      "client",
+      "district"
+    ],
+    "projections": [
+      "district_id",
+      "district_name",
+      "region",
+      "inhabitants",
+      "total_clients",
+      "male_clients",
+      "pct_male"
+    ],
+    "joins": [
+      "JOIN client ON c.district_id = d.district_id"
+    ],
+    "predicates": [
+      "WHERE population_rank = 1"
+    ],
+    "group_by": [],
+    "aggregations": [],
+    "order_by": [],
+    "parse_error": null,
+    "scopes": [
+      {
+        "name": "outer",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants",
+          "total_clients",
+          "male_clients",
+          "pct_male"
+        ],
+        "joins": [
+          "JOIN client ON c.district_id = d.district_id"
+        ],
+        "group_by": [],
+        "aggregations": []
+      },
+      {
+        "name": "RegionStats",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants",
+          "total_clients",
+          "male_clients"
+        ],
+        "joins": [
+          "JOIN client ON c.district_id = d.district_id"
+        ],
+        "group_by": [
+          "d.district_id",
+          "d.A2",
+          "d.A3",
+          "CAST(d.A4 AS INT)"
+        ],
+        "aggregations": [
+          "count"
+        ]
+      },
+      {
+        "name": "Ranked",
+        "projections": [
+          "district_id",
+          "district_name",
+          "region",
+          "inhabitants",
+          "total_clients",
+          "male_clients",
+          "population_rank"
+        ],
+        "joins": [],
+        "group_by": [],
+        "aggregations": [
+          "rank"
+        ]
+      }
+    ]
+  },
+  "diagnosis_class": "matched",
+  "symptoms": [
+    [
+      "missing_projections",
+      ""
+    ],
+    [
+      "extra_projections",
+      ""
+    ],
+    [
+      "projection_order",
+      ""
+    ],
+    [
+      "gold_group_by",
+      "RegionStats:d.district_id、d.A3、d.A4"
+    ],
+    [
+      "predicted_group_by",
+      "RegionStats:d.district_id、d.A2、d.A3、CAST(d.A4 AS INT)"
+    ],
+    [
+      "aggregation_only_in_cte",
+      "RegionStats,Ranked"
+    ],
+    [
+      "missing_output_labels",
+      ""
+    ],
+    [
+      "missing_filter_literals",
+      ""
+    ],
+    [
+      "missing_dedup_key",
+      ""
+    ],
+    [
+      "refanout_after_dedup",
+      ""
+    ],
+    [
+      "aggregate_source_grain",
+      ""
+    ],
+    [
+      "missing_group_identifier",
+      ""
+    ],
+    [
+      "wrong_entity_literal",
+      ""
+    ],
+    [
+      "category_scope",
+      ""
+    ],
+    [
+      "join_shape_difference",
+      "gold=2;predicted=1"
+    ],
+    [
+      "runtime_clock",
+      ""
+    ],
+    [
+      "recursive_cte",
+      ""
+    ],
+    [
+      "repair_trace",
+      ""
+    ]
+  ]
+}
