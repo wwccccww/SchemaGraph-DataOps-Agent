@@ -560,6 +560,40 @@ def check_frozen_semantic_contract(
                         "FRPM 与 Enrollment 用 Ages 5-17 列；Percent 用 FRPM Count/Enrollment×100",
                     )
                 )
+            if re.search(
+                r'Percent\s*\(%\)\s*Eligible\s*FRPM\s*\(Ages\s*5-17\)"\s*\*\s*100',
+                sql,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Percent 列用 FRPM Count (Ages 5-17)/Enrollment (Ages 5-17)×100，"
+                        "不要对 frpm Percent 小数列再 ×100",
+                    )
+                )
+            if "SAT Ranking" in contract.projections and re.search(
+                r"RANK\s*\(\s*\)\s*OVER\s*\(\s*ORDER\s+BY[\s\S]{0,120}"
+                r'(?:Percent\s*\(%\)\s*Eligible\s*FRPM|frpm\.)',
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SAT Ranking 按 SAT 总分 RANK()，不要按 FRPM 百分比排序",
+                    )
+                )
+            if re.search(
+                r"Charter\s*=\s*1\s+THEN\s+'Yes'\s*(?:WHEN|ELSE|$)",
+                sql,
+                re.IGNORECASE,
+            ) and not re.search(r"CharterNum|Charter\s*Num", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Is_Charter 用 Yes (CharterNum)/No，不要仅用 Yes/No/Unknown",
+                    )
+                )
             if re.search(r"High FRPM|Medium FRPM", sql):
                 findings.append(
                     SemanticFinding(
@@ -2828,15 +2862,34 @@ def check_frozen_semantic_contract(
                 sql,
                 re.IGNORECASE,
             ) and re.search(
-                r"AVG\s*\(\s*AvgScrRead\s*\+\s*AvgScrMath\s*\+\s*AvgScrWrite\s*\)",
+                r"AVG\s*\(\s*(?:\w+\.)?AvgScrRead\s*\+\s*(?:\w+\.)?AvgScrMath\s*"
+                r"\+\s*(?:\w+\.)?AvgScrWrite\s*\)",
                 sql,
                 re.IGNORECASE,
             ):
                 findings.append(
                     SemanticFinding(
                         "projection_mismatch",
-                        "AvgTotalScore 用 AVG((Read+Math+Write)/3.0) 或三科分别平均，"
-                        "不要 AVG(Read+Math+Write) 三科之和",
+                        "AvgTotalScore 用 SchoolStats CTE 内 (Read+Math+Write) 再 AVG(TotalAvgScore)，"
+                        "不要外层直接 AVG(三科之和)",
+                    )
+                )
+            if not re.search(r"\bWITH\s+SchoolStats\b", sql, re.IGNORECASE):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "Fresno directly funded charter 题用 WITH SchoolStats CTE 再外层按 County 聚合",
+                    )
+                )
+            if re.search(r"SchoolsWithUnder50Testers", sql, re.IGNORECASE) and re.search(
+                r"SUM\s*\(\s*CASE\s+WHEN[\s\S]{0,80}NumTstTakr\s*<=?\s*50",
+                sql,
+                re.IGNORECASE,
+            ):
+                findings.append(
+                    SemanticFinding(
+                        "projection_mismatch",
+                        "SchoolsWith*Testers 分桶用 COUNT(CASE WHEN NumTstTakr … THEN 1 END)，不要用 SUM",
                     )
                 )
             if "AvgFRPMPercentage" in contract.projections and re.search(

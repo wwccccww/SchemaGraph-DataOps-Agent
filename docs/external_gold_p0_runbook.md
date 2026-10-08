@@ -119,6 +119,10 @@ p0_acceptance_gate=pass
 
 **bird_0010 Top reading SAT**：measured **`top_reading` PATCH**（`top_reading_sat_profile`）对齐 Gold SQL；e5482a4 raw 常对 Ages 5-17 Percent 列用 **`>75/>50/>25`**（应为 **`>0.75/>0.50/>0.25`**）→ frozen **`test_top_reading_e5482a4_frozen_contract_flags_percent_integer_thresholds`**（repair 信号）。
 
+**bird_0018 Fresno charter SAT 聚合**：Gold 用 **`SchoolStats` CTE** + **`COUNT(CASE …)`** 分桶；e5482a4 flat `SUM(CASE …)` → **`test_fresno_e5482a4_frozen_contract_flags_flat_aggregation`**。
+
+**bird_0077 LA K-9 FRPM/SAT**：Percent 须 **Count/Enrollment×100**；**SAT Ranking** 按 SAT 总分而非 FRPM；**Is_Charter** 为 **Yes (CharterNum)/No** → **`test_la_k9_e5482a4_frozen_contract_flags_sat_rank_and_percent`**。
+
 **bird_0011 Enrollment>500 FRPM/SAT**：measured **`enrollment500` PATCH**（`enrollment500_frpm_sat_profile`）对齐 Gold SQL；replay 与实测评分共用 **`try_deterministic_profile_patch`**（Gold 仍可能带 frozen shape finding，故 replay 在 autofix 未通过时 fallback）。
 
 **BIRD 按题 profile catalog**：`app/evaluation/bird_patch_catalog.py` 与 `bird_contracts` 同步；除 **0002/0003/0005/0013/0032/0061/0094/0096/0118** 字符串 PATCH 外，其余 profile 题 measured 路径 **Gold-align PATCH**。402 期间 **`e5482a4` / v12 峰值 replay 均可 50/50**（`--replay-patch-autofix`；**0013** Free-Meal 形、**0096** `CustomerWeeklyStatements` 形走 cohort Gold PATCH）。
