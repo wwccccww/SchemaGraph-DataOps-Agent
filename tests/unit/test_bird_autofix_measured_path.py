@@ -82,6 +82,12 @@ def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlIn
     )
 
 
+def _e5482a4_sqlite_ready(case_id: str) -> bool:
+    case = next(c for c in load_bird_cases() if c.id == case_id)
+    db_path = FINANCIAL_DB if case.database_id == "financial" else CA_SCHOOLS_DB
+    return db_path.is_file()
+
+
 async def _score_bird_saved_sql(case, raw_sql: str) -> object:
     db_path = FINANCIAL_DB if case.database_id == "financial" else CA_SCHOOLS_DB
     if case.database_id not in {"california_schools", "financial"}:
@@ -609,13 +615,43 @@ async def test_score_prediction_patches_e5482a4_bird_0008_top10_high_frpm_sql_er
 async def test_score_prediction_patches_e5482a4_sql_error_cases(case_id: str) -> None:
     """e5482a4 其余 sql_error/no_progress：measured PATCH 路径应 ex=1（0066/0092/0113 见专项单测）。"""
     case_path = MEASURED_BIRD_E5482A4_RUN / "cases" / f"{case_id}.json"
-    if not case_path.is_file() or not CA_SCHOOLS_DB.is_file():
+    if not case_path.is_file() or not _e5482a4_sqlite_ready(case_id):
         pytest.skip(f"e5482a4 {case_id} fixture or sqlite missing")
     payload = json.loads(case_path.read_text())
     assert (
         payload.get("error_category") == "no_progress"
         or payload.get("primary_class") == "sql_error"
     )
+    raw_sql = payload["prediction"]["sql"]
+    case = next(c for c in load_bird_cases() if c.id == case_id)
+    trace = await _score_bird_saved_sql(case, raw_sql)
+    assert trace.ex == 1
+    assert trace.primary_class == "matched"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        "bird_0018",
+        "bird_0019",
+        "bird_0020",
+        "bird_0021",
+        "bird_0045",
+        "bird_0062",
+        "bird_0069",
+        "bird_0077",
+        "bird_0079",
+        "bird_0104",
+    ],
+)
+async def test_score_prediction_patches_e5482a4_result_mismatch_cases(case_id: str) -> None:
+    """e5482a4 other_result_mismatch：measured PATCH ex=1（0010/0011/0055/0078/0097/0111 见专项单测）。"""
+    case_path = MEASURED_BIRD_E5482A4_RUN / "cases" / f"{case_id}.json"
+    if not case_path.is_file() or not _e5482a4_sqlite_ready(case_id):
+        pytest.skip(f"e5482a4 {case_id} fixture or sqlite missing")
+    payload = json.loads(case_path.read_text())
+    assert payload.get("primary_class") == "other_result_mismatch"
     raw_sql = payload["prediction"]["sql"]
     case = next(c for c in load_bird_cases() if c.id == case_id)
     trace = await _score_bird_saved_sql(case, raw_sql)

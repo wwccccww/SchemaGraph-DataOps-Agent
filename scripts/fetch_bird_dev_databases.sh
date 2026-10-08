@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # P0/P1：下载并解压 BIRD MINIDEV dev_databases（见 benchmarks/bird_complex/SOURCE.md）。
-# 不提交 zip/SQLite；fetch 会校验 sha256。
+# 不提交 zip/SQLite；fetch 会校验 sha256。`fetch-bird-databases` 对 transient SSL/网络错误自动重试。
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
