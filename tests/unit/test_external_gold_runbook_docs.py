@@ -16,6 +16,7 @@ def test_external_gold_p0_runbook_exists_and_benchmark_links_it() -> None:
     body = runbook.read_text(encoding="utf-8")
     assert "p0_post_billing_acceptance.sh" in body
     assert "replay_e5482a4_patch_autofix.sh" in body
+    assert "replay_p0_bird_measured_patch.sh" in body
     assert "wait_for_billing_and_run_p0.sh" in body
     assert "--gates-only" in body
     assert "ops_runbook=" in body

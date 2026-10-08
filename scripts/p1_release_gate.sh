@@ -18,6 +18,11 @@ elif [[ ! -d "${BIRD_DATABASE_ROOT}" ]]; then
   echo "BIRD_DATABASE_ROOT is not a directory: ${BIRD_DATABASE_ROOT} (see .env.example minidev/MINIDEV/dev_databases)" >&2
   exit 1
 fi
+# P0 acceptance may export a higher bar for measured summary only; gate unit tests assert default 19.
+if [[ -n "${P0_BIRD_MIN_MATCHED:-}" && "${P0_BIRD_MIN_MATCHED}" != "19" ]]; then
+  echo "note: p1_release_gate pytest uses P0_BIRD_MIN_MATCHED=19 (summary acceptance uses ${P0_BIRD_MIN_MATCHED})" >&2
+fi
+export P0_BIRD_MIN_MATCHED=19
 uv run pytest tests/unit/test_custom_cases.py::test_python_oracle_attestation_covers_every_case \
   tests/unit/test_p0_external_measured_baseline.py \
   tests/unit/test_p1_replay_gate.py \
