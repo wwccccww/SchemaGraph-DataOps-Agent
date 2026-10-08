@@ -56,6 +56,38 @@ MEASURED_BIRD_0066_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0066.json"
 MEASURED_BIRD_0078_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0078.json"
 MEASURED_BIRD_0008_E5482A4 = MEASURED_BIRD_E5482A4_RUN / "cases/bird_0008.json"
 
+# vendored e5482a4 measured run 写入时 raw EX=0（24/50）；Step-3 单测按题覆盖此集合。
+E5482A4_VENDORED_RAW_EX0_CASE_IDS = frozenset(
+    {
+        "bird_0008",
+        "bird_0010",
+        "bird_0011",
+        "bird_0018",
+        "bird_0019",
+        "bird_0020",
+        "bird_0021",
+        "bird_0045",
+        "bird_0055",
+        "bird_0060",
+        "bird_0062",
+        "bird_0066",
+        "bird_0069",
+        "bird_0077",
+        "bird_0078",
+        "bird_0079",
+        "bird_0092",
+        "bird_0097",
+        "bird_0100",
+        "bird_0104",
+        "bird_0105",
+        "bird_0111",
+        "bird_0113",
+        "bird_0119",
+        "bird_0121",
+        "bird_0123",
+    }
+)
+
 
 def _measured_live_inspection(raw_sql: str, *, attempts: int = 2) -> TextToSqlInspection:
     return TextToSqlInspection(
@@ -790,6 +822,20 @@ async def test_score_prediction_patches_e5482a4_bird_0055_response_shape() -> No
     trace = await _score_bird_saved_sql(case, raw_sql)
     assert trace.ex == 1
     assert trace.primary_class == "matched"
+
+
+def test_e5482a4_vendored_run_raw_ex0_inventory() -> None:
+    """钉住 vendored e5482a4 raw 24/50 差分集；变更 snapshot 须同步 Step-3 单测。"""
+    run_dir = MEASURED_BIRD_E5482A4_RUN
+    if not run_dir.is_dir():
+        pytest.skip("e5482a4 measured run dir missing")
+    ex0: set[str] = set()
+    for path in run_dir.glob("cases/bird_*.json"):
+        payload = json.loads(path.read_text())
+        if payload.get("ex") != 1:
+            ex0.add(path.stem)
+    assert ex0 == E5482A4_VENDORED_RAW_EX0_CASE_IDS
+    assert len(ex0) == 26
 
 
 @pytest.mark.asyncio
