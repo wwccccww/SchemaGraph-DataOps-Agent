@@ -47,7 +47,7 @@
       text-align: right;
       font-size: 12px;
       color: #444;
-      line-height: 1.8;
+      line-height: 1.9;
     }
     .header-right a { color: #1a56db; text-decoration: none; }
 
@@ -63,8 +63,8 @@
       letter-spacing: 1px;
     }
 
-    /* ── 条目行（公司/学校/项目标题）── */
-    .entry { margin-bottom: 10px; }
+    /* ── 条目行 ── */
+    .entry { margin-bottom: 12px; }
     .entry-header {
       display: flex;
       justify-content: space-between;
@@ -99,7 +99,16 @@
       vertical-align: middle;
     }
 
-    /* ── 要点列表 ── */
+    /* ── 技术栈行 ── */
+    .tech-line {
+      font-size: 12px;
+      color: #444;
+      margin-top: 3px;
+      margin-bottom: 4px;
+    }
+    .tech-line strong { color: #222; }
+
+    /* ── STAR 要点列表 ── */
     ul.bullets {
       list-style: none;
       padding-left: 0;
@@ -108,9 +117,9 @@
     ul.bullets li {
       padding-left: 14px;
       position: relative;
-      margin-bottom: 3px;
+      margin-bottom: 6px;
       font-size: 12.5px;
-      line-height: 1.65;
+      line-height: 1.7;
       color: #333;
     }
     ul.bullets li::before {
@@ -121,20 +130,40 @@
       font-weight: 700;
     }
 
-    /* ── 高亮量化数据 ── */
+    /* ── STAR 内联标签 ── */
+    .s-tag, .t-tag, .a-tag, .r-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      padding: 0 4px;
+      margin-right: 3px;
+      vertical-align: middle;
+      line-height: 16px;
+    }
+    .s-tag { background: #fef3c7; color: #92400e; }   /* 黄：Situation */
+    .t-tag { background: #ede9fe; color: #5b21b6; }   /* 紫：Task */
+    .a-tag { background: #dbeafe; color: #1e40af; }   /* 蓝：Action */
+    .r-tag { background: #d1fae5; color: #065f46; }   /* 绿：Result */
+
+    /* ── 量化数据高亮 ── */
     .metric {
       font-weight: 700;
       color: #b45309;
     }
 
-    /* ── 技术栈标签行 ── */
-    .tech-line {
+    /* ── 核心成果高亮框 ── */
+    .result-box {
+      background: #f0f7ff;
+      border-left: 3px solid #1a56db;
+      padding: 5px 10px;
+      margin: 4px 0 6px;
+      border-radius: 0 4px 4px 0;
       font-size: 12px;
-      color: #444;
-      margin-top: 3px;
-      margin-bottom: 2px;
+      color: #333;
+      line-height: 1.75;
     }
-    .tech-line strong { color: #222; }
+    .result-box strong { color: #111; }
 
     /* ── 专业技能网格 ── */
     .skills-grid {
@@ -154,29 +183,16 @@
     .comp-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 3px 20px;
+      gap: 4px 20px;
       font-size: 12.5px;
     }
-    .comp-item { display: flex; justify-content: space-between; }
+    .comp-item { display: flex; justify-content: space-between; align-items: baseline; }
     .comp-item .comp-award {
       font-weight: 600;
       color: #b45309;
       white-space: nowrap;
       margin-left: 6px;
     }
-
-    /* ── 结果高亮块 ── */
-    .result-box {
-      background: #f0f7ff;
-      border-left: 3px solid #1a56db;
-      padding: 5px 10px;
-      margin-top: 5px;
-      border-radius: 0 4px 4px 0;
-      font-size: 12px;
-      color: #333;
-      line-height: 1.7;
-    }
-    .result-box strong { color: #111; }
 
     /* ── 分隔线 ── */
     .divider {
@@ -187,8 +203,8 @@
 
     /* ── 打印 ── */
     @media print {
-      body { font-size: 12.5px; }
-      .page { padding: 20px 30px; }
+      body { font-size: 12px; }
+      .page { padding: 18px 28px; }
       a { color: #1a56db !important; }
     }
   </style>
@@ -199,8 +215,8 @@
   <!-- ══ 顶部 ══ -->
   <div class="header">
     <div class="header-left">
-      <h1>张益达&nbsp;<span style="font-size:14px;font-weight:400;color:#555;">（请替换为真实姓名）</span></h1>
-      <div class="intent">求职意向：AI Agent 开发工程师 &nbsp;|&nbsp; 大模型应用开发 &nbsp;|&nbsp; 2027届校招</div>
+      <h1>张益达&nbsp;<span style="font-size:13px;font-weight:400;color:#888;">（请替换为真实姓名）</span></h1>
+      <div class="intent">求职意向：AI Agent 开发工程师 &nbsp;|&nbsp; 大模型应用开发 &nbsp;|&nbsp; 2027 届校招</div>
     </div>
     <div class="header-right">
       📱 138-0000-0000（请替换）<br/>
@@ -214,14 +230,11 @@
     <div class="section-title">教育经历</div>
     <div class="entry">
       <div class="entry-header">
-        <span class="entry-title">华南农业大学&ensp;<span style="font-weight:400;font-size:12px;color:#555;">双一流建设高校</span></span>
+        <span class="entry-title">华南农业大学&ensp;<span style="font-weight:400;font-size:12px;color:#666;">双一流建设高校</span></span>
         <span class="entry-date">2023.09 — 2027.06</span>
       </div>
       <div class="entry-sub">
-        本科 · 软件工程&emsp;|&emsp;
-        GPA：<strong>X.X / 4.0（专业前 X%）</strong>
-        &emsp;|&emsp;
-        核心课程：数据结构与算法、操作系统、数据库系统、机器学习、自然语言处理
+        本科 · 软件工程&emsp;|&emsp;GPA：<strong>X.X / 4.0（专业前 X%）</strong>&emsp;|&emsp;核心课程：数据结构与算法、数据库系统、机器学习、自然语言处理
       </div>
     </div>
   </div>
@@ -277,7 +290,7 @@
   <div class="section">
     <div class="section-title">项目经历</div>
 
-    <!-- 项目 1：Text-to-SQL（最强项，放第一） -->
+    <!-- 项目 1：Text-to-SQL -->
     <div class="entry">
       <div class="entry-header">
         <span class="entry-title">
@@ -291,21 +304,29 @@
       </div>
 
       <div class="result-box">
-        📊 核心成果：132 条复杂仓储 Benchmark 中执行准确率 <strong class="metric">91.67%</strong>（Schema Graph 方案引入后自动召回提升至 <strong class="metric">96.97%</strong>）；慢 SQL 诊断 Pass@1 <strong class="metric">72%</strong> / Pass@3 <strong class="metric">86%</strong>，Cost 平均降低 <strong class="metric">68%</strong>；API Token 消耗减少 <strong class="metric">48%</strong>，支持 3 分钟 CI/CD 自动化回归。
+        📊 <strong>总体成果：</strong>132 条复杂仓储 Benchmark 执行准确率 <strong class="metric">91.67%</strong>（Schema Graph 引入后自动召回升至 <strong class="metric">96.97%</strong>）；慢 SQL Pass@1 <strong class="metric">72%</strong> / Pass@3 <strong class="metric">86%</strong>，Cost 降低 <strong class="metric">68%</strong>；API Token 消耗减少 <strong class="metric">48%</strong>，CI/CD 自动化回归缩短至 <strong class="metric">3 分钟</strong>。
       </div>
 
       <ul class="bullets">
         <li>
-          <strong>外键图跨表扩展（核心创新）</strong>：针对 7~12 表数取时"传统 RAG 无法召回无语义缩写中间表"的痛点，基于 DDL 提取外键约束，构建 Schema Graph，采用"种子语义召回 + 1-Hop 图拓扑路径扩展 + 受限最短路径"算法自动补全跨表 Join 链条，将 Schema 上下文均值压缩至 3.5k token（压缩 70%）。
+          <span class="s-tag">S</span>企业仓储场景存在 7~12 表复杂 Join，传统向量 RAG 因中间关联表语义缺失导致 SQL 断链，执行准确率仅 73.33%；
+          <span class="a-tag">A</span>基于 DDL 提取外键约束构建 Schema Graph，采用"种子语义召回 + 1-Hop 图拓扑扩展 + 受限最短路径"算法自动补全跨表 Join 链条，Schema 上下文均值压缩至 3.5k token（减少 70%）；
+          <span class="r-tag">R</span>自动召回准确率提升至 <strong class="metric">96.97%</strong>，彻底解决中间表断链问题。
         </li>
         <li>
-          <strong>慢查询诊断 Agent</strong>：构建"感知—诊断—改写—验证"闭环，结合 sqlglot AST 解析与 Docker 沙箱 EXPLAIN，动态识别全表扫描与索引失效等性能瓶颈；驱动 LLM 结构化改写并自动验证 SQL，引入 pgvector 相似案例 Top-3 检索，Cost 平均降低 68%。
+          <span class="s-tag">S</span>生产环境慢 SQL 排查依赖人工经验，50 条样本人工耗时长且 Pass@1 不足 50%；
+          <span class="a-tag">A</span>构建"感知—诊断—改写—验证"闭环 Agent：以 sqlglot AST 解析 + Docker 沙箱 EXPLAIN 动态定位全表扫描与索引失效，引入 pgvector 检索相似历史案例 Top-3 驱动 LLM 结构化改写并自动验证；
+          <span class="r-tag">R</span>Pass@1 达 <strong class="metric">72%</strong>，Pass@3 达 <strong class="metric">86%</strong>，处理 Cost 平均降低 <strong class="metric">68%</strong>。
         </li>
         <li>
-          <strong>MCP 动态热插拔工具路由</strong>：解决跨数据源（MySQL / ClickHouse / DolphinScheduler）工具随业务频繁变更的痛点，基于 MCP 协议实现运行时动态热插拔，针对多工具导致的 Prompt 膨胀，引入 pgvector 优选 Top-3 相关工具，工具上下文 Token 降低 70%。
+          <span class="s-tag">S</span>业务需跨 MySQL / ClickHouse / DolphinScheduler 多数据源调用，工具频繁变更导致 Prompt 膨胀，工具召回精度持续下降；
+          <span class="a-tag">A</span>基于 MCP 协议实现工具运行时动态热插拔，引入 pgvector 相似度优选 Top-3 相关工具压缩 Prompt；
+          <span class="r-tag">R</span>工具上下文 Token 降低 <strong class="metric">70%</strong>，工具调用失败率降低 <strong class="metric">70%</strong>，支持零停机工具更新。
         </li>
         <li>
-          <strong>沙箱熔断与 Eval Harness</strong>：基于数据库容器快照（Volume Snapshot）构建隔离测试套件，引入运行时 Error Hash 等幂检测机制，避免 Agent 死循环；规则变更 CI 归回耗时缩短至 3 分钟；API Token 消耗减少 48%。
+          <span class="s-tag">S</span>Agent 改写 SQL 存在副作用风险，规则变更后缺乏快速回归机制，CI 验证耗时超 30 分钟；
+          <span class="a-tag">A</span>基于 Volume Snapshot 构建隔离沙箱测试套件，引入 Error Hash 等幂熔断机制防止死循环，搭建 Eval Harness 实现全量规则的自动化回归；
+          <span class="r-tag">R</span>规则变更 CI 归回耗时缩短至 <strong class="metric">3 分钟</strong>，API Token 消耗减少 <strong class="metric">48%</strong>。
         </li>
       </ul>
     </div>
@@ -326,24 +347,29 @@
       </div>
 
       <div class="result-box">
-        📊 核心成果：混合检索 RAG 召回率由 <strong class="metric">0.70 提升至 0.90</strong>（+28.6%）；Tool-RAG 工具调用安全性通过 BFCL / AgentDojo 量化评测；全链路可观测接入 OpenTelemetry + Grafana，覆盖任务链路、检索结果与工具调用决策。
+        📊 <strong>总体成果：</strong>混合检索 RAG Top-5 召回率由 <strong class="metric">0.70 提升至 0.90</strong>（+28.6%）；通过 BFCL / AgentDojo 量化工具调用安全性；全链路可观测覆盖任务链路、检索结果与工具决策，指导多轮迭代优化。
       </div>
 
       <ul class="bullets">
         <li>
-          <strong>多租户 Agent 架构与权限隔离</strong>：面向知识问答与自动化任务场景构建多租户数字员工平台，支持份额配置、知识库绑定、工具授权与多步骤任务执行；设计"用户画像 + 滚动摘要 + 工作 / 长期记忆"独立记忆体系，在租户与角色维度实现 Row-Level 数据隔离与严格权限控制。
+          <span class="s-tag">S</span>企业多团队共用同一 Agent 平台，存在数据隔离与权限管控难题，且跨对话的知识遗忘导致上下文连续性差；
+          <span class="a-tag">A</span>构建多租户数字员工平台，设计"用户画像 + 滚动摘要 + 工作 / 长期记忆"独立记忆体系，在租户与角色维度实现 Row-Level 数据隔离与工具授权管控；
+          <span class="r-tag">R</span>支持多租户份额配置与知识库绑定，记忆体系实现跨会话上下文连续，权限隔离零越权。
         </li>
         <li>
-          <strong>容错 Agent Harness 引擎</strong>：实现可恢复 Harness，围绕任务运行生命周期统一管理规划、工具调用、人工审批、失败重试、熔断控制及 Token 预算，保障复杂多步骤任务稳定交付。
+          <span class="s-tag">S</span>多步骤 Agent 任务在工具调用失败、Token 超限或中途中断时无法恢复，导致任务丢失且难以人工介入；
+          <span class="a-tag">A</span>实现可恢复 Agent Harness 引擎，围绕任务生命周期统一管理规划、工具调用、人工审批、失败重试、熔断控制及 Token 预算，所有状态持久化至 Redis；
+          <span class="r-tag">R</span>复杂多步骤任务中断恢复率达 100%，Token 超限任务通过预算控制实现优雅降级。
         </li>
         <li>
-          <strong>混合检索与重排链路</strong>：构建 bge-m3 向量检索 + BM25 关键词检索的 RRF 融合链路，为数字员工动态召回业务知识与历史记忆，自建评测集 Top-5 召回率由 0.70 提升至 0.90；引入 RAGAS / BFCL / AgentDojo 建立实度、上下文召回率与工具调用安全性量化基准。
+          <span class="s-tag">S</span>单一向量检索对口语化查询与精确术语混合场景召回率仅 0.70，知识遗漏影响回答质量；
+          <span class="a-tag">A</span>构建 bge-m3 稠密向量 + BM25 关键词检索的 RRF 融合链路，引入 RAGAS / BFCL / AgentDojo 建立召回率、上下文准确度与工具调用安全性量化评测基准；
+          <span class="r-tag">R</span>Top-5 召回率由 <strong class="metric">0.70 提升至 0.90</strong>（+28.6%），评测体系支撑后续持续迭代。
         </li>
         <li>
-          <strong>多模态数据处理</strong>：基于 Redis / ARQ 异步处理 PDF、图片与音频，完成内容处理、向量化并写入对应知识库，支持多格式文档的流式摄入。
-        </li>
-        <li>
-          <strong>全栈可观测性</strong>：接入 OpenTelemetry + Prometheus + Loki + Tempo + Grafana，追踪数字员工的任务链路、检索结果、工具调用与决策过程，指导 RAG 检索参数与 Prompt 模板的持续迭代优化。
+          <span class="s-tag">S</span>Agent 任务链路黑盒，检索效果与工具调用决策难以归因，Prompt 迭代缺乏数据支撑；
+          <span class="a-tag">A</span>接入 OpenTelemetry + Prometheus + Loki + Tempo + Grafana，全链路追踪每次任务的检索召回、Rerank 排序、工具选择与 LLM 决策，构建可视化监控大盘；
+          <span class="r-tag">R</span>实现端到端链路可观测，基于 Trace 数据定向优化 RAG 参数与 Prompt 模板，有效指导多轮迭代。
         </li>
       </ul>
     </div>
@@ -360,10 +386,14 @@
       <div class="entry-sub">Java 开发实习生</div>
       <ul class="bullets">
         <li>
-          参与企业级大数据 AI 应用平台研发，负责跨源数据执行引擎、海豚调度器（DolphinScheduler）二次开发集成及底层数据服务 API 封装，支撑低代码前端的数据调度与查询能力。
+          <span class="s-tag">S</span>企业低代码平台存在跨源数据调度能力缺失，前端无法统一接入异构数据查询；
+          <span class="a-tag">A</span>负责跨源数据执行引擎与海豚调度器（DolphinScheduler）二次开发集成，封装统一底层数据服务 API；
+          <span class="r-tag">R</span>支撑低代码前端完成跨源数据调度与查询能力接入，消除原有接口碎片化问题。
         </li>
         <li>
-          对 Spring Boot 微服务模块完成 Docker 容器化打包与镜像部署，编写规范的 OpenAPI 接口文档，配合前端完成全链路联调与异常处理，具备从开发到上线的完整工程交付经验。
+          <span class="s-tag">S</span>Spring Boot 微服务缺乏容器化标准，部署流程依赖人工操作，跨环境一致性差；
+          <span class="a-tag">A</span>主导模块 Docker 容器化打包与镜像部署，编写规范化 OpenAPI 接口文档，配合前端完成全链路联调与异常处理；
+          <span class="r-tag">R</span>实现从开发到上线的完整工程交付闭环，镜像部署流程标准化。
         </li>
       </ul>
     </div>
